@@ -48,7 +48,7 @@ from lens_images_extension import pixelize_plane as pixelize_plane_single
 #priors:
 ##########################################################################################################
 ##########################################################################################################
-def EPL_w_shear(plate_name, param_name,theta_low = 0.0, theta_high = 3, gamma_low = 1.2, gamma_up = 2.8, center_x = None, center_y = None, e_low=-0.2, e_high=0.2, center_high = 0.2, center_low = -0.2):
+def EPL_w_shear(plate_name, param_name,theta_low = 0.0, theta_high = 3, gamma_low = 1.2, gamma_up = 2.8, center_x = None, center_y = None, e_low=-0.5, e_high=0.5, center_high = 0.5, center_low = -0.5):
     with numpyro.plate(f'{plate_name} scalers - [1]', 1):
         theta_E = numpyro.sample(f'theta_E_{param_name}', dist.Uniform(theta_low, theta_high))
         gamma = numpyro.sample(f'gamma_{param_name}', dist.Uniform(gamma_low, gamma_up))
