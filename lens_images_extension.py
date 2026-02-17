@@ -17,10 +17,12 @@ class LensImageExtension(LensImage):
         lens_mass_model_class=None,
         source_model_class=None,
         lens_light_model_class=None,
+        point_source_model_class=None,
         source_arc_mask=None,
         source_grid_scale=1.0,
         conjugate_points=None,
-        kwargs_numerics=None
+        kwargs_numerics=None,
+        kwargs_lens_equation_solver=None
     ):
         super().__init__(
             grid_class,
@@ -29,8 +31,10 @@ class LensImageExtension(LensImage):
             lens_mass_model_class=lens_mass_model_class,
             source_model_class=source_model_class,
             lens_light_model_class=lens_light_model_class,
+            point_source_model_class=point_source_model_class,
             source_arc_mask=source_arc_mask,
-            kwargs_numerics=kwargs_numerics
+            kwargs_numerics=kwargs_numerics,
+            kwargs_lens_equation_solver=kwargs_lens_equation_solver
         )
         if kwargs_numerics is None:
             kwargs_numerics = {}
@@ -111,19 +115,22 @@ class LensImageExtension(LensImage):
         )
         return lens_light
 
-    @partial(jax.jit, static_argnums=(0, 4, 5, 6, 7, 8, 9, 10))
+    @partial(jax.jit, static_argnums=(0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
     def model(
         self,
         kwargs_lens=None,
         kwargs_source=None,
         kwargs_lens_light=None,
+        kwargs_point_source=None,
         unconvolved=False,
         supersampled=False,
         source_add=True,
         lens_light_add=True,
+        point_source_add=True,
         k_lens=None,
         k_source=None,
         k_lens_light=None,
+        k_point_source=None,
         psf_noise_fft=None
     ):
         """
@@ -135,16 +142,17 @@ class LensImageExtension(LensImage):
             profiles
         :param kwargs_lens_light: list of keyword arguments corresponding to different lens light surface brightness
             profiles
-        :param kwargs_ps: keyword arguments corresponding to "other" parameters, such as external shear and point
-            source image positions
+        :param kwargs_point_source: keyword arguments corresponding to the point source model
         :param unconvolved: if True: returns the unconvolved light distribution (prefect seeing)
         :param supersampled: if True, returns the model on the higher resolution grid (WARNING: no convolution nor
             normalization is performed in this case!)
         :param source_add: if True, compute source, otherwise without
         :param lens_light_add: if True, compute lens light, otherwise without
+        :param point_source_add: if True, add point-source images, otherwise without
         :param k_lens: list of bool or list of int to select which lens mass profiles to include
         :param k_source: list of bool or list of int to select which source profiles to include
         :param k_lens_light: list of bool or list of int to select which lens light profiles to include
+        :param k_point_source: list of bool or list of int to select which point-source profiles to include
         :return: 2d array of surface brightness pixels of the simulation
         """
         model = jnp.zeros((self.ImageNumerics.grid_class.num_grid_points,)).flatten()
@@ -166,6 +174,17 @@ class LensImageExtension(LensImage):
         # psf_noise_fft = None
         if not supersampled:
             model = self.ImageNumerics.re_size_convolve(model, psf_noise_fft, unconvolved=unconvolved)
+        if point_source_add:
+            if supersampled:
+                raise ValueError(
+                    "point_source_add=True is not supported with supersampled=True in LensImageExtension"
+                )
+            model += self.point_source_image(
+                kwargs_point_source,
+                kwargs_lens,
+                kwargs_solver=self.kwargs_lens_equation_solver,
+                k=k_point_source
+            )
         return model
 
     def trace_conjugate_points(self, kwargs_lens, k_lens=None):
