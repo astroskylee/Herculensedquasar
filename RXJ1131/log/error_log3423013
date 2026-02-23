@@ -1,0 +1,2 @@
+/users/tianli/LensModelling/Herculensedquasar/RXJ1131/read_data.py:23: UserWarning: The figure layout has changed to tight
+  plt.tight_layout()

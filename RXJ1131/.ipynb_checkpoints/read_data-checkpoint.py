@@ -63,10 +63,10 @@ data = data - bkg_mean
 plt.figure(figsize = (12,16))
 for i in range(4):
     plt.subplot(4,3,1+i*3)
-    plt.imshow(data, norm = 'log', cmap = 'twilight', origin = 'lower')
+    plt.imshow(data, norm = 'log', cmap = 'twilight', origin = 'lower',vmax = 10, vmin = 0.001)
     plt.subplot(4,3,2+i*3)
     model_image = inf_data_pixel.posterior.model_image.median(axis = 1)[i,:,:]
-    plt.imshow(model_image, norm = 'log', cmap = 'twilight', origin = 'lower')
+    plt.imshow(model_image, norm = 'log', cmap = 'twilight', origin = 'lower', vmax = 10, vmin = 0.001)
     plt.subplot(4,3,3+i*3)
     plt.imshow((data  - model_image) / rms_file, cmap = 'bwr', vmax = 3, vmin = -3, origin = 'lower')
 plt.savefig('./result/lens_model.pdf')
