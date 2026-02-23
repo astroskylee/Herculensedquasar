@@ -1,6 +1,0 @@
-Currently Loaded Modulefiles: 1) services/slurm <aL> 3) git/2.48.0 2) system/intel64(default) 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
-[CudaDevice(id=0)]
-Using PSF model: ./psf_data/PSF_model_step3_svi.fits
-Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
-PSF corner median (5x5) = 1.123e-06
-77

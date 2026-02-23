@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/users/tianli/LensModelling/Herculensedquasar/RXJ1131/RXJ1131_model_to_hmc.py", line 19, in <module>
-    quasat_hmc_dir.mkdir(parents=True, exist_ok=True)
-    ^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'str' object has no attribute 'mkdir'

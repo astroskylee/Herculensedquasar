@@ -1,0 +1,18 @@
+Currently Loaded Modulefiles: 1) services/slurm <aL> 3) git/2.48.0 2) system/intel64(default) 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+concat
+divergences per chain per step:
+ [[ 0 20 65  0]
+ [ 0  0  0  0]]
+                       mean     sd  hdi_3%  hdi_97%  mcse_mean  mcse_sd  ess_bulk  ess_tail  r_hat
+theta_E_1[0]          1.831  0.001   1.830    1.832      0.000    0.000       7.0      35.0   1.56
+gamma_1[0]            2.030  0.008   2.017    2.040      0.003    0.002       6.0      25.0   1.81
+e_1[0, 0]            -0.089  0.001  -0.091   -0.086      0.001    0.000       6.0      29.0   1.72
+e_1[1, 0]            -0.013  0.004  -0.018   -0.009      0.002    0.000       5.0      16.0   2.53
+center_1[0]          -0.060  0.002  -0.062   -0.055      0.001    0.001       5.0      14.0   2.49
+center_1[1]           0.005  0.001   0.004    0.007      0.000    0.000       6.0      35.0   1.84
+gamma_sheer_1[0, 0]   0.087  0.002   0.084    0.089      0.001    0.000       6.0      29.0   1.88
+gamma_sheer_1[1, 0]  -0.070  0.002  -0.073   -0.066      0.001    0.000       5.0      15.0   2.58
+n_source_grid[0]      0.002  0.001   0.000    0.004      0.000    0.000       8.0      61.0   1.50
+rho_source_grid[0]    6.002  4.386   1.487   13.807      0.958    0.713      12.0      47.0   1.28
+sigma_source_grid[0]  4.868  1.401   2.613    7.268      0.545    0.156       7.0      59.0   1.53
+[CudaDevice(id=0)]

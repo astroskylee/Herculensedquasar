@@ -1,0 +1,4 @@
+  File "/users/tianli/LensModelling/Herculensedquasar/RXJ1131/RXJ1131_model_to_hmc.py", line 768
+    mcmc_chain.to_netcdf(f"/mnt/lustre/tianli/quasar_hmc/RXJ1131_{i}.nc"))
+                                                                         ^
+SyntaxError: unmatched ')'

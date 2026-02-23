@@ -765,7 +765,7 @@ for i in range(batch_number):
     mcmc_pixel._states = jax.device_get(mcmc_pixel._states)
     mcmc_pixel._states_flat = jax.device_get(mcmc_pixel._states_flat)
     mcmc_chain = az.from_numpyro(mcmc_pixel)
-    mcmc_chain.to_netcdf(str(quasat_hmc_dir / f"RXJ1131_{i}.nc"))
+    mcmc_chain.to_netcdf(f"/mnt/lustre/tianli/quasar_hmc/RXJ1131_{i}.nc")
     batch_list.append(mcmc_chain)
 
 
@@ -773,6 +773,6 @@ for i in range(batch_number):
 # Concatenate HMC batches and save
 # -----------------------------
 inf_data = az.concat(*batch_list, dim="draw")
-inf_data_path = quasat_hmc_dir / "RXJ1131_all.nc"
+inf_data_path = "/mnt/lustre/tianli/quasar_hmc/RXJ1131_all.nc"
 inf_data.to_netcdf(str(inf_data_path))
 print(f"Saved concatenated inf_data to: {inf_data_path}")
