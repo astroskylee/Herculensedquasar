@@ -9,6 +9,7 @@ from herculens.LensImage.Numerics.convolution import (
 from herculens.LensImage.Numerics.numerics import Numerics
 from herculens.Util import kernel_util
 from scipy.fft import next_fast_len as osp_fft_next_fast_len
+from jax.scipy.ndimage import map_coordinates
 
 
 class PixelKernelConvolutionFFT(PixelKernelConvolution):
@@ -169,3 +170,36 @@ class NumericsFFT(Numerics):
             # for other psf type, only convolve low res grid and high res grid
             image_conv = self._conv.re_size_convolve(image_low_res, image_high_res_partial)
         return image_conv * self._pixel_width ** 2
+
+    def render_point_sources(self, theta_x, theta_y, amplitude, psf_kernel=None):
+        """Render point sources with either the default PSF or an explicit kernel."""
+        result = jnp.zeros(self._pixel_grid.num_pixel_axes)
+
+        theta_x = jnp.atleast_1d(theta_x)
+        theta_y = jnp.atleast_1d(theta_y)
+        amplitude = jnp.atleast_1d(amplitude)
+
+        x, y = self._pixel_grid.map_coord2pix(theta_x, theta_y)
+
+        if psf_kernel is None:
+            if self._psf.kernel_point_source is None:
+                err_msg = (
+                    "PSF has no kernel_point_source. This can happen, for "
+                    "example, if `pixel_size` was not provided for type GAUSSIAN."
+                )
+                raise ValueError(err_msg)
+            kernel = self._psf.kernel_point_source.T
+        else:
+            kernel = jnp.asarray(psf_kernel).T
+            if kernel.ndim != 2:
+                raise ValueError("`psf_kernel` must be a 2D array.")
+
+        nx, ny = self._pixel_grid.num_pixel_axes
+        xrange = jnp.arange(nx) + kernel.shape[0] // 2
+        yrange = jnp.arange(ny) + kernel.shape[1] // 2
+
+        for x0, y0, amp in zip(x, y, amplitude):
+            xy_grid = jnp.meshgrid(xrange - x0, yrange - y0)
+            result += amp * map_coordinates(kernel, xy_grid, order=1)
+
+        return result
