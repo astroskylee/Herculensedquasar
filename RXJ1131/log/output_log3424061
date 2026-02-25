@@ -3,3 +3,4 @@ Currently Loaded Modulefiles: 1) services/slurm <aL> 3) git/2.48.0 2) system/int
 Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
 83
 Saved batch to: /mnt/lustre/tianli/quasar_hmc/RXJ1131_psf_correction0.nc
+Saved batch to: /mnt/lustre/tianli/quasar_hmc/RXJ1131_psf_correction1.nc
