@@ -115,35 +115,6 @@ class LensImageExtension(LensImage):
         )
         return lens_light
 
-    def point_source_image(
-        self,
-        kwargs_point_source,
-        kwargs_lens,
-        kwargs_solver,
-        k=None,
-        psf_kernel=None
-    ):
-        """Compute PSF-convolved point sources, optionally using an explicit PSF kernel."""
-        result = jnp.zeros((self.Grid.num_pixel_axes))
-        if self.PointSourceModel is None:
-            return result
-        theta_x, theta_y, amplitude = self.PointSourceModel.get_multiple_images(
-            kwargs_point_source,
-            kwargs_lens=kwargs_lens,
-            kwargs_solver=kwargs_solver,
-            k=k,
-            with_amplitude=True,
-            zero_amp_duplicates=True
-        )
-        for i in range(len(theta_x)):
-            result += self.ImageNumerics.render_point_sources(
-                theta_x[i],
-                theta_y[i],
-                amplitude[i],
-                psf_kernel=psf_kernel
-            )
-        return result
-
     @partial(jax.jit, static_argnums=(0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
     def model(
         self,
@@ -160,8 +131,7 @@ class LensImageExtension(LensImage):
         k_source=None,
         k_lens_light=None,
         k_point_source=None,
-        psf_noise_fft=None,
-        psf_kernel_point_source=None
+        psf_noise_fft=None
     ):
         """
         Create the 2D model image from parameter values.
@@ -213,8 +183,7 @@ class LensImageExtension(LensImage):
                 kwargs_point_source,
                 kwargs_lens,
                 kwargs_solver=self.kwargs_lens_equation_solver,
-                k=k_point_source,
-                psf_kernel=psf_kernel_point_source
+                k=k_point_source
             )
         return model
 
