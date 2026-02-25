@@ -22,5 +22,5 @@ source /mnt/lustre2/shared_conda/envs/tianli/herculens_tian/bin/activate
 cd /users/tianli/LensModelling/Herculensedquasar/RXJ1131
 
 
-python -u RXJ1131_model_to_hmc.py
+python -u RXJ1131_psf_corr.py
 #python -u Herculens_3DSPL_EPL.py

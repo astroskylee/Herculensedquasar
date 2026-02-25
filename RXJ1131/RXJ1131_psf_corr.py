@@ -23,24 +23,25 @@ os.chdir(SCRIPT_DIR)
 warnings.simplefilter("ignore")
 
 # HPC/shared-filesystem safety for netCDF/HDF5 writers/readers.
-os.environ.setdefault("HDF5_USE_FILE_LOCKING", "FALSE")
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["XLA_FLAGS"] = (
-    "--xla_gpu_enable_triton_softmax_fusion=true "
-    "--xla_gpu_triton_gemm_any=True "
-    "--xla_gpu_enable_async_collectives=true "
-    "--xla_gpu_enable_latency_hiding_scheduler=true "
-    "--xla_gpu_enable_highest_priority_async_stream=true "
-)
-if "graphviz" not in os.environ.get("PATH", ""):
-    os.environ["PATH"] = (
-        "/opt/apps/pkgs/graphviz/12.2.1/intel64/gnu_12.2.0/bin:" + os.environ.get("PATH", "")
-    )
-
 
 from herculens_import_main import *
 import jax
 import numpyro
+jax.config.update("jax_enable_x64", True)
+numpyro.enable_x64()
+
+os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
+os.environ['XLA_FLAGS'] = (
+    '--xla_gpu_enable_triton_softmax_fusion=true '
+    '--xla_gpu_triton_gemm_any=True '
+    '--xla_gpu_enable_async_collectives=true '
+    '--xla_gpu_enable_latency_hiding_scheduler=true '
+    '--xla_gpu_enable_highest_priority_async_stream=true '
+)
+if 'graphviz' not in os.environ['PATH']:
+    os.environ['PATH'] = '/opt/apps/pkgs/graphviz/12.2.1/intel64/gnu_12.2.0/bin:' + os.environ['PATH']
+
+
 import arviz as az
 from copy import deepcopy
 from numpyro.infer import NUTS, MCMC
@@ -48,8 +49,7 @@ from custom_gibbs import MultiHMCGibbs
 from herculens.PointSourceModel.point_source_model import PointSourceModel
 
 
-jax.config.update("jax_enable_x64", True)
-numpyro.enable_x64()
+
 
 
 # -----------------------------------------------------------------------------
@@ -772,7 +772,7 @@ for i in range(batch_number):
     mcmc_pixel._states = jax.device_get(mcmc_pixel._states)
     mcmc_pixel._states_flat = jax.device_get(mcmc_pixel._states_flat)
     mcmc_chain = az.from_numpyro(mcmc_pixel)
-    batch_path = f"{quasar_hmc_dir}/RXJ1131_{i}.nc"
+    batch_path = f"{quasar_hmc_dir}/RXJ1131_psf_correction{i}.nc"
     mcmc_chain.to_netcdf(batch_path)
     batch_list.append(mcmc_chain)
     print(f"Saved batch to: {batch_path}")
@@ -782,6 +782,6 @@ for i in range(batch_number):
 # Concatenate batches and save
 # -----------------------------------------------------------------------------
 inf_data = az.concat(*batch_list, dim="draw")
-inf_data_path = "/mnt/lustre/tianli/quasar_hmc/RXJ1131_all.nc"
+inf_data_path = "/mnt/lustre/tianli/quasar_hmc/RXJ1131_psf_correction.nc"
 inf_data.to_netcdf(str(inf_data_path))
 print(f"Saved concatenated inf_data to: {inf_data_path}")
