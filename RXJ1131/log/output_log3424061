@@ -4,3 +4,4 @@ Warning: both `noise_map` and `background_rms` are None; `background_rms` should
 83
 Saved batch to: /mnt/lustre/tianli/quasar_hmc/RXJ1131_psf_correction0.nc
 Saved batch to: /mnt/lustre/tianli/quasar_hmc/RXJ1131_psf_correction1.nc
+Saved batch to: /mnt/lustre/tianli/quasar_hmc/RXJ1131_psf_correction2.nc
