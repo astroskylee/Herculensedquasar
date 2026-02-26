@@ -33,7 +33,7 @@ class PixelKernelConvolutionFFT(PixelKernelConvolution):
         )
         self.norm = jnp.sqrt(self.fft_shape[0] * self.fft_shape[1])
 
-    def convolution2d(self, image, psf_noise_fft=None):
+    def convolution2d(self, image, psf_noise_fft=None, psf_kernel=None):
         '''
         :param image: 2d array, input image
 
@@ -42,8 +42,15 @@ class PixelKernelConvolutionFFT(PixelKernelConvolution):
             raise ValueError("incompatible image shape as initialized image")
 
         sp1 = jnp.fft.rfftn(image, self.fft_shape, norm='ortho')
+        if psf_kernel is None:
+            sp2 = self.sp2
+        else:
+            psf_kernel = jnp.asarray(psf_kernel)
+            if psf_kernel.ndim != 2:
+                raise ValueError("`psf_kernel` must be a 2D array.")
+            sp2 = jnp.fft.rfftn(psf_kernel, self.fft_shape, norm='ortho')
 
-        sp_conv = sp1 * self.sp2
+        sp_conv = sp1 * sp2
 
         if psf_noise_fft is not None:
             sp_conv += sp_conv * psf_noise_fft
@@ -56,14 +63,14 @@ class PixelKernelConvolutionFFT(PixelKernelConvolution):
             image.shape
         )
 
-    def re_size_convolve(self, image_low_res, psf_noise_fft=None, image_high_res=None):
+    def re_size_convolve(self, image_low_res, psf_noise_fft=None, image_high_res=None, psf_kernel=None):
         """
 
         :param image_high_res: supersampled image/model to be convolved on a regular pixel grid
         :param psf_noise_fft: noize of PSF in FFT space
         :return: convolved and re-sized image
         """
-        return self.convolution2d(image_low_res, psf_noise_fft)
+        return self.convolution2d(image_low_res, psf_noise_fft, psf_kernel=psf_kernel)
 
 
 class SubgridKernelConvolutionFFT(SubgridKernelConvolution):
@@ -152,7 +159,7 @@ class NumericsFFT(Numerics):
                     output_shape=(nx, ny)
                 )
 
-    def re_size_convolve(self, flux_array, psf_noise_fft=None, unconvolved=False):
+    def re_size_convolve(self, flux_array, psf_noise_fft=None, unconvolved=False, psf_kernel=None):
         """
 
         :param flux_array: 1d array, flux values corresponding to coordinates_evaluate
@@ -165,7 +172,12 @@ class NumericsFFT(Numerics):
             image_conv = image_low_res
         elif self._psf_type == 'PIXEL': 
             # convolve low res grid and high res grid with the noise of the psf in fft
-            image_conv = self._conv.re_size_convolve(image_low_res, psf_noise_fft, image_high_res_partial)
+            image_conv = self._conv.re_size_convolve(
+                image_low_res,
+                psf_noise_fft,
+                image_high_res_partial,
+                psf_kernel=psf_kernel
+            )
         else:
             # for other psf type, only convolve low res grid and high res grid
             image_conv = self._conv.re_size_convolve(image_low_res, image_high_res_partial)

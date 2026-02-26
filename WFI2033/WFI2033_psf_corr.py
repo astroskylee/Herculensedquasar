@@ -261,7 +261,7 @@ def model(
     pixelated=False,
     n_value=None,
     mass_prior_kwargs={},
-    psf_kernel_point_source=None,
+    psf_kernel=None,
     k_psf_values=None,
     enable_psf_corr=False,
 ):
@@ -347,7 +347,7 @@ def model(
             center_det=source_center,
         )
 
-    psf_kernel_eff = psf_kernel_point_source
+    psf_kernel_eff = psf_kernel
 
     if pixelated and enable_psf_corr:
         psf_corr = matern_power_spectrum(
@@ -360,7 +360,7 @@ def model(
             positive=True,
         )
         psf_kernel_eff = build_corrected_psf_kernel(
-            psf_kernel_point_source,
+            psf_kernel,
             psf_corr["pixels"],
         )
 
@@ -371,7 +371,7 @@ def model(
         kwargs_point_source=kwargs_point_source,
         source_add=True,
         point_source_add=True,
-        psf_kernel_point_source=psf_kernel_eff,
+        psf_kernel=psf_kernel_eff,
     )
 
     if provided_rms:
@@ -634,7 +634,7 @@ for i in range(num_chains):
         pixelated=True,
         provided_rms=provided_rms,
         mass_prior_kwargs=MASS_PRIOR_PIXELATED,
-        psf_kernel_point_source=psf_hst,
+        psf_kernel=psf_hst,
         k_psf_values=k_psf,
         enable_psf_corr=True,
         progress_bar=True,
@@ -676,7 +676,7 @@ unconstrined_svi_pixel_median = jax.vmap(
             "pixelated": True,
             "provided_rms": provided_rms,
             "mass_prior_kwargs": MASS_PRIOR_PIXELATED,
-            "psf_kernel_point_source": psf_hst,
+            "psf_kernel": psf_hst,
             "k_psf_values": k_psf,
             "enable_psf_corr": True,
         },
@@ -756,7 +756,7 @@ for i in range(batch_number):
             pixelated=True,
             provided_rms=provided_rms,
             mass_prior_kwargs=MASS_PRIOR_PIXELATED,
-            psf_kernel_point_source=psf_hst,
+            psf_kernel=psf_hst,
             k_psf_values=k_psf,
             enable_psf_corr=True,
             init_params=unconstrined_svi_pixel_median,
@@ -772,7 +772,7 @@ for i in range(batch_number):
             pixelated=True,
             provided_rms=provided_rms,
             mass_prior_kwargs=MASS_PRIOR_PIXELATED,
-            psf_kernel_point_source=psf_hst,
+            psf_kernel=psf_hst,
             k_psf_values=k_psf,
             enable_psf_corr=True,
         )
