@@ -1,0 +1,10 @@
+/users/tianli/LensModelling/Herculensedquasar/RXJ1131/plot_data.py:23: UserWarning: The figure layout has changed to tight
+  plt.tight_layout()
+/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/corner/core.py:133: UserWarning: This figure was using a layout engine that is incompatible with subplots_adjust and/or tight_layout; not calling subplots_adjust.
+  fig.subplots_adjust(
+/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/corner/core.py:133: UserWarning: This figure was using a layout engine that is incompatible with subplots_adjust and/or tight_layout; not calling subplots_adjust.
+  fig.subplots_adjust(
+/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/corner/core.py:133: UserWarning: This figure was using a layout engine that is incompatible with subplots_adjust and/or tight_layout; not calling subplots_adjust.
+  fig.subplots_adjust(
+/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/corner/core.py:133: UserWarning: This figure was using a layout engine that is incompatible with subplots_adjust and/or tight_layout; not calling subplots_adjust.
+  fig.subplots_adjust(
