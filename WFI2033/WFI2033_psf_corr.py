@@ -111,7 +111,6 @@ N_gauss_light = 12
 N_gauss_source = 1
 sigma_lims_lens = [0.01, 3.0]
 sigma_lims = [0.01, 0.5]
-lens_light_ps_pos = jnp.array([0.5, -0.1])
 source_grid_scale = 0.5
 
 conj_points = jnp.array(
@@ -294,21 +293,13 @@ def model(
             POINT_SOURCE_PRIOR["log10_amp_high"],
         ).expand([n_ps]),
     )
-    log10_amp_lens_ps = numpyro.sample(
-        "log10_amp_lens_ps",
-        dist.Uniform(
-            POINT_SOURCE_PRIOR["log10_amp_lens_low"],
-            POINT_SOURCE_PRIOR["log10_amp_lens_high"],
-        ),
-    )
 
     amp_quasar_ps = jnp.power(10.0, log10_amp_ps)
-    amp_lens_ps = jnp.power(10.0, log10_amp_lens_ps)
     kwargs_point_source = [
         {
-            "ra": jnp.concatenate([ra_ps, jnp.array([lens_light_ps_pos[0]])]),
-            "dec": jnp.concatenate([dec_ps, jnp.array([lens_light_ps_pos[1]])]),
-            "amp": jnp.concatenate([amp_quasar_ps, jnp.array([amp_lens_ps])]),
+            "ra": ra_ps,
+            "dec": dec_ps,
+            "amp": amp_quasar_ps,
         }
     ]
 
@@ -399,14 +390,9 @@ def params2kwargs(params, fixed_params={}, pixelated=False):
     kwargs_lens_light = params2kwargs_multi_gauss_light(params_full, "lens")
     kwargs_point_source = [
         {
-            "ra": jnp.concatenate([params_full["ra_ps"], jnp.array([lens_light_ps_pos[0]])]),
-            "dec": jnp.concatenate([params_full["dec_ps"], jnp.array([lens_light_ps_pos[1]])]),
-            "amp": jnp.concatenate(
-                [
-                    jnp.power(10.0, params_full["log10_amp_ps"]),
-                    jnp.array([jnp.power(10.0, params_full["log10_amp_lens_ps"])]),
-                ]
-            ),
+            "ra": params_full["ra_ps"],
+            "dec": params_full["dec_ps"],
+            "amp": jnp.power(10.0, params_full["log10_amp_ps"]),
         }
     ]
 
@@ -485,7 +471,7 @@ print(pixel_grid_shape)
 vars_mass = ["theta_E_1", "gamma_1", "e_1", "center_1", "gamma_sheer_1"]
 vars_lens_light = ["A_lens", "sigma_lens", "e_lens", "center_lens"]
 vars_source_light = ["A_source", "sigma_source", "e_source"]
-vars_point_source = ["ra_ps", "dec_ps", "log10_amp_ps", "log10_amp_lens_ps"]
+vars_point_source = ["ra_ps", "dec_ps", "log10_amp_ps"]
 vars_other = []
 
 k_grid = K_grid((pixel_grid_shape, pixel_grid_shape))
@@ -659,7 +645,7 @@ multi_svi_pixel_median_herc_stage2 = median_params2kwargs(
 # -----------------------------------------------------------------------------
 vars_pixel = ["pixels_wn_source_grid"]
 vars_power = ["n_source_grid", "rho_source_grid", "sigma_source_grid"]
-vars_psf = ["ra_ps", "dec_ps", "log10_amp_ps", "log10_amp_lens_ps"]
+vars_psf = ["ra_ps", "dec_ps", "log10_amp_ps"]
 vars_psf_corr = ["n_psf_corr", "rho_psf_corr", "sigma_psf_corr", "pixels_wn_psf_corr"]
 
 multi_svi_pixel_median_vars = {
@@ -717,7 +703,7 @@ inner_kernels = [
         target_accept_prob=0.9,
         max_tree_depth=10,
         dense_mass=[
-            ("ra_ps", "dec_ps", "log10_amp_ps", "log10_amp_lens_ps"),
+            ("ra_ps", "dec_ps", "log10_amp_ps"),
             ("n_psf_corr", "rho_psf_corr", "sigma_psf_corr"),
         ],
     ),

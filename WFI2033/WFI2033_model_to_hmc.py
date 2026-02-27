@@ -117,9 +117,6 @@ N_gauss_source = 1
 
 sigma_lims_lens = [0.01, 3.0]
 sigma_lims = [0.01, 0.5]
-
-lens_light_ps_pos = jnp.array([0.5, -0.1])
-
 source_grid_scale = 0.7
 
 conj_points = jnp.array([
@@ -226,16 +223,11 @@ def model(data, conj = True, provided_rms = False):
         'log10_amp_ps',
         dist.Uniform(-3.0, 4.5).expand([n_ps]),
     )
-    log10_amp_lens_ps = numpyro.sample(
-        'log10_amp_lens_ps',
-        dist.Uniform(-3.0, 4.5),
-    )
     amp_quasar_ps = jnp.power(10.0, log10_amp_ps)
-    amp_lens_ps = jnp.power(10.0, log10_amp_lens_ps)
     kwargs_point_source = [{
-        'ra': jnp.concatenate([ra_ps, jnp.array([lens_light_ps_pos[0]])]),
-        'dec': jnp.concatenate([dec_ps, jnp.array([lens_light_ps_pos[1]])]),
-        'amp': jnp.concatenate([amp_quasar_ps, jnp.array([amp_lens_ps])]),
+        'ra': ra_ps,
+        'dec': dec_ps,
+        'amp': amp_quasar_ps,
     }]
 
     conj_points_model = lens_image.trace_conjugate_points(mass_params)
@@ -291,12 +283,9 @@ def params2kwargs(params, fixed_params={}):
         ])
         params_full = params_full | {'center_source': center_source}
     kwargs_point_source = [{
-        'ra': jnp.concatenate([params_full['ra_ps'], jnp.array([lens_light_ps_pos[0]])]),
-        'dec': jnp.concatenate([params_full['dec_ps'], jnp.array([lens_light_ps_pos[1]])]),
-        'amp': jnp.concatenate([
-            jnp.power(10.0, params_full['log10_amp_ps']),
-            jnp.array([jnp.power(10.0, params_full['log10_amp_lens_ps'])]),
-        ]),
+        'ra': params_full['ra_ps'],
+        'dec': params_full['dec_ps'],
+        'amp': jnp.power(10.0, params_full['log10_amp_ps']),
     }]
     return {
         'kwargs_lens': kwargs_lens,
@@ -383,7 +372,7 @@ print(pixel_grid_shape)
 vars_mass = ['theta_E_1', 'gamma_1', 'e_1', 'center_1', 'gamma_sheer_1']
 vars_lens_light = ['A_lens', 'sigma_lens', 'e_lens', 'center_lens']
 vars_source_light = ['A_source', 'sigma_source', 'e_source']
-vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps', 'log10_amp_lens_ps']
+vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps']
 vars_other = []
 
 svi_samples = guide.sample_posterior(rng_key_, multi_svi_results.params, sample_shape=(1000,))
@@ -478,16 +467,11 @@ def model_pixel_full(data, k_values, conj=True, n_value = None):
         'log10_amp_ps',
         dist.Uniform(-3.0, 4.5).expand([n_ps]),
     )
-    log10_amp_lens_ps = numpyro.sample(
-        'log10_amp_lens_ps',
-        dist.Uniform(-3.0, 4.5),
-    )
     amp_quasar_ps = jnp.power(10.0, log10_amp_ps)
-    amp_lens_ps = jnp.power(10.0, log10_amp_lens_ps)
     kwargs_point_source = [{
-        'ra': jnp.concatenate([ra_ps, jnp.array([lens_light_ps_pos[0]])]),
-        'dec': jnp.concatenate([dec_ps, jnp.array([lens_light_ps_pos[1]])]),
-        'amp': jnp.concatenate([amp_quasar_ps, jnp.array([amp_lens_ps])]),
+        'ra': ra_ps,
+        'dec': dec_ps,
+        'amp': amp_quasar_ps,
     }]
     
     if conj:
@@ -535,12 +519,9 @@ def params2kwargs_pixel(params, fixed_params={}):
     kwargs_source = [params2kwargs_power_spectrum(params_full, 'source_grid'),]
     kwargs_lens_light = params2kwargs_multi_gauss_light(params_full, 'lens')
     kwargs_point_source = [{
-        'ra': jnp.concatenate([params_full['ra_ps'], jnp.array([lens_light_ps_pos[0]])]),
-        'dec': jnp.concatenate([params_full['dec_ps'], jnp.array([lens_light_ps_pos[1]])]),
-        'amp': jnp.concatenate([
-            jnp.power(10.0, params_full['log10_amp_ps']),
-            jnp.array([jnp.power(10.0, params_full['log10_amp_lens_ps'])]),
-        ]),
+        'ra': params_full['ra_ps'],
+        'dec': params_full['dec_ps'],
+        'amp': jnp.power(10.0, params_full['log10_amp_ps']),
     }]
     return {
         'kwargs_lens': kwargs_lens,
@@ -692,7 +673,7 @@ for i in range(num_chains):
 # -----------------------------
 vars_pixel = ['pixels_wn_source_grid']
 vars_power = ['n_source_grid', 'rho_source_grid', 'sigma_source_grid']
-vars_psf = ['ra_ps', 'dec_ps', 'log10_amp_ps', 'log10_amp_lens_ps']
+vars_psf = ['ra_ps', 'dec_ps', 'log10_amp_ps']
 multi_svi_pixel_median_vars = {k: multi_svi_pixel_median[k] for k in vars_mass + vars_power + vars_pixel + vars_other+vars_lens_light+vars_psf}# + 
 unconstrined_svi_pixel_median = jax.vmap(lambda p: infer.util.unconstrain_fn(model_pixel_full, (data, k_grid.k), {}, p))(multi_svi_pixel_median_vars)
 #unconstrined_svi_pixel_median_trim = get_value_from_indexs(unconstrined_svi_pixel_median, jnp.array([2, 5, 8, 4]))
@@ -714,7 +695,7 @@ inner_kernels = [
         init_strategy=init_fun_pixel,
         target_accept_prob=0.99,
         max_tree_depth=10,
-        dense_mass=[('n_source_grid', 'rho_source_grid', 'sigma_source_grid'), ('A_lens', 'sigma_lens', 'e_lens', 'center_lens'), ('ra_ps', 'dec_ps', 'log10_amp_ps', 'log10_amp_lens_ps')],
+        dense_mass=[('n_source_grid', 'rho_source_grid', 'sigma_source_grid'), ('A_lens', 'sigma_lens', 'e_lens', 'center_lens'), ('ra_ps', 'dec_ps', 'log10_amp_ps')],
     ),
     NUTS(
         model_pixel_full,
