@@ -185,6 +185,46 @@ def multi_gauss_light(plate_name, param_name, n_gauss, sigma_lims, center_low=No
         'center_y': center[1],
     }]
 
+
+def multi_gauss_light_linear(
+    plate_name,
+    param_name,
+    n_gauss,
+    sigma_lims,
+    center_low=None,
+    center_high=None,
+    e_low=None,
+    e_high=None,
+):
+    """MGE prior with linearly spaced sigma bins (instead of log-spaced bins)."""
+    sigma_bins = jnp.linspace(sigma_lims[0], sigma_lims[1], n_gauss + 1)
+
+    with numpyro.plate(f'{plate_name} - [{n_gauss}]', n_gauss):
+        A = numpyro.sample(f'A_{param_name}', dist.LogUniform(0.00001, 10000))
+        sigma = numpyro.sample(
+            f'sigma_{param_name}',
+            dist.Uniform(sigma_bins[:-1], sigma_bins[1:])
+        )
+        with numpyro.plate(f'{plate_name} vectors - [2]', 2):
+            e = numpyro.sample(f'e_{param_name}', dist.TruncatedNormal(0, 0.1, low=e_low, high=e_high))
+            if (center_low is not None) or (center_high is not None):
+                center = numpyro.sample(
+                    f'center_{param_name}',
+                    dist.TruncatedNormal(0.0, 0.1, low=center_low, high=center_high)
+                )
+            else:
+                center = numpyro.sample(f'center_{param_name}', dist.Normal(0.0, 0.5))
+
+    amp = numpyro.deterministic(f'amp_{param_name}', A * sigma**2)
+    return [{
+        'amp': amp,
+        'sigma': sigma,
+        'e1': e[0],
+        'e2': e[1],
+        'center_x': center[0],
+        'center_y': center[1],
+    }]
+
 def multi_gauss_light_center(
     plate_name,
     param_name,
