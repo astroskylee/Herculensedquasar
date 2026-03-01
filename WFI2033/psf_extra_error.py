@@ -50,18 +50,24 @@ def _build_error_map_with_psf_extra_pixel(
     error_map: np.ndarray,
     agn_positions_arcsec: np.ndarray,
     agn_flux: np.ndarray,
-    pixel_grid,
+    image_numerics,
     alpha_map: np.ndarray,
+    psf_kernel: np.ndarray | None = None,
     interpolation_order: int = 1,
 ) -> Dict[str, np.ndarray]:
     """Core formula in pixel space:
 
-    sigma_total^2 = sigma_det^2 + sum_i (flux_i * alpha_i)^2
+    sigma_total^2 = sigma_det^2 + sum_i (alpha_i * psf_model_i)^2
+
+    where psf_model_i is rendered by Herculens ImageNumerics for AGN-i.
     """
 
     error_orig = np.asarray(error_map, dtype=np.float64)
     positions_arcsec = np.asarray(agn_positions_arcsec, dtype=np.float64)
-    x_pix, y_pix = pixel_grid.map_coord2pix(positions_arcsec[:, 0], positions_arcsec[:, 1])
+    x_pix, y_pix = image_numerics._pixel_grid.map_coord2pix(
+        positions_arcsec[:, 0],
+        positions_arcsec[:, 1],
+    )
     positions = np.stack(
         [np.asarray(x_pix, dtype=np.float64), np.asarray(y_pix, dtype=np.float64)],
         axis=1,
@@ -70,7 +76,19 @@ def _build_error_map_with_psf_extra_pixel(
     alpha_template = np.asarray(alpha_map, dtype=np.float64)
 
     var_extra = np.zeros_like(error_orig, dtype=np.float64)
-    for (x_pix, y_pix), amp in zip(positions, flux):
+    psf_models = []
+    for (ra_arcsec, dec_arcsec), (x_pix, y_pix), amp in zip(positions_arcsec, positions, flux):
+        # Render a single AGN PSF model through Herculens (same pipeline as modeling code).
+        psf_model_i = image_numerics.render_point_sources(
+            np.asarray([ra_arcsec], dtype=np.float64),
+            np.asarray([dec_arcsec], dtype=np.float64),
+            np.asarray([amp], dtype=np.float64),
+            psf_kernel=psf_kernel,
+        )
+        psf_model_i = np.asarray(psf_model_i, dtype=np.float64)
+        psf_models.append(psf_model_i)
+
+        # Shift alpha template to this AGN center on detector grid.
         alpha_shifted = _shift_template_to_image(
             template=alpha_template,
             x_center_pix=float(x_pix),
@@ -78,7 +96,9 @@ def _build_error_map_with_psf_extra_pixel(
             output_shape=error_orig.shape,
             order=interpolation_order,
         )
-        sigma_extra_i = float(amp) * alpha_shifted
+
+        # Extra sigma follows the Step3 definition: sigma_extra = alpha * rendered_model.
+        sigma_extra_i = alpha_shifted * psf_model_i
         var_extra += sigma_extra_i * sigma_extra_i
 
     error_extra = np.sqrt(var_extra)
@@ -89,6 +109,7 @@ def _build_error_map_with_psf_extra_pixel(
         "error_extra": error_extra,
         "var_extra": var_extra,
         "agn_positions_pix": positions,
+        "psf_models": np.stack(psf_models, axis=0),
     }
 
 
@@ -96,17 +117,19 @@ def build_error_map_with_psf_extra(
     error_map: np.ndarray,
     agn_positions_arcsec: np.ndarray,
     agn_flux: np.ndarray,
-    pixel_grid,
+    image_numerics,
     alpha_map: np.ndarray,
+    psf_kernel: np.ndarray | None = None,
     interpolation_order: int = 1,
 ) -> Dict[str, np.ndarray]:
-    """Public interface: accept arcsec positions + pixel_grid."""
+    """Public interface: accept arcsec positions + Herculens image_numerics."""
 
     return _build_error_map_with_psf_extra_pixel(
         error_map=error_map,
         agn_positions_arcsec=agn_positions_arcsec,
         agn_flux=agn_flux,
-        pixel_grid=pixel_grid,
+        image_numerics=image_numerics,
         alpha_map=alpha_map,
+        psf_kernel=psf_kernel,
         interpolation_order=interpolation_order,
     )
