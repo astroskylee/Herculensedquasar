@@ -89,7 +89,8 @@ print(az.summary(inf_data_pixel.sel(chain=np.array([0, 1, 2, 3])), var_names=var
 # --------------------------------
 # Save trace and corner diagnostics
 # --------------------------------
-plt.rcParams["figure.constrained_layout.use"] = True
+# Keep layout engine consistent to avoid colorbar/tight_layout conflicts.
+plt.rcParams["figure.constrained_layout.use"] = False
 trace_fig = az.plot_trace(
     inf_data_pixel.sel(chain=np.array([0, 1, 2, 3])),
     var_names=vars_mass + vars_power,
@@ -188,7 +189,6 @@ for i in range(4):
         a.set_xticks([])
         a.set_yticks([])
 
-    plt.tight_layout()
     out_path = OUTPUT_DIR / f"chain_{i:02d}_data_model_residual_psf_source.png"
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
     print(f"Saved figure: {out_path}")
