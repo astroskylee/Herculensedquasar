@@ -6,6 +6,7 @@ from pathlib import Path
 os.environ.setdefault("HDF5_USE_FILE_LOCKING", "FALSE")
 
 import arviz as az
+import corner
 import jax
 import matplotlib.pyplot as plt
 import numpy as np
@@ -55,6 +56,8 @@ RMS_WITH_PSF_EXTRA_PATH = "./psf_data/WFI2033_ERR_with_stage2_psf_extra.fits"
 BASE_PSF_PATH = "./psf_data/PSF_model_step3_svi.fits"
 OUTPUT_DIR = Path(__file__).resolve().parent / "result" / "read_data"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+DATA_PRODUCTS_DIR = OUTPUT_DIR / "data_products"
+DATA_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # --------------------------------
 # Read posterior (.nc) and print key info
@@ -84,6 +87,33 @@ print(
 print(az.summary(inf_data_pixel.sel(chain=np.array([0, 1, 2, 3])), var_names=vars_mass + vars_power))
 
 # --------------------------------
+# Save trace and corner diagnostics
+# --------------------------------
+plt.rcParams["figure.constrained_layout.use"] = True
+trace_fig = az.plot_trace(
+    inf_data_pixel.sel(chain=np.array([0, 1, 2, 3])),
+    var_names=vars_mass + vars_power,
+    figsize=(12, 14),
+)
+trace_path = OUTPUT_DIR / "trace_mass_power.png"
+trace_fig.ravel()[0].figure.savefig(trace_path, dpi=180, bbox_inches="tight")
+print(f"Saved trace plot: {trace_path}")
+plt.close(trace_fig.ravel()[0].figure)
+
+fig_corner = None
+for i in range(4):
+    fig_corner = corner.corner(
+        inf_data_pixel.posterior.isel(chain=i),
+        var_names=vars_mass,
+        color=f"C{i}",
+        fig=fig_corner,
+    )
+corner_path = OUTPUT_DIR / "corner_mass_overlay.png"
+fig_corner.savefig(corner_path, dpi=180, bbox_inches="tight")
+print(f"Saved corner plot: {corner_path}")
+plt.close(fig_corner)
+
+# --------------------------------
 # Read data and RMS
 # --------------------------------
 with fits.open(RAW_DATA_PATH, memmap=True) as hdul_raw:
@@ -104,6 +134,12 @@ with fits.open(BASE_PSF_PATH, memmap=True) as hdul_psf:
     psf_base = np.array(hdul_psf["DET_PSF_MODEL"].data, dtype=float)
 psf_base = np.clip(psf_base, 0.0, None)
 psf_base = psf_base / np.sum(psf_base)
+
+# Save common products once
+fits.writeto(DATA_PRODUCTS_DIR / "data_bkg_sub.fits", data.astype(np.float32), overwrite=True)
+fits.writeto(DATA_PRODUCTS_DIR / "rms_with_psf_extra.fits", rms_file.astype(np.float32), overwrite=True)
+fits.writeto(DATA_PRODUCTS_DIR / "psf_base.fits", psf_base.astype(np.float32), overwrite=True)
+print(f"Saved common products to: {DATA_PRODUCTS_DIR}")
 
 # --------------------------------
 # Median products per chain
@@ -157,3 +193,10 @@ for i in range(4):
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
     print(f"Saved figure: {out_path}")
     plt.close(fig)
+
+    # Save per-chain products for downstream plotting
+    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_model.fits", model_i.astype(np.float32), overwrite=True)
+    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_residual.fits", res_i.astype(np.float32), overwrite=True)
+    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_psf_corrected.fits", psf_corr_i.astype(np.float32), overwrite=True)
+    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_source.fits", source_i.astype(np.float32), overwrite=True)
+    print(f"Saved chain {i} products to: {DATA_PRODUCTS_DIR}")
