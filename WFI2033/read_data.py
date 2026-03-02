@@ -2,6 +2,9 @@ import os
 import warnings
 from pathlib import Path
 
+# Set HDF5 file locking policy before importing ArviZ/xarray/h5py stack.
+os.environ.setdefault("HDF5_USE_FILE_LOCKING", "FALSE")
+
 import arviz as az
 import jax
 import matplotlib.pyplot as plt
@@ -14,7 +17,36 @@ warnings.simplefilter("ignore")
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
-NC_PATH = "/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection_all.nc"
+def resolve_nc_path() -> str:
+    """Resolve the HMC netCDF path across common lustre layouts and filenames."""
+    env_path = os.environ.get("WFI2033_NC_PATH", "").strip()
+    if env_path and Path(env_path).is_file():
+        return env_path
+
+    names = ["WFI2033_psf_correct_all.nc", "WFI2033_psfcorrection_all.nc"]
+    roots = [
+        Path("/mnt/lustre/tianli/quasar_hmc"),
+        Path("/mnt/lustre2/tianli/quasar_hmc"),
+        Path("/users/tianli/quasar_hmc"),
+        Path.cwd(),
+        Path(__file__).resolve().parent,
+    ]
+    candidates = []
+    for root in roots:
+        for name in names:
+            p = root / name
+            candidates.append(p)
+            if p.is_file():
+                return str(p)
+
+    cand_txt = "\n".join(str(p) for p in candidates)
+    raise FileNotFoundError(
+        "Cannot find WFI2033 netCDF file. Set WFI2033_NC_PATH or place file at one candidate path:\n"
+        f"{cand_txt}"
+    )
+
+
+NC_PATH = resolve_nc_path()
 DATA_DIR = "../../Data/WFI2033"
 
 RAW_DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
@@ -28,6 +60,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 # Read posterior (.nc) and print key info
 # --------------------------------
 inf_data_pixel = az.from_netcdf(NC_PATH)
+print(f"Using netCDF: {NC_PATH}")
 post = inf_data_pixel.posterior
 
 print(post)
