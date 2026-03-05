@@ -111,7 +111,7 @@ conj_points = jnp.array([
     [-0.1255456241215261, -0.8965524340129204],
 ])
 
-ss_factor = 2
+ss_factor = 1
 
 PSF_CORNER_SIZE = 5
 
@@ -216,13 +216,27 @@ SOURCE_GRID_PRIOR = {
     "positive": True,
 }
 
+SIS_G1_PRIOR = {
+    "theta_low": 0.0,
+    "theta_high": 0.25,
+}
+
+G1_MASS_CENTER = (1.556, 1.299)
+
+SIS_G2_PRIOR = {
+    "theta_low": 0.5,
+    "theta_high": 2.0,
+}
+
+G2_MASS_CENTER = (2.145, -3.326)
+
 
 # -----------------------------
 # Parametric lens image objects
 # -----------------------------
 from herculens.PointSourceModel.point_source_model import PointSourceModel
 
-mass_model = MassModel(["EPL", "SHEAR"])
+mass_model = MassModel(["EPL", "SHEAR", "SIS", "SIS"])
 lens_light_model = LightModel(["MULTI_GAUSSIAN_ELLIPSE"], {})
 source_light_model = LightModel(["MULTI_GAUSSIAN_ELLIPSE"], {})
 point_source_model = PointSourceModel(
@@ -266,6 +280,20 @@ def model(
     enable_psf_corr=False,
 ):
     mass_params = EPL_w_shear("Mass model", "1", **mass_prior_kwargs)
+    mass_params = mass_params + SIS(
+        "Mass model g1",
+        "g1",
+        origin=G1_MASS_CENTER,
+        theta_low=SIS_G1_PRIOR["theta_low"],
+        theta_high=SIS_G1_PRIOR["theta_high"],
+    )
+    mass_params = mass_params + SIS(
+        "Mass model g2",
+        "g2",
+        origin=G2_MASS_CENTER,
+        theta_low=SIS_G2_PRIOR["theta_low"],
+        theta_high=SIS_G2_PRIOR["theta_high"],
+    )
     lens_light = multi_gauss_light(**LENS_LIGHT_PRIOR_KWARGS)
 
     n_ps = conj_points.shape[0]
@@ -387,7 +415,11 @@ def model(
 
 def params2kwargs(params, fixed_params={}, pixelated=False):
     params_full = params | fixed_params
-    kwargs_lens = params2kwargs_EPL_w_shear(params_full, "1")
+    kwargs_lens = (
+        params2kwargs_EPL_w_shear(params_full, "1")
+        + params2kwargs_SIS(params_full, "g1")
+        + params2kwargs_SIS(params_full, "g2")
+    )
     kwargs_lens_light = params2kwargs_multi_gauss_light(params_full, "lens")
     kwargs_point_source = [{
         "ra": params_full["ra_ps"],
@@ -481,7 +513,7 @@ best_pix_sizes = np.array(
 pixel_grid_shape = np.median(best_pix_sizes).astype(int) * 1
 print(f"pixel_grid_shape = {pixel_grid_shape}")
 
-vars_mass = ["theta_E_1", "gamma_1", "e_1", "center_1", "gamma_sheer_1"]
+vars_mass = ["theta_E_1", "theta_E_g1", "theta_E_g2", "gamma_1", "e_1", "center_1", "gamma_sheer_1"]
 vars_lens_light = ["A_lens", "sigma_lens", "e_lens", "center_lens"]
 vars_source_light = ["A_source", "sigma_source", "e_source"]
 vars_point_source = ["ra_ps", "dec_ps", "log10_amp_ps"]
@@ -516,7 +548,7 @@ multi_svi_median_pixelated = {
 # -----------------------------
 # Pixel lens image objects
 # -----------------------------
-mass_model_pixel = MassModel(["EPL", "SHEAR"])
+mass_model_pixel = MassModel(["EPL", "SHEAR", "SIS", "SIS"])
 lens_light_model_pixel = LightModel(["MULTI_GAUSSIAN_ELLIPSE"], {})
 source_light_model_pixel = LightModel(
     ["PIXELATED"],
@@ -826,7 +858,7 @@ inner_kernels = [
         init_strategy=init_fun_pixel,
         target_accept_prob=0.9,
         max_tree_depth=10,
-        dense_mass=[("center_1",), ("theta_E_1",), ("e_1", "gamma_1", "gamma_sheer_1")],
+        dense_mass=[("center_1",), ("theta_E_1", "theta_E_g1", "theta_E_g2"), ("e_1", "gamma_1", "gamma_sheer_1")],
     ),
     NUTS(
         model,
@@ -848,14 +880,14 @@ outer_kernel = MultiHMCGibbs(
 
 mcmc_pixel = MCMC(
     outer_kernel,
-    num_warmup=4000,
-    num_samples=1000,
+    num_warmup=500,
+    num_samples=500,
     num_chains=num_chains,
     progress_bar=True,
     chain_method="vectorized",
 )
 
-batch_number = 8
+batch_number = 1
 batch_list = []
 for i in range(batch_number):
     if i == 0:
@@ -890,7 +922,7 @@ for i in range(batch_number):
     mcmc_pixel._states = jax.device_get(mcmc_pixel._states)
     mcmc_pixel._states_flat = jax.device_get(mcmc_pixel._states_flat)
     mcmc_chain = az.from_numpyro(mcmc_pixel)
-    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psf_correct{i}.nc"
+    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection{i}.nc"
     mcmc_chain.to_netcdf(batch_path)
     print(f"Saved HMC batch to: {batch_path}")
     batch_list.append(mcmc_chain)
