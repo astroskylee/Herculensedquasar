@@ -97,7 +97,7 @@ pixel_grid, xgrid, ygrid, x_axis, y_axis, extent, nx, ny = get_pixel_grid(data, 
 noise = Noise(nx, ny, exposure_time=exposure_time)
 provided_rms = True
 
-N_gauss_light = 6
+N_gauss_light = 2
 N_gauss_source = 1
 
 sigma_lims_lens = [0.1, 1.0]

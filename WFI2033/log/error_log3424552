@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/read_data.py", line 30, in <module>
+    inf_data_pixel = az.from_netcdf(NC_PATH)
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/arviz/data/io_netcdf.py", line 36, in from_netcdf
+    return InferenceData.from_netcdf(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        filename, engine=engine, group_kwargs=group_kwargs, regex=regex
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/arviz/data/inference_data.py", line 455, in from_netcdf
+    raise err
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/arviz/data/inference_data.py", line 411, in from_netcdf
+    h5netcdf.File(filename, mode="r")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/h5netcdf/core.py", line 1660, in __init__
+    self.__h5file = self._h5py.File(
+                    ~~~~~~~~~~~~~~~^
+        path, mode, track_order=track_order, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/h5py/_hl/files.py", line 566, in __init__
+    fid = make_fid(name, mode, userblock_size, fapl, fcpl, swmr=swmr)
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/h5py/_hl/files.py", line 241, in make_fid
+    fid = h5f.open(name, flags, fapl=fapl)
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py/h5f.pyx", line 104, in h5py.h5f.open
+FileNotFoundError: [Errno 2] Unable to synchronously open file (unable to open file: name = '/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection_all.nc', errno = 2, error message = 'No such file or directory', flags = 0, o_flags = 0)
