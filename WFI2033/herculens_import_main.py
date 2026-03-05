@@ -889,6 +889,18 @@ def get_value_from_index(xs, i):
     return jax.tree.map(lambda x: x[i], xs)
 
 
+def trace_current_agn_to_source(lens_img, kwargs_i, k_lens=None):
+    """Trace current AGN image-plane positions (ra/dec) to source plane."""
+    ps = kwargs_i["kwargs_point_source"][0]
+    src_x, src_y = lens_img.MassModel.ray_shooting(
+        jnp.asarray(ps["ra"]),
+        jnp.asarray(ps["dec"]),
+        kwargs_i["kwargs_lens"],
+        k=k_lens,
+    )
+    return src_x, src_y
+
+
 @partial(jax.vmap, in_axes=(None, None, 0))
 def median_params2kwargs(params2kwargs_fn, median_stack, i):
     params_i = get_value_from_index(median_stack, i)
