@@ -880,14 +880,14 @@ outer_kernel = MultiHMCGibbs(
 
 mcmc_pixel = MCMC(
     outer_kernel,
-    num_warmup=500,
-    num_samples=500,
+    num_warmup=5000,
+    num_samples=1000,
     num_chains=num_chains,
     progress_bar=True,
     chain_method="vectorized",
 )
 
-batch_number = 1
+batch_number = 8
 batch_list = []
 for i in range(batch_number):
     if i == 0:
@@ -922,7 +922,7 @@ for i in range(batch_number):
     mcmc_pixel._states = jax.device_get(mcmc_pixel._states)
     mcmc_pixel._states_flat = jax.device_get(mcmc_pixel._states_flat)
     mcmc_chain = az.from_numpyro(mcmc_pixel)
-    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection{i}.nc"
+    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection{i}_ss={ss_factor}.nc"
     mcmc_chain.to_netcdf(batch_path)
     print(f"Saved HMC batch to: {batch_path}")
     batch_list.append(mcmc_chain)
@@ -933,6 +933,6 @@ for i in range(batch_number):
 # -----------------------------
 inf_data = az.concat(*batch_list, dim="draw")
 
-final_hmc_path = "/mnt/lustre/tianli/quasar_hmc/WFI2033_psf_correct_all.nc"
+final_hmc_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psf_correct_all_ss={ss_factor}.nc"
 inf_data.to_netcdf(final_hmc_path)
 print(f"Saved final HMC inf_data to: {final_hmc_path}")
