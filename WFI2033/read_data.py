@@ -65,6 +65,10 @@ DATA_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)
 inf_data_pixel = az.from_netcdf(NC_PATH)
 print(f"Using netCDF: {NC_PATH}")
 post = inf_data_pixel.posterior
+HMC_median = inf_data_pixel.posterior.median(dim=("draw"))
+HMC_median_path = OUTPUT_DIR / "HMC_median_draw.nc"
+HMC_median.to_netcdf(HMC_median_path)
+print(f"Saved HMC_median to: {HMC_median_path}")
 
 print(post)
 print("\nposterior vars:")
