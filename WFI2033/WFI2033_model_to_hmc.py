@@ -227,8 +227,8 @@ SIS_G1_PRIOR = {
 G1_MASS_CENTER = (1.556, 1.299)
 
 SIS_G2_PRIOR = {
-    "theta_low": 0.622-0.062,
-    "theta_high":0.622+0.062,
+    "theta_mean": 0.622,
+    "theta_sigma": 0.062,
 }
 
 G2_MASS_CENTER = (2.145, -3.326)
@@ -294,8 +294,8 @@ def model(
         "Mass model g2",
         "g2",
         origin=G2_MASS_CENTER,
-        theta_low=SIS_G2_PRIOR["theta_low"],
-        theta_high=SIS_G2_PRIOR["theta_high"],
+        theta_mean=SIS_G2_PRIOR["theta_mean"],
+        theta_sigma=SIS_G2_PRIOR["theta_sigma"],
     )
     lens_light = multi_gauss_light(**LENS_LIGHT_PRIOR_KWARGS)
 

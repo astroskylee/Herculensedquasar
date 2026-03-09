@@ -452,9 +452,26 @@ def params2kwargs_shear(params, param_name):
     }]
 
 
-def SIS(plate_name, param_name, origin,theta_low = 0.0, theta_high = 0.01):
+def SIS(
+    plate_name,
+    param_name,
+    origin,
+    theta_low=0.0,
+    theta_high=0.01,
+    theta_mean=None,
+    theta_sigma=None,
+):
     with numpyro.plate(f'{plate_name} scalers - [1]', 1):
-        theta_E = numpyro.sample(f'theta_E_{param_name}', dist.Uniform(theta_low, theta_high))
+        if theta_mean is not None and theta_sigma is not None:
+            theta_E = numpyro.sample(
+                f'theta_E_{param_name}',
+                dist.Normal(theta_mean, theta_sigma),
+            )
+        else:
+            theta_E = numpyro.sample(
+                f'theta_E_{param_name}',
+                dist.Uniform(theta_low, theta_high),
+            )
         center_0 = numpyro.deterministic(f'center_1_{param_name}', jnp.array([origin[0]]))
         center_1 = numpyro.deterministic(f'center_2_{param_name}', jnp.array([origin[1]]))
 
