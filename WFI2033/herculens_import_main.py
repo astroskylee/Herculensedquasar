@@ -54,7 +54,7 @@ def EPL_w_shear(plate_name, param_name,theta_low = 0.0, theta_high = 3, gamma_lo
         gamma = numpyro.sample(f'gamma_{param_name}', dist.Uniform(gamma_low, gamma_up))
         with numpyro.plate(f'{plate_name} vectors - [2]', 2):
             e_mass = numpyro.sample(f'e_{param_name}', dist.TruncatedNormal(0, 0.25, low=e_low, high=e_high))
-            gamma_sheer = numpyro.sample(f'gamma_sheer_{param_name}', dist.Uniform(-0.2, 0.2))
+            gamma_sheer = numpyro.sample(f'gamma_sheer_{param_name}', dist.Uniform(-0.5, 0.5))
     if center_x is None:
         center = numpyro.sample(
             f'center_{param_name}',

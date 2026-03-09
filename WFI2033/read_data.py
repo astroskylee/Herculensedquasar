@@ -18,13 +18,15 @@ warnings.simplefilter("ignore")
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
+suffix = '_ss=2_conjTrue'
+
 def resolve_nc_path() -> str:
     """Resolve the HMC netCDF path across common lustre layouts and filenames."""
     env_path = os.environ.get("WFI2033_NC_PATH", "").strip()
     if env_path and Path(env_path).is_file():
         return env_path
 
-    names = ["WFI2033_psf_correct_all.nc", "WFI2033_psfcorrection_all.nc"]
+    names = [f"WFI2033_psf_correct_all{suffix}.nc"]
     roots = [
         Path("/mnt/lustre/tianli/quasar_hmc"),
         Path("/mnt/lustre2/tianli/quasar_hmc"),
@@ -54,7 +56,7 @@ RAW_DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d
 DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d_cut_x6985_y3594_150.fits")
 RMS_WITH_PSF_EXTRA_PATH = "./psf_data/WFI2033_ERR_with_stage2_psf_extra.fits"
 BASE_PSF_PATH = "./psf_data/PSF_model_step3_svi.fits"
-OUTPUT_DIR = Path(__file__).resolve().parent / "result" / "read_data"
+OUTPUT_DIR = Path(__file__).resolve().parent / "result" / f"result{suffix}"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 DATA_PRODUCTS_DIR = OUTPUT_DIR / "data_products"
 DATA_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -66,7 +68,7 @@ inf_data_pixel = az.from_netcdf(NC_PATH)
 print(f"Using netCDF: {NC_PATH}")
 post = inf_data_pixel.posterior
 HMC_median = inf_data_pixel.posterior.median(dim=("draw"))
-HMC_median_path = OUTPUT_DIR / "HMC_median_draw.nc"
+HMC_median_path = OUTPUT_DIR /f"HMC_median_draw{suffix}.nc"
 HMC_median.to_netcdf(HMC_median_path)
 print(f"Saved HMC_median to: {HMC_median_path}")
 
@@ -100,7 +102,7 @@ trace_fig = az.plot_trace(
     var_names=vars_mass + vars_power,
     figsize=(12, 14),
 )
-trace_path = OUTPUT_DIR / "trace_mass_power.png"
+trace_path = OUTPUT_DIR / f"trace_mass_power{suffix}.png"
 trace_fig.ravel()[0].figure.savefig(trace_path, dpi=180, bbox_inches="tight")
 print(f"Saved trace plot: {trace_path}")
 plt.close(trace_fig.ravel()[0].figure)
@@ -113,7 +115,7 @@ for i in range(4):
         color=f"C{i}",
         fig=fig_corner,
     )
-corner_path = OUTPUT_DIR / "corner_mass_overlay.png"
+corner_path = OUTPUT_DIR / f"corner_mass_overlay{suffix}.png"
 fig_corner.savefig(corner_path, dpi=180, bbox_inches="tight")
 print(f"Saved corner plot: {corner_path}")
 plt.close(fig_corner)
@@ -141,9 +143,9 @@ psf_base = np.clip(psf_base, 0.0, None)
 psf_base = psf_base / np.sum(psf_base)
 
 # Save common products once
-fits.writeto(DATA_PRODUCTS_DIR / "data_bkg_sub.fits", data.astype(np.float32), overwrite=True)
-fits.writeto(DATA_PRODUCTS_DIR / "rms_with_psf_extra.fits", rms_file.astype(np.float32), overwrite=True)
-fits.writeto(DATA_PRODUCTS_DIR / "psf_base.fits", psf_base.astype(np.float32), overwrite=True)
+fits.writeto(DATA_PRODUCTS_DIR / f"data_bkg_sub{suffix}.fits", data.astype(np.float32), overwrite=True)
+fits.writeto(DATA_PRODUCTS_DIR / f"rms_with_psf_extra{suffix}.fits", rms_file.astype(np.float32), overwrite=True)
+fits.writeto(DATA_PRODUCTS_DIR / f"psf_base{suffix}.fits", psf_base.astype(np.float32), overwrite=True)
 print(f"Saved common products to: {DATA_PRODUCTS_DIR}")
 
 # --------------------------------
@@ -199,8 +201,8 @@ for i in range(4):
     plt.close(fig)
 
     # Save per-chain products for downstream plotting
-    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_model.fits", model_i.astype(np.float32), overwrite=True)
-    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_residual.fits", res_i.astype(np.float32), overwrite=True)
-    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_psf_corrected.fits", psf_corr_i.astype(np.float32), overwrite=True)
-    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_source.fits", source_i.astype(np.float32), overwrite=True)
+    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_model{suffix}.fits", model_i.astype(np.float32), overwrite=True)
+    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_residual{suffix}.fits", res_i.astype(np.float32), overwrite=True)
+    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_psf_corrected{suffix}.fits", psf_corr_i.astype(np.float32), overwrite=True)
+    fits.writeto(DATA_PRODUCTS_DIR / f"chain_{i:02d}_source{suffix}.fits", source_i.astype(np.float32), overwrite=True)
     print(f"Saved chain {i} products to: {DATA_PRODUCTS_DIR}")

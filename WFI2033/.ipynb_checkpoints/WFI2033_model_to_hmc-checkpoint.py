@@ -52,7 +52,7 @@ if "graphviz" not in os.environ.get("PATH", ""):
 # -----------------------------
 # Data / PSF loading
 # -----------------------------
-pix_scale = 0.031  # arcsec / pixel (JWST)
+pix_scale = 0.0307  # arcsec / pixel (JWST)
 
 DATA_DIR = "../../Data/WFI2033"
 raw_data_path = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
@@ -102,7 +102,7 @@ N_gauss_source = 1
 
 sigma_lims_lens = [0.1, 1.0]
 sigma_lims = [0.01, 0.5]
-source_grid_scale = 1
+source_grid_scale = 0.8
 
 conj_points = jnp.array([
     [1.20212170716053, -0.12271885209256231],
@@ -111,7 +111,7 @@ conj_points = jnp.array([
     [-0.1255456241215261, -0.8965524340129204],
 ])
 
-ss_factor = 1
+ss_factor = 2
 
 PSF_CORNER_SIZE = 5
 
@@ -175,9 +175,12 @@ MASS_PRIOR_PARAMETRIC = {
     "gamma_up": 2.05,
     "center_high": 0.5,
     "center_low": -0.5,
+    "theta_low" : 0.9, 
+    "theta_high" : 1.1
 }
 
-MASS_PRIOR_PIXELATED = {}
+MASS_PRIOR_PIXELATED = {"theta_low" : 0.9, 
+    "theta_high" : 1.1}
 
 LENS_LIGHT_PRIOR_KWARGS = {
     "plate_name": "Lens light",
@@ -200,7 +203,7 @@ POINT_SOURCE_PRIOR = {
 CONJUGATE_POINT_PRIOR = {
     "rate": {
         "parametric": 1000.0,
-        "pixelated": 100.0,
+        "pixelated": 1000.0,
     },
 }
 
@@ -224,8 +227,8 @@ SIS_G1_PRIOR = {
 G1_MASS_CENTER = (1.556, 1.299)
 
 SIS_G2_PRIOR = {
-    "theta_low": 0.5,
-    "theta_high": 2.0,
+    "theta_low": 0.622-0.062,
+    "theta_high":0.622+0.062,
 }
 
 G2_MASS_CENTER = (2.145, -3.326)
@@ -822,7 +825,7 @@ unconstrined_svi_pixel_median = jax.vmap(
         model,
         (data, k_grid.k),
         {
-            "conj": False,
+            "conj": True,
             "pixelated": True,
             "provided_rms": provided_rms,
             "mass_prior_kwargs": MASS_PRIOR_PIXELATED,
@@ -895,7 +898,7 @@ for i in range(batch_number):
             rng_key_,
             data,
             k_grid.k,
-            conj=False,
+            conj=True,
             pixelated=True,
             provided_rms=provided_rms,
             mass_prior_kwargs=MASS_PRIOR_PIXELATED,
@@ -910,7 +913,7 @@ for i in range(batch_number):
             mcmc_pixel.post_warmup_state.rng_key,
             data,
             k_grid.k,
-            conj=False,
+            conj=True,
             pixelated=True,
             provided_rms=provided_rms,
             mass_prior_kwargs=MASS_PRIOR_PIXELATED,
@@ -922,7 +925,7 @@ for i in range(batch_number):
     mcmc_pixel._states = jax.device_get(mcmc_pixel._states)
     mcmc_pixel._states_flat = jax.device_get(mcmc_pixel._states_flat)
     mcmc_chain = az.from_numpyro(mcmc_pixel)
-    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection{i}_ss={ss_factor}.nc"
+    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection{i}_ss={ss_factor}_conjTrue.nc"
     mcmc_chain.to_netcdf(batch_path)
     print(f"Saved HMC batch to: {batch_path}")
     batch_list.append(mcmc_chain)
@@ -933,6 +936,6 @@ for i in range(batch_number):
 # -----------------------------
 inf_data = az.concat(*batch_list, dim="draw")
 
-final_hmc_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psf_correct_all_ss={ss_factor}.nc"
+final_hmc_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psf_correct_all_ss={ss_factor}_conjTrue.nc"
 inf_data.to_netcdf(final_hmc_path)
 print(f"Saved final HMC inf_data to: {final_hmc_path}")
