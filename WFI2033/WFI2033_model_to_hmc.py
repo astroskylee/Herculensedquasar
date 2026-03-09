@@ -332,7 +332,8 @@ def model(
     lens_img = lens_image_pixel if pixelated else lens_image
 
     if conj:
-        conj_points_model = lens_img.trace_conjugate_points(mass_params)
+        src_x_ps, src_y_ps = lens_img.MassModel.ray_shooting(ra_ps, dec_ps, mass_params)
+        conj_points_model = jnp.stack([src_x_ps, src_y_ps], axis=1)
         conj_distance = reduced_distance_matrix(conj_points_model)
         nc = conj_distance.shape[0]
         rate_key = "pixelated" if pixelated else "parametric"
