@@ -58,7 +58,7 @@ suffix = '_ss=2'
 DATA_DIR = "../../Data/WFI2033"
 raw_data_path = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
 data_path = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d_cut_x6985_y3594_150.fits")
-mask_path = os.path.join(DATA_DIR, "mask_out_center.fits")
+mask_path = os.path.join("data/mask_hmc.fits")
 maskout_path = os.path.join(DATA_DIR, "mask_out_center.fits")
 
 with fits.open(raw_data_path, memmap=True) as hdul_raw:
@@ -70,7 +70,7 @@ with fits.open(data_path, memmap=True) as hdul:
 
 mask = jnp.array(fits.getdata(mask_path), dtype=bool)
 mask_out = jnp.array(fits.getdata(maskout_path), dtype=bool)
-mask = jnp.array(mask_out, dtype=bool)
+# mask = jnp.array(mask_out, dtype=bool)
 
 valid = jnp.isfinite(data) & jnp.isfinite(rms_file) & (rms_file > 0)
 mask = mask & valid
@@ -854,7 +854,7 @@ inner_kernels = [
         init_strategy=init_fun_pixel,
         target_accept_prob=0.9,
         max_tree_depth=10,
-        dense_mass=[("center_1",), ("theta_E_1", "theta_E_g1", "theta_E_g2"), ("e_1", "gamma_1", "gamma_sheer_1")],
+        dense_mass=[("center_1",), ("theta_E_1", "theta_E_g1", "theta_E_g2","e_1", "gamma_1", "gamma_sheer_1")],
     ),
     NUTS(
         model,

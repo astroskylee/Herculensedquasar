@@ -58,7 +58,7 @@ suffix = '_ss=2'
 DATA_DIR = "../../Data/WFI2033"
 raw_data_path = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
 data_path = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d_cut_x6985_y3594_150.fits")
-mask_path = os.path.join(DATA_DIR, "mask_out_center.fits")
+mask_path = os.path.join("data/mask_hmc.fits")
 maskout_path = os.path.join(DATA_DIR, "mask_out_center.fits")
 
 with fits.open(raw_data_path, memmap=True) as hdul_raw:
@@ -70,7 +70,7 @@ with fits.open(data_path, memmap=True) as hdul:
 
 mask = jnp.array(fits.getdata(mask_path), dtype=bool)
 mask_out = jnp.array(fits.getdata(maskout_path), dtype=bool)
-mask = jnp.array(mask_out, dtype=bool)
+# mask = jnp.array(mask_out, dtype=bool)
 
 valid = jnp.isfinite(data) & jnp.isfinite(rms_file) & (rms_file > 0)
 mask = mask & valid
@@ -144,9 +144,6 @@ PSF_CORR_PRIOR = {
     "sigma_log": 1.0,
     "log_clip": 5.0,
 }
-
-k_psf = K_grid(psf_hst.shape).k
-
 
 def build_psf_corr_factor_field(log_psf_corr_center, psf_shape, log_clip=5.0):
     ny, nx = psf_shape
@@ -278,11 +275,13 @@ def model(
     provided_rms=False,
     pixelated=False,
     n_value=None,
-    mass_prior_kwargs={},
+    mass_prior_kwargs=None,
     psf_kernel=None,
-    k_psf_values=None,
     enable_psf_corr=False,
 ):
+    if mass_prior_kwargs is None:
+        mass_prior_kwargs = {}
+
     mass_params = EPL_w_shear("Mass model", "1", **mass_prior_kwargs)
     mass_params = mass_params + SIS(
         "Mass model g1",
@@ -460,6 +459,13 @@ def params2kwargs(params, fixed_params={}, pixelated=False):
 # -----------------------------
 max_iterations = 10000
 num_chains = 4
+PARAMETRIC_SVI_KWARGS = {
+    "conj": True,
+    "pixelated": False,
+    "n_value": None,
+    "provided_rms": provided_rms,
+    "mass_prior_kwargs": MASS_PRIOR_PARAMETRIC,
+}
 
 amp_ps_start = jnp.array([10120.25246224, 5648.26269992, 5112.50014416, 3735.28867656], dtype=jnp.float64)
 init_values_parametric = {"log10_amp_ps": jnp.log10(amp_ps_start)}
@@ -481,8 +487,7 @@ for i in range(num_chains):
         svi_keys[i],
         max_iterations,
         data,
-        provided_rms=provided_rms,
-        mass_prior_kwargs=MASS_PRIOR_PARAMETRIC,
+        **PARAMETRIC_SVI_KWARGS,
         progress_bar=True,
         stable_update=True,
     )
@@ -525,6 +530,27 @@ vars_point_source = ["ra_ps", "dec_ps", "log10_amp_ps"]
 vars_other = []
 
 k_grid = K_grid((pixel_grid_shape, pixel_grid_shape))
+PIXELATED_BASE_KWARGS = {
+    "k_values": k_grid.k,
+    "conj": True,
+    "pixelated": True,
+    "n_value": None,
+    "provided_rms": provided_rms,
+    "mass_prior_kwargs": MASS_PRIOR_PIXELATED,
+}
+PIXELATED_STAGE1_KWARGS = PIXELATED_BASE_KWARGS | {
+    "enable_psf_corr": False,
+}
+PIXELATED_STAGE2_KWARGS = PIXELATED_BASE_KWARGS | {
+    "enable_psf_corr": True,
+}
+PIXELATED_STAGE3_KWARGS = PIXELATED_BASE_KWARGS | {
+    "enable_psf_corr": True,
+}
+HMC_RUN_KWARGS = PIXELATED_BASE_KWARGS | {
+    "conj": False,
+    "enable_psf_corr": True,
+}
 
 from lens_images_extension import pixelize_plane as pixelize_plane_single
 
@@ -608,15 +634,9 @@ for i in range(num_chains):
         svi_keys[i],
         max_iterations,
         data,
-        k_grid.k,
-        conj=True,
-        n_value=None,
-        pixelated=True,
-        provided_rms=provided_rms,
-        mass_prior_kwargs=MASS_PRIOR_PIXELATED,
+        **PIXELATED_STAGE1_KWARGS,
         progress_bar=True,
         stable_update=True,
-        enable_psf_corr=False,
     )
     stage1_guides.append(guide_stage1_i)
     stage1_results_list.append(result_i)
@@ -660,15 +680,8 @@ for i in range(num_chains):
         svi_keys[i],
         max_iterations,
         data,
-        k_grid.k,
-        conj=True,
-        n_value=None,
-        pixelated=True,
-        provided_rms=provided_rms,
-        mass_prior_kwargs=MASS_PRIOR_PIXELATED,
+        **PIXELATED_STAGE2_KWARGS,
         psf_kernel=psf_hst,
-        k_psf_values=k_psf,
-        enable_psf_corr=True,
         progress_bar=True,
         stable_update=True,
     )
@@ -700,15 +713,8 @@ def get_stage2_deterministics_from_median(params_all):
             )
         ).get_trace(
             data,
-            k_grid.k,
-            conj=True,
-            n_value=None,
-            pixelated=True,
-            provided_rms=provided_rms,
-            mass_prior_kwargs=MASS_PRIOR_PIXELATED,
+            **PIXELATED_STAGE2_KWARGS,
             psf_kernel=psf_hst,
-            k_psf_values=k_psf,
-            enable_psf_corr=True,
         )
         psf_kernel_all.append(trace_i["psf_kernel_corrected"]["value"])
         corr_field_all.append(trace_i["psf_corr_factor_field"]["value"])
@@ -782,15 +788,8 @@ for i in range(num_chains_stage3):
         svi_keys_stage3[i],
         max_iterations_stage3,
         data,
-        k_grid.k,
-        conj=True,
-        n_value=None,
-        pixelated=True,
-        provided_rms=provided_rms,
-        mass_prior_kwargs=MASS_PRIOR_PIXELATED,
+        **PIXELATED_STAGE3_KWARGS,
         psf_kernel=psf_hst,
-        k_psf_values=k_psf,
-        enable_psf_corr=True,
         progress_bar=True,
         stable_update=True,
     )
@@ -806,7 +805,7 @@ multi_svi_pixel_median_herc_stage3 = median_params2kwargs(
     jnp.arange(num_chains_stage3),
 )
 
-# Keep stage3 outputs separate; HMC init follows notebook and still uses stage2.
+# HMC starts from the stage3 posterior median and uses the same model config.
 
 
 # -----------------------------
@@ -818,23 +817,15 @@ vars_psf = ["ra_ps", "dec_ps", "log10_amp_ps"]
 vars_psf_corr = ["log_psf_corr_center"]
 
 multi_svi_pixel_median_vars = {
-    k: multi_svi_pixel_median_stage2[k]
+    k: multi_svi_pixel_median_stage3[k]
     for k in vars_mass + vars_power + vars_pixel + vars_other + vars_lens_light + vars_psf + vars_psf_corr
 }
 
 unconstrined_svi_pixel_median = jax.vmap(
     lambda p: infer.util.unconstrain_fn(
         model,
-        (data, k_grid.k),
-        {
-            "conj": True,
-            "pixelated": True,
-            "provided_rms": provided_rms,
-            "mass_prior_kwargs": MASS_PRIOR_PIXELATED,
-            "psf_kernel": psf_hst,
-            "k_psf_values": k_psf,
-            "enable_psf_corr": True,
-        },
+        (data,),
+        HMC_RUN_KWARGS | {"psf_kernel": psf_hst},
         p,
     )
 )(multi_svi_pixel_median_vars)
@@ -845,7 +836,7 @@ rng_key, rng_key_ = jax.random.split(rng_key)
 from numpyro.infer import NUTS, MCMC
 from custom_gibbs import MultiHMCGibbs
 
-init_fun_pixel = init_to_value_or_defer(values=get_value_from_index(multi_svi_pixel_median_stage2, 0))
+init_fun_pixel = init_to_value_or_defer(values=get_value_from_index(multi_svi_pixel_median_stage3, 0))
 
 inner_kernels = [
     NUTS(
@@ -863,7 +854,7 @@ inner_kernels = [
         init_strategy=init_fun_pixel,
         target_accept_prob=0.9,
         max_tree_depth=10,
-        dense_mass=[("center_1",), ("theta_E_1", "theta_E_g1", "theta_E_g2"), ("e_1", "gamma_1", "gamma_sheer_1")],
+        dense_mass=[("center_1",), ("theta_E_1", "theta_E_g1", "theta_E_g2","e_1", "gamma_1", "gamma_sheer_1")],
     ),
     NUTS(
         model,
@@ -899,14 +890,8 @@ for i in range(batch_number):
         mcmc_pixel.run(
             rng_key_,
             data,
-            k_grid.k,
-            conj=False,
-            pixelated=True,
-            provided_rms=provided_rms,
-            mass_prior_kwargs=MASS_PRIOR_PIXELATED,
+            **HMC_RUN_KWARGS,
             psf_kernel=psf_hst,
-            k_psf_values=k_psf,
-            enable_psf_corr=True,
             init_params=unconstrined_svi_pixel_median,
         )
     else:
@@ -914,14 +899,8 @@ for i in range(batch_number):
         mcmc_pixel.run(
             mcmc_pixel.post_warmup_state.rng_key,
             data,
-            k_grid.k,
-            conj=False,
-            pixelated=True,
-            provided_rms=provided_rms,
-            mass_prior_kwargs=MASS_PRIOR_PIXELATED,
+            **HMC_RUN_KWARGS,
             psf_kernel=psf_hst,
-            k_psf_values=k_psf,
-            enable_psf_corr=True,
         )
 
     mcmc_pixel._states = jax.device_get(mcmc_pixel._states)
