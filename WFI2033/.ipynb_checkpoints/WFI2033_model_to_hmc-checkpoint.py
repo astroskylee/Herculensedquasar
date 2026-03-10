@@ -52,7 +52,8 @@ if "graphviz" not in os.environ.get("PATH", ""):
 # -----------------------------
 # Data / PSF loading
 # -----------------------------
-pix_scale = 0.0307  # arcsec / pixel (JWST)
+pix_scale = 0.031  # arcsec / pixel (JWST)
+suffix = '_ss=2'
 
 DATA_DIR = "../../Data/WFI2033"
 raw_data_path = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
@@ -202,7 +203,7 @@ POINT_SOURCE_PRIOR = {
 
 CONJUGATE_POINT_PRIOR = {
     "rate": {
-        "parametric": 1000.0,
+        "parametric": 10000.0,
         "pixelated": 1000.0,
     },
 }
@@ -215,7 +216,7 @@ RMS_PRIOR = {
 SOURCE_GRID_PRIOR = {
     "plate_name": "Source grid",
     "param_name": "source_grid",
-    "n_high": 1000,
+    "n_high": 100,
     "positive": True,
 }
 
@@ -227,8 +228,8 @@ SIS_G1_PRIOR = {
 G1_MASS_CENTER = (1.556, 1.299)
 
 SIS_G2_PRIOR = {
-    "theta_low": 0.622-0.062,
-    "theta_high":0.622+0.062,
+    "theta_mean": 0.622,
+    "theta_sigma": 0.062,
 }
 
 G2_MASS_CENTER = (2.145, -3.326)
@@ -294,8 +295,8 @@ def model(
         "Mass model g2",
         "g2",
         origin=G2_MASS_CENTER,
-        theta_low=SIS_G2_PRIOR["theta_low"],
-        theta_high=SIS_G2_PRIOR["theta_high"],
+        theta_mean=SIS_G2_PRIOR["theta_mean"],
+        theta_sigma=SIS_G2_PRIOR["theta_sigma"],
     )
     lens_light = multi_gauss_light(**LENS_LIGHT_PRIOR_KWARGS)
 
@@ -332,7 +333,8 @@ def model(
     lens_img = lens_image_pixel if pixelated else lens_image
 
     if conj:
-        conj_points_model = lens_img.trace_conjugate_points(mass_params)
+        src_x_ps, src_y_ps = lens_img.MassModel.ray_shooting(ra_ps, dec_ps, mass_params)
+        conj_points_model = jnp.stack([src_x_ps, src_y_ps], axis=1)
         conj_distance = reduced_distance_matrix(conj_points_model)
         nc = conj_distance.shape[0]
         rate_key = "pixelated" if pixelated else "parametric"
@@ -898,7 +900,7 @@ for i in range(batch_number):
             rng_key_,
             data,
             k_grid.k,
-            conj=True,
+            conj=False,
             pixelated=True,
             provided_rms=provided_rms,
             mass_prior_kwargs=MASS_PRIOR_PIXELATED,
@@ -913,7 +915,7 @@ for i in range(batch_number):
             mcmc_pixel.post_warmup_state.rng_key,
             data,
             k_grid.k,
-            conj=True,
+            conj=False,
             pixelated=True,
             provided_rms=provided_rms,
             mass_prior_kwargs=MASS_PRIOR_PIXELATED,
@@ -925,7 +927,7 @@ for i in range(batch_number):
     mcmc_pixel._states = jax.device_get(mcmc_pixel._states)
     mcmc_pixel._states_flat = jax.device_get(mcmc_pixel._states_flat)
     mcmc_chain = az.from_numpyro(mcmc_pixel)
-    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection{i}_ss={ss_factor}_conjTrue.nc"
+    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection{i}{suffix}.nc"
     mcmc_chain.to_netcdf(batch_path)
     print(f"Saved HMC batch to: {batch_path}")
     batch_list.append(mcmc_chain)
@@ -936,6 +938,6 @@ for i in range(batch_number):
 # -----------------------------
 inf_data = az.concat(*batch_list, dim="draw")
 
-final_hmc_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psf_correct_all_ss={ss_factor}_conjTrue.nc"
+final_hmc_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psf_correct_all{suffix}.nc"
 inf_data.to_netcdf(final_hmc_path)
 print(f"Saved final HMC inf_data to: {final_hmc_path}")

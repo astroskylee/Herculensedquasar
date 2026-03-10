@@ -23,3 +23,4 @@ cd /users/tianli/LensModelling/Herculensedquasar/WFI2033
 
 
 python -u WFI2033_model_to_hmc.py
+python -u read_data.py
