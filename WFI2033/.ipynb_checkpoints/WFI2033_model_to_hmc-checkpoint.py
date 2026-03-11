@@ -70,7 +70,7 @@ with fits.open(data_path, memmap=True) as hdul:
 
 mask = jnp.array(fits.getdata(mask_path), dtype=bool)
 mask_out = jnp.array(fits.getdata(maskout_path), dtype=bool)
-# mask = jnp.array(mask_out, dtype=bool)
+mask = jnp.array(mask_out, dtype=bool)
 
 valid = jnp.isfinite(data) & jnp.isfinite(rms_file) & (rms_file > 0)
 mask = mask & valid
@@ -847,6 +847,7 @@ inner_kernels = [
         dense_mass=[
             ("n_source_grid", "rho_source_grid", "sigma_source_grid"),
             ("A_lens", "sigma_lens", "e_lens", "center_lens"),
+            ("ra_ps", "dec_ps", "log10_amp_ps")
         ],
     ),
     NUTS(
@@ -854,23 +855,22 @@ inner_kernels = [
         init_strategy=init_fun_pixel,
         target_accept_prob=0.9,
         max_tree_depth=10,
-        dense_mass=[("center_1",), ("theta_E_1", "theta_E_g1", "theta_E_g2","e_1", "gamma_1", "gamma_sheer_1")],
+        dense_mass=[("center_1","theta_E_1", "theta_E_g1", "theta_E_g2","e_1", "gamma_1", "gamma_sheer_1")],
     ),
     NUTS(
         model,
         init_strategy=init_fun_pixel,
         target_accept_prob=0.9,
         max_tree_depth=10,
-        dense_mass=[("ra_ps", "dec_ps", "log10_amp_ps")],
     ),
 ]
 
 outer_kernel = MultiHMCGibbs(
     inner_kernels,
     gibbs_sites_list=[
-        vars_pixel + vars_power + vars_lens_light + vars_other,
+        vars_pixel + vars_power + vars_lens_light + vars_other + vars_psf,
         vars_mass,
-        vars_psf + vars_psf_corr,
+        vars_psf_corr,
     ],
 )
 
