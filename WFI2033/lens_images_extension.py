@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import numpy as np
 import scipy
 
-from fft_convolve import NumericsFFT
+from numerics import Numerics
 from herculens.LensImage.lens_image import LensImage
 from functools import partial
 
@@ -38,7 +38,7 @@ class LensImageExtension(LensImage):
         )
         if kwargs_numerics is None:
             kwargs_numerics = {}
-        self.ImageNumerics = NumericsFFT(
+        self.ImageNumerics = Numerics(
             pixel_grid=self.Grid,
             psf=self.PSF,
             **kwargs_numerics
@@ -185,7 +185,7 @@ class LensImageExtension(LensImage):
         :param k_lens_light: list of bool or list of int to select which lens light profiles to include
         :param k_point_source: list of bool or list of int to select which point-source profiles to include
         :param psf_kernel: optional explicit PSF kernel used for both full-image convolution and point-source rendering
-        :param psf_kernel_super: optional explicit supersampled PSF kernel used only for convolve+resize
+        :param psf_kernel_super: placeholder for future supersampled PSF support
         :return: 2d array of surface brightness pixels of the simulation
         """
         model = jnp.zeros((self.ImageNumerics.grid_class.num_grid_points,)).flatten()
@@ -204,22 +204,16 @@ class LensImageExtension(LensImage):
                 kwargs_lens_light,
                 k=k_lens_light
             )
-        # psf_noise_fft = None
         if not supersampled:
             if psf_kernel_super is not None:
-                model = self.ImageNumerics.convolve_re_size(
-                    model,
-                    psf_kernel_super=psf_kernel_super,
-                    psf_noise_fft=psf_noise_fft,
-                    unconvolved=unconvolved,
+                raise NotImplementedError(
+                    "Explicit supersampled PSF override is not enabled in this Numerics path."
                 )
-            else:
-                model = self.ImageNumerics.re_size_convolve(
-                    model,
-                    psf_noise_fft,
-                    unconvolved=unconvolved,
-                    psf_kernel=psf_kernel
-                )
+            model = self.ImageNumerics.re_size_convolve(
+                model,
+                unconvolved=unconvolved,
+                psf_kernel=psf_kernel
+            )
         if point_source_add:
             if supersampled:
                 raise ValueError(
