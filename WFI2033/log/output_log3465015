@@ -4,3 +4,4 @@ Warning: both `noise_map` and `background_rms` are None; `background_rms` should
 pixel_grid_shape = 74
 Updated RMS map in memory from stage2-best PSF extra error
 best_stage2_i = 9
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection0_ss=2.nc
