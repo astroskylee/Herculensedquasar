@@ -102,7 +102,7 @@ provided_rms = True
 N_gauss_light = 2
 N_gauss_source = 1
 
-sigma_lims_lens = [0.1, 1.0]
+sigma_lims_lens = [0.2, 2.0]
 sigma_lims = [0.01, 0.5]
 source_grid_scale = 0.8
 
