@@ -215,6 +215,8 @@ SOURCE_GRID_PRIOR = {
     "plate_name": "Source grid",
     "param_name": "source_grid",
     "n_high": 100,
+    "sigma_low": 1e-5,
+    "sigma_high": 30.0,
     "positive": True,
 }
 
@@ -352,6 +354,8 @@ def model(
                 k_values,
                 n_high=SOURCE_GRID_PRIOR["n_high"],
                 n_value=n_value,
+                sigma_low=SOURCE_GRID_PRIOR["sigma_low"],
+                sigma_high=SOURCE_GRID_PRIOR["sigma_high"],
                 positive=SOURCE_GRID_PRIOR["positive"],
             )
         ]

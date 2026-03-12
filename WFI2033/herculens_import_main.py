@@ -640,7 +640,7 @@ def matern_power_spectrum(
     n_high = 100,
     n_value = None,
     sigma_low = 1e-5,
-    sigma_high = 10
+    sigma_high = 10,
     positive = True
 ):
     with numpyro.plate(f'{plate_name} power spectrum params - [1]', 1):
