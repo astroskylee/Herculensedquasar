@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """WFI2033 modelling pipeline (notebook-synced) up to HMC.
 
@@ -115,7 +116,7 @@ conj_points = jnp.array([
 ss_factor = 2
 
 PSF_CORNER_SIZE = 5
-
+num_chains = 16
 
 def compute_psf_corner_median(psf_kernel, corner_size=PSF_CORNER_SIZE):
     ny, nx = psf_kernel.shape
@@ -458,7 +459,6 @@ def params2kwargs(params, fixed_params={}, pixelated=False):
 # Parametric SVI
 # -----------------------------
 max_iterations = 10000
-num_chains = 4
 PARAMETRIC_SVI_KWARGS = {
     "conj": True,
     "pixelated": False,
@@ -616,7 +616,6 @@ lens_image_pixel = LensImageExtension(
 # Stage1 pixel SVI (no PSF corr)
 # -----------------------------
 max_iterations = 10000
-num_chains = 4
 
 scheduler_stage1 = split_scheduler(max_iterations, init_value=0.01, transition_steps=[200, 10])
 optim_stage1 = optax.adabelief(learning_rate=scheduler_stage1)
@@ -655,7 +654,6 @@ multi_svi_pixel_median_herc_stage1 = median_params2kwargs(
 # Stage2 pixel SVI (with PSF corr)
 # -----------------------------
 max_iterations = 20000
-num_chains = 4
 
 scheduler_stage2 = optax.exponential_decay(
     init_value=5e-3,
