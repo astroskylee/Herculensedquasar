@@ -161,7 +161,8 @@ class LensImageExtension(LensImage):
         k_lens_light=None,
         k_point_source=None,
         psf_noise_fft=None,
-        psf_kernel=None
+        psf_kernel=None,
+        psf_kernel_super=None
     ):
         """
         Create the 2D model image from parameter values.
@@ -184,6 +185,7 @@ class LensImageExtension(LensImage):
         :param k_lens_light: list of bool or list of int to select which lens light profiles to include
         :param k_point_source: list of bool or list of int to select which point-source profiles to include
         :param psf_kernel: optional explicit PSF kernel used for both full-image convolution and point-source rendering
+        :param psf_kernel_super: optional explicit supersampled PSF kernel used only for convolve+resize
         :return: 2d array of surface brightness pixels of the simulation
         """
         model = jnp.zeros((self.ImageNumerics.grid_class.num_grid_points,)).flatten()
@@ -204,12 +206,20 @@ class LensImageExtension(LensImage):
             )
         # psf_noise_fft = None
         if not supersampled:
-            model = self.ImageNumerics.re_size_convolve(
-                model,
-                psf_noise_fft,
-                unconvolved=unconvolved,
-                psf_kernel=psf_kernel
-            )
+            if psf_kernel_super is not None:
+                model = self.ImageNumerics.convolve_re_size(
+                    model,
+                    psf_kernel_super=psf_kernel_super,
+                    psf_noise_fft=psf_noise_fft,
+                    unconvolved=unconvolved,
+                )
+            else:
+                model = self.ImageNumerics.re_size_convolve(
+                    model,
+                    psf_noise_fft,
+                    unconvolved=unconvolved,
+                    psf_kernel=psf_kernel
+                )
         if point_source_add:
             if supersampled:
                 raise ValueError(

@@ -7,7 +7,7 @@ from herculens.LensImage.Numerics.convolution import (
     SubgridKernelConvolution
 )
 from herculens.LensImage.Numerics.numerics import Numerics
-from herculens.Util import kernel_util
+from herculens.Util import image_util, kernel_util
 from scipy.fft import next_fast_len as osp_fft_next_fast_len
 from jax.scipy.ndimage import map_coordinates
 
@@ -180,6 +180,38 @@ class NumericsFFT(Numerics):
             )
         else:
             # for other psf type, only convolve low res grid and high res grid
+            image_conv = self._conv.re_size_convolve(image_low_res, image_high_res_partial)
+        return image_conv * self._pixel_width ** 2
+
+    def convolve_re_size(self, flux_array, psf_kernel_super, psf_noise_fft=None, unconvolved=False):
+        """
+        Convolve the supersampled image with an explicit supersampled PSF kernel
+        and resize it back to the data grid.
+
+        :param flux_array: 1d array, flux values corresponding to coordinates_evaluate
+        :param psf_kernel_super: 2d supersampled PSF kernel
+        :param psf_noise_fft: optional PSF noise term in FFT space
+        :param unconvolved: if True, bypass PSF convolution
+        :return: convolved image on regular pixel grid, 2d array
+        """
+        image_low_res, image_high_res_partial = self._grid.flux_array2image_low_high(
+            flux_array,
+            high_res_return=self._high_res_return,
+        )
+        if unconvolved is True or self._psf_type == 'NONE':
+            image_conv = image_low_res
+        elif self._psf_type == 'PIXEL':
+            if not self._high_res_return:
+                raise ValueError(
+                    "`psf_kernel_super` requires supersampling_convolution=True "
+                    "and supersampling_factor > 1."
+                )
+            high_res_conv = PixelKernelConvolutionFFT(
+                jnp.asarray(psf_kernel_super),
+                output_shape=image_high_res_partial.shape,
+            ).convolution2d(image_high_res_partial, psf_noise_fft=psf_noise_fft)
+            image_conv = image_util.re_size(high_res_conv, self._grid.supersampling_factor)
+        else:
             image_conv = self._conv.re_size_convolve(image_low_res, image_high_res_partial)
         return image_conv * self._pixel_width ** 2
 
