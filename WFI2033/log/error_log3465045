@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/read_data.py", line 104, in <module>
+    print(az.summary(inf_data_pixel), var_names=vars_mass + vars_power)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: print() got an unexpected keyword argument 'var_names'

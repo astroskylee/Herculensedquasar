@@ -101,7 +101,7 @@ print(
     f"divergences per chain per step:\n"
     f"{inf_data_pixel.sample_stats.diverging.values.sum(axis=1).T}"
 )
-print(az.summary(inf_data_pixel), var_names=vars_mass + vars_power)
+print(az.summary(inf_data_pixel, var_names=vars_mass + vars_power))
 num_chains = inf_data_pixel.posterior.sizes["chain"]
 
 # --------------------------------
