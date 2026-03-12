@@ -639,6 +639,8 @@ def matern_power_spectrum(
     k_zero = None,
     n_high = 100,
     n_value = None,
+    sigma_low = 1e-5,
+    sigma_high = 10
     positive = True
 ):
     with numpyro.plate(f'{plate_name} power spectrum params - [1]', 1):
@@ -646,7 +648,7 @@ def matern_power_spectrum(
             n = numpyro.sample(f'n_{param_name}', TruncatedWedge(-1, 0.0001, n_high))
         else:
             n = numpyro.deterministic(f'n_{param_name}', jnp.atleast_1d(n_value))
-        sigma = numpyro.sample(f'sigma_{param_name}', dist.LogUniform(1e-5, 10))
+        sigma = numpyro.sample(f'sigma_{param_name}', dist.LogUniform(sigma_low, sigma_high))
         rho = numpyro.sample(f'rho_{param_name}', dist.LogNormal(2.1, 1.1))
 
     P = P_Matern(k, n[0], sigma[0], rho[0], k_zero=k_zero)

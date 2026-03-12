@@ -19,6 +19,17 @@ jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
 suffix = '_ss=2'
+batch_list = []
+for i in range(2):
+    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection{i}{suffix}.nc"
+    mcmc_chain = az.from_netcdf(batch_path)
+    batch_list.append(mcmc_chain)
+
+suffix = '_ss=2_16chain'
+
+inf_data_pixel = az.concat(*batch_list, dim="draw")
+
+
 
 def resolve_nc_path() -> str:
     """Resolve the HMC netCDF path across common lustre layouts and filenames."""
@@ -64,7 +75,7 @@ DATA_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)
 # --------------------------------
 # Read posterior (.nc) and print key info
 # --------------------------------
-inf_data_pixel = az.from_netcdf(NC_PATH)
+# inf_data_pixel = az.from_netcdf(NC_PATH)
 print(f"Using netCDF: {NC_PATH}")
 post = inf_data_pixel.posterior
 HMC_median = inf_data_pixel.posterior.median(dim=("draw"))
@@ -90,7 +101,8 @@ print(
     f"divergences per chain per step:\n"
     f"{inf_data_pixel.sample_stats.diverging.values.sum(axis=1).T}"
 )
-print(az.summary(inf_data_pixel.sel(chain=np.array([0, 1, 2, 3])), var_names=vars_mass + vars_power))
+print(az.summary(inf_data_pixel), var_names=vars_mass + vars_power)
+num_chains = inf_data_pixel.posterior.sizes["chain"]
 
 # --------------------------------
 # Save trace and corner diagnostics
@@ -98,7 +110,7 @@ print(az.summary(inf_data_pixel.sel(chain=np.array([0, 1, 2, 3])), var_names=var
 # Keep layout engine consistent to avoid colorbar/tight_layout conflicts.
 plt.rcParams["figure.constrained_layout.use"] = False
 trace_fig = az.plot_trace(
-    inf_data_pixel.sel(chain=np.array([0, 1, 2, 3])),
+    inf_data_pixel,
     var_names=vars_mass + vars_power,
     figsize=(12, 14),
 )
@@ -108,7 +120,7 @@ print(f"Saved trace plot: {trace_path}")
 plt.close(trace_fig.ravel()[0].figure)
 
 fig_corner = None
-for i in range(4):
+for i in range(num_chains):
     fig_corner = corner.corner(
         inf_data_pixel.posterior.isel(chain=i),
         var_names=vars_mass,
@@ -158,7 +170,7 @@ source_med = np.array(post["pixels_source_grid"].median(dim="draw").values)
 # --------------------------------
 # Plot: data/model/residual + base PSF/corrected PSF/source
 # --------------------------------
-for i in range(4):
+for i in range(num_chains):
     model_i = model_med[i]
     res_i = (data - model_i) / rms_file
     psf_corr_i = psf_corr_med[i]

@@ -1,0 +1,4 @@
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/read_data.py", line 106
+    print(az.summary(inf_data_pixel), var_names=vars_mass + vars_power))
+                                                                       ^
+SyntaxError: unmatched ')'
