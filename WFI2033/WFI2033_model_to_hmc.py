@@ -116,7 +116,7 @@ conj_points = jnp.array([
 ss_factor = 2
 
 PSF_CORNER_SIZE = 5
-num_chains = 16
+num_chains = 4
 
 def compute_psf_corner_median(psf_kernel, corner_size=PSF_CORNER_SIZE):
     ny, nx = psf_kernel.shape
@@ -214,9 +214,9 @@ RMS_PRIOR = {
 SOURCE_GRID_PRIOR = {
     "plate_name": "Source grid",
     "param_name": "source_grid",
-    "n_high": 100,
+    "n_high": 1000,
     "sigma_low": 1e-5,
-    "sigma_high": 30.0,
+    "sigma_high": 100.0,
     "positive": True,
 }
 
