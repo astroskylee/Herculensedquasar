@@ -160,7 +160,7 @@ def multi_gauss_light(plate_name, param_name, n_gauss, sigma_lims, center_low=No
     )
 
     with numpyro.plate(f'{plate_name} - [{n_gauss}]', n_gauss):
-        A = numpyro.sample(f'A_{param_name}', dist.LogUniform(0.00001, 100000))
+        A = numpyro.sample(f'A_{param_name}', dist.LogUniform(1e-5, 1e5))
         sigma = numpyro.sample(
             f'sigma_{param_name}',
             dist.LogUniform(sigma_bins[:-1], sigma_bins[1:])
@@ -640,7 +640,7 @@ def matern_power_spectrum(
     n_high = 100,
     n_value = None,
     sigma_low = 1e-5,
-    sigma_high = 10
+    sigma_high = 10,
     positive = True
 ):
     with numpyro.plate(f'{plate_name} power spectrum params - [1]', 1):

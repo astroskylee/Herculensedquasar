@@ -54,7 +54,6 @@ if "graphviz" not in os.environ.get("PATH", ""):
 # Data / PSF loading
 # -----------------------------
 pix_scale = 0.031  # arcsec / pixel (JWST)
-suffix = '_ss=2'
 
 DATA_DIR = "../../Data/WFI2033"
 raw_data_path = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
@@ -113,10 +112,10 @@ conj_points = jnp.array([
     [-0.1255456241215261, -0.8965524340129204],
 ])
 
-ss_factor = 2
-
+ss_factor = 1
+suffix = f'_ss={ss_factor}'
 PSF_CORNER_SIZE = 5
-num_chains = 16
+num_chains = 4
 
 def compute_psf_corner_median(psf_kernel, corner_size=PSF_CORNER_SIZE):
     ny, nx = psf_kernel.shape
@@ -215,6 +214,8 @@ SOURCE_GRID_PRIOR = {
     "plate_name": "Source grid",
     "param_name": "source_grid",
     "n_high": 100,
+    "sigma_low": 1e-5,
+    "sigma_high": 10.0,
     "positive": True,
 }
 
@@ -352,6 +353,8 @@ def model(
                 k_values,
                 n_high=SOURCE_GRID_PRIOR["n_high"],
                 n_value=n_value,
+                sigma_low=SOURCE_GRID_PRIOR["sigma_low"],
+                sigma_high=SOURCE_GRID_PRIOR["sigma_high"],
                 positive=SOURCE_GRID_PRIOR["positive"],
             )
         ]

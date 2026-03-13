@@ -18,18 +18,7 @@ warnings.simplefilter("ignore")
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
-suffix = '_ss=2'
-batch_list = []
-for i in range(2):
-    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_psfcorrection{i}{suffix}.nc"
-    mcmc_chain = az.from_netcdf(batch_path)
-    batch_list.append(mcmc_chain)
-
-suffix = '_ss=2_16chain'
-
-inf_data_pixel = az.concat(*batch_list, dim="draw")
-
-
+suffix = '_ss=1'
 
 def resolve_nc_path() -> str:
     """Resolve the HMC netCDF path across common lustre layouts and filenames."""
@@ -75,7 +64,7 @@ DATA_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)
 # --------------------------------
 # Read posterior (.nc) and print key info
 # --------------------------------
-# inf_data_pixel = az.from_netcdf(NC_PATH)
+inf_data_pixel = az.from_netcdf(NC_PATH)
 print(f"Using netCDF: {NC_PATH}")
 post = inf_data_pixel.posterior
 HMC_median = inf_data_pixel.posterior.median(dim=("draw"))

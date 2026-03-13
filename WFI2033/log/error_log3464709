@@ -1,4 +1,0 @@
-  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/WFI2033_model_to_hmc.py", line 178
-    "theta_low" = 0.9, 
-              ^
-SyntaxError: ':' expected after dictionary key
