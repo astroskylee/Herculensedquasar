@@ -104,7 +104,7 @@ provided_rms = True
 N_gauss_light = 2
 N_gauss_source = 1
 
-sigma_lims_lens = [0.5, 2.0]
+sigma_lims_lens = [0.2, 2.0]
 sigma_lims = [0.01, 0.5]
 source_grid_scale = 0.8
 
@@ -115,10 +115,10 @@ conj_points = jnp.array([
     [-0.1255456241215261, -0.8965524340129204],
 ])
 
-ss_factor = 2
-suffix = f'_ss={ss_factor}'
+ss_factor = 1
+suffix = f'_ss={ss_factor}_onegibbs'
 PSF_CORNER_SIZE = 5
-num_chains = 8
+num_chains = 6
 
 def compute_psf_corner_median(psf_kernel, corner_size=PSF_CORNER_SIZE):
     ny, nx = psf_kernel.shape
@@ -494,7 +494,7 @@ for i in range(num_chains):
         max_iterations,
         data,
         **PARAMETRIC_SVI_KWARGS,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     param_guides.append(guide_i)
@@ -640,7 +640,7 @@ for i in range(num_chains):
         max_iterations,
         data,
         **PIXELATED_STAGE1_KWARGS,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage1_guides.append(guide_stage1_i)
@@ -686,7 +686,7 @@ for i in range(num_chains):
         data,
         **PIXELATED_STAGE2_KWARGS,
         psf_kernel=psf_hst,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage2_guides.append(guide_stage2_i)
@@ -794,7 +794,7 @@ for i in range(num_chains_stage3):
         data,
         **PIXELATED_STAGE3_KWARGS,
         psf_kernel=psf_hst,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage3_guides.append(guide_stage3_i)
@@ -851,15 +851,9 @@ inner_kernels = [
         dense_mass=[
             ("n_source_grid", "rho_source_grid", "sigma_source_grid"),
             ("A_lens", "sigma_lens", "e_lens", "center_lens"),
-            ("ra_ps", "dec_ps", "log10_amp_ps")
+            ("ra_ps", "dec_ps", "log10_amp_ps"),
+            ("center_1","theta_E_1", "theta_E_g1", "theta_E_g2","e_1", "gamma_1", "gamma_sheer_1")
         ],
-    ),
-    NUTS(
-        model,
-        init_strategy=init_fun_pixel,
-        target_accept_prob=0.9,
-        max_tree_depth=10,
-        dense_mass=[("center_1","theta_E_1", "theta_E_g1", "theta_E_g2","e_1", "gamma_1", "gamma_sheer_1")],
     ),
     NUTS(
         model,
@@ -872,15 +866,14 @@ inner_kernels = [
 outer_kernel = MultiHMCGibbs(
     inner_kernels,
     gibbs_sites_list=[
-        vars_pixel + vars_power + vars_lens_light + vars_other + vars_psf,
-        vars_mass,
+        vars_pixel + vars_power + vars_lens_light + vars_other + vars_psf + vars_mass,
         vars_psf_corr,
     ],
 )
 
 mcmc_pixel = MCMC(
     outer_kernel,
-    num_warmup=6000,
+    num_warmup=2000,
     num_samples=1000,
     num_chains=num_chains,
     progress_bar=True,

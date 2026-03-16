@@ -53,7 +53,7 @@ if "graphviz" not in os.environ.get("PATH", ""):
 # -----------------------------
 # Data / PSF loading
 # -----------------------------
-pix_scale = 0.031  # arcsec / pixel (JWST)
+
 
 DATA_DIR = "../../Data/WFI2033"
 raw_data_path = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
@@ -62,7 +62,10 @@ mask_path = os.path.join("data/mask_hmc.fits")
 maskout_path = os.path.join(DATA_DIR, "mask_out_center.fits")
 
 with fits.open(raw_data_path, memmap=True) as hdul_raw:
-    exposure_time = float(hdul_raw[0].header.get("EXPTIME", hdul_raw[0].header.get("TEXPTIME", 1.0)))
+    raw_header = hdul_raw["SCI"].header if "SCI" in hdul_raw else hdul_raw[0].header
+    exposure_time = float(raw_header.get("EXPTIME", raw_header.get("TEXPTIME", raw_header.get("XPOSURE", 1.0))))
+pix_scale = float(np.sqrt(raw_header["PIXAR_A2"]))
+print(pix_scale)
 
 with fits.open(data_path, memmap=True) as hdul:
     data = jnp.array(hdul["SCI"].data) if "SCI" in hdul else jnp.array(hdul[0].data)
@@ -101,7 +104,7 @@ provided_rms = True
 N_gauss_light = 2
 N_gauss_source = 1
 
-sigma_lims_lens = [0.2, 2.0]
+sigma_lims_lens = [0.5, 2.0]
 sigma_lims = [0.01, 0.5]
 source_grid_scale = 0.8
 
@@ -112,10 +115,10 @@ conj_points = jnp.array([
     [-0.1255456241215261, -0.8965524340129204],
 ])
 
-ss_factor = 1
+ss_factor = 2
 suffix = f'_ss={ss_factor}'
 PSF_CORNER_SIZE = 5
-num_chains = 4
+num_chains = 8
 
 def compute_psf_corner_median(psf_kernel, corner_size=PSF_CORNER_SIZE):
     ny, nx = psf_kernel.shape
@@ -877,7 +880,7 @@ outer_kernel = MultiHMCGibbs(
 
 mcmc_pixel = MCMC(
     outer_kernel,
-    num_warmup=5000,
+    num_warmup=6000,
     num_samples=1000,
     num_chains=num_chains,
     progress_bar=True,

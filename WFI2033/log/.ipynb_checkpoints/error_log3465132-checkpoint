@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/read_data.py", line 52, in <module>
+    NC_PATH = resolve_nc_path()
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/read_data.py", line 46, in resolve_nc_path
+    raise FileNotFoundError(
+    ...<2 lines>...
+    )
+FileNotFoundError: Cannot find WFI2033 netCDF file. Set WFI2033_NC_PATH or place file at one candidate path:
+/mnt/lustre/tianli/quasar_hmc/WFI2033_psf_correct_all_ss=2_onegibbs.nc
+/mnt/lustre2/tianli/quasar_hmc/WFI2033_psf_correct_all_ss=2_onegibbs.nc
+/users/tianli/quasar_hmc/WFI2033_psf_correct_all_ss=2_onegibbs.nc
+/users/tianli/LensModelling/Herculensedquasar/WFI2033/WFI2033_psf_correct_all_ss=2_onegibbs.nc
+/users/tianli/LensModelling/Herculensedquasar/WFI2033/WFI2033_psf_correct_all_ss=2_onegibbs.nc
