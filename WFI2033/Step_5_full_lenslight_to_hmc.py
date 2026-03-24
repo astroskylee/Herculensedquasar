@@ -524,7 +524,7 @@ for i in range(num_chains):
         max_iterations,
         data,
         **PARAMETRIC_SVI_KWARGS,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     param_guides.append(guide_i)
@@ -673,7 +673,7 @@ for i in range(num_chains):
         max_iterations,
         data,
         **PIXELATED_STAGE1_KWARGS,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage1_guides.append(guide_stage1_i)
@@ -719,7 +719,7 @@ for i in range(num_chains):
         data,
         **PIXELATED_STAGE2_KWARGS,
         psf_kernel=psf_hst,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage2_guides.append(guide_stage2_i)
@@ -827,7 +827,7 @@ for i in range(num_chains_stage3):
         data,
         **PIXELATED_STAGE3_KWARGS,
         psf_kernel=psf_hst,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage3_guides.append(guide_stage3_i)

@@ -39,9 +39,12 @@ warnings.simplefilter("ignore")
 # Imports
 # -----------------------------
 from herculens_import_main import *  # noqa: F401,F403
+from lens_images_extension import LensImageExtension
+from lens_images_extension import pixelize_plane as pixelize_plane_single
 import jax
 import numpyro
 import arviz as az
+from data.lens_light_fixed_sites import LENS_LIGHT_FIXED_SITES as LENS_LIGHT_FIXED_SITES_RAW
 
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
@@ -75,6 +78,14 @@ mask = jnp.array(fits.getdata(mask_path), dtype=bool)
 mask_out = jnp.array(fits.getdata(maskout_path), dtype=bool)
 mask = jnp.array(mask_out, dtype=bool)
 
+ny, nx = mask_out.shape
+xc, yc = nx / 2, ny / 2
+r = 16
+
+y, x = jnp.indices((ny, nx))
+circle = (x - xc) ** 2 + (y - yc) ** 2 <= r ** 2
+mask_out = jnp.logical_or(mask_out, circle)
+
 valid = jnp.isfinite(data) & jnp.isfinite(rms_file) & (rms_file > 0)
 mask = mask & valid
 npix = int(mask_out.sum())
@@ -93,8 +104,10 @@ with fits.open(psf_path_model, memmap=True) as hdul_psf:
     psf_hst = np.array(hdul_psf["DET_PSF_MODEL"].data, dtype=float)
 
 psf_hst = np.clip(psf_hst, 0.0, None)
+psf_hst = np.load("./data/svi_corrected_psf.npy")
+psf_hst = np.clip(psf_hst, 0.0, None)
 psf_hst = psf_hst / np.sum(psf_hst)
-psf_used = psf_path_model
+psf_used = "./data/svi_corrected_psf.npy"
 psf = PSF(psf_type="PIXEL", kernel_point_source=psf_hst)
 
 pixel_grid, xgrid, ygrid, x_axis, y_axis, extent, nx, ny = get_pixel_grid(data, pix_scale)
@@ -119,6 +132,9 @@ ss_factor = 2
 suffix = f'_ss={ss_factor}_full_light'
 PSF_CORNER_SIZE = 5
 num_chains = 6
+OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
+OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix}"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 def compute_psf_corner_median(psf_kernel, corner_size=PSF_CORNER_SIZE):
     ny, nx = psf_kernel.shape
@@ -237,24 +253,7 @@ SIS_G2_PRIOR = {
 G2_MASS_CENTER = (2.145, -3.326)
 
 FREEZE_LENS_LIGHT_STAGE12 = True
-LENS_LIGHT_FIXED_SITES = {
-    "A_lens": jnp.array([99817.9057, 99886.9246, 27619.2805, 11797.9752, 3747.18909], dtype=jnp.float64),
-    "sigma_lens": jnp.array([0.0215159293, 0.0365546165, 0.0843158332, 0.215854311, 0.806167953], dtype=jnp.float64),
-    "e_lens": jnp.array(
-        [
-            [-0.071907176, -0.0331211024, -0.0628928986, -0.0795255049, -0.00677720617],
-            [0.00443459114, 0.0208858872, 0.110132527, 0.110276821, 0.141891644],
-        ],
-        dtype=jnp.float64,
-    ),
-    "center_lens": jnp.array(
-        [
-            [-0.00012325156, -0.000178568799, 0.00326719443, -0.00332402026, 0.139266098],
-            [-0.0130794077, -0.011627038, -0.0112894393, -0.0135242747, -0.0534815181],
-        ],
-        dtype=jnp.float64,
-    ),
-}
+LENS_LIGHT_FIXED_SITES = {k: jnp.asarray(v, dtype=jnp.float64) for k, v in LENS_LIGHT_FIXED_SITES_RAW.items()}
 LENS_LIGHT_FIXED_PARAMS = LENS_LIGHT_FIXED_SITES | {
     "amp_lens": LENS_LIGHT_FIXED_SITES["A_lens"] * (LENS_LIGHT_FIXED_SITES["sigma_lens"] ** 2),
 }
@@ -305,6 +304,7 @@ def model(
     n_value=None,
     mass_prior_kwargs=None,
     psf_kernel=None,
+    psf_kernel_super=None,
     enable_psf_corr=False,
 ):
     if mass_prior_kwargs is None:
@@ -425,6 +425,7 @@ def model(
         source_add=True,
         point_source_add=True,
         psf_kernel=psf_kernel_eff,
+        psf_kernel_super=psf_kernel_super,
     )
 
     if provided_rms:
@@ -591,7 +592,6 @@ HMC_RUN_KWARGS = PIXELATED_BASE_KWARGS | {
     "enable_psf_corr": True,
 }
 
-from lens_images_extension import pixelize_plane as pixelize_plane_single
 
 orig_source_list = []
 for idx in range(num_chains):
@@ -936,7 +936,7 @@ for i in range(batch_number):
     mcmc_pixel._states = jax.device_get(mcmc_pixel._states)
     mcmc_pixel._states_flat = jax.device_get(mcmc_pixel._states_flat)
     mcmc_chain = az.from_numpyro(mcmc_pixel)
-    batch_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_{i}{suffix}.nc"
+    batch_path = OUTPUT_DIR / f"WFI2033_{i}{suffix}.nc"
     mcmc_chain.to_netcdf(batch_path)
     print(f"Saved HMC batch to: {batch_path}")
     batch_list.append(mcmc_chain)
@@ -947,6 +947,6 @@ for i in range(batch_number):
 # -----------------------------
 inf_data = az.concat(*batch_list, dim="draw")
 
-final_hmc_path = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_all{suffix}.nc"
+final_hmc_path = OUTPUT_DIR / f"WFI2033_all{suffix}.nc"
 inf_data.to_netcdf(final_hmc_path)
 print(f"Saved final HMC inf_data to: {final_hmc_path}")
