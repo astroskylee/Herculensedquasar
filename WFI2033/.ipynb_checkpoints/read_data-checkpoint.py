@@ -27,6 +27,7 @@ def resolve_nc_path() -> str:
         return env_path
 
     names = [f"WFI2033_psf_correct_all{suffix}.nc"]
+    names = [f"/mnt/lustre/tianli/quasar_hmc/WFI2033_0_ss=2_full_light.nc"]
     roots = [
         Path("/mnt/lustre/tianli/quasar_hmc"),
         Path("/mnt/lustre2/tianli/quasar_hmc"),
