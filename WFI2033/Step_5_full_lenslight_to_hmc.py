@@ -243,6 +243,8 @@ SIS_G2_PRIOR = {
 G2_MASS_CENTER = (2.145, -3.326)
 
 FREEZE_LENS_LIGHT_STAGE12 = True
+STAGE3_FREE_ONLY_LARGEST_TWO_GAUSSIANS = False
+STAGE3_FREE_LENS_LIGHT_INDICES = tuple(range(max(N_gauss_light - 2, 0), N_gauss_light))
 LENS_LIGHT_FIXED_SITES = {k: jnp.asarray(v, dtype=jnp.float64) for k, v in LENS_LIGHT_FIXED_SITES_RAW.items()}
 LENS_LIGHT_FIXED_PARAMS = LENS_LIGHT_FIXED_SITES | {
     "amp_lens": LENS_LIGHT_FIXED_SITES["A_lens"] * (LENS_LIGHT_FIXED_SITES["sigma_lens"] ** 2),
@@ -285,6 +287,98 @@ npix = int(mask_out.sum())
 N_HIGH_SOURCE_GRID = SOURCE_GRID_PRIOR["n_high"]
 
 
+def get_stage3_lens_light_free_init(params, free_indices):
+    if free_indices is None:
+        return {}
+    free_idx = jnp.asarray(free_indices, dtype=jnp.int32)
+    return {
+        "A_lens_free": params["A_lens"][free_idx],
+        "sigma_lens_free": params["sigma_lens"][free_idx],
+        "e_lens_free": params["e_lens"][:, free_idx],
+        "center_lens_free": params["center_lens"][:, free_idx],
+    }
+
+
+def expand_stage3_lens_light_sites(params, fixed_sites, free_indices):
+    if free_indices is None:
+        return params
+    free_idx = jnp.asarray(free_indices, dtype=jnp.int32)
+    params_full = dict(params)
+    A_lens = jnp.asarray(fixed_sites["A_lens"], dtype=jnp.float64).at[free_idx].set(params["A_lens_free"])
+    sigma_lens = jnp.asarray(fixed_sites["sigma_lens"], dtype=jnp.float64).at[free_idx].set(params["sigma_lens_free"])
+    e_lens = jnp.asarray(fixed_sites["e_lens"], dtype=jnp.float64).at[:, free_idx].set(params["e_lens_free"])
+    center_lens = jnp.asarray(fixed_sites["center_lens"], dtype=jnp.float64).at[:, free_idx].set(params["center_lens_free"])
+    params_full["A_lens"] = A_lens
+    params_full["sigma_lens"] = sigma_lens
+    params_full["e_lens"] = e_lens
+    params_full["center_lens"] = center_lens
+    params_full["amp_lens"] = A_lens * sigma_lens**2
+    return params_full
+
+
+def sample_lens_light_for_stage(
+    fixed_sites=None,
+    free_indices=None,
+):
+    if fixed_sites is None or free_indices is None:
+        return multi_gauss_light(**LENS_LIGHT_PRIOR_KWARGS)
+
+    free_indices = tuple(int(idx) for idx in free_indices)
+    if len(free_indices) == N_gauss_light:
+        return multi_gauss_light(**LENS_LIGHT_PRIOR_KWARGS)
+
+    sigma_bins = jnp.logspace(
+        jnp.log10(LENS_LIGHT_PRIOR_KWARGS["sigma_lims"][0]),
+        jnp.log10(LENS_LIGHT_PRIOR_KWARGS["sigma_lims"][1]),
+        LENS_LIGHT_PRIOR_KWARGS["n_gauss"] + 1,
+    )
+    free_idx = jnp.asarray(free_indices, dtype=jnp.int32)
+
+    A_fixed = jnp.asarray(fixed_sites["A_lens"], dtype=jnp.float64)
+    sigma_fixed = jnp.asarray(fixed_sites["sigma_lens"], dtype=jnp.float64)
+    e_fixed = jnp.asarray(fixed_sites["e_lens"], dtype=jnp.float64)
+    center_fixed = jnp.asarray(fixed_sites["center_lens"], dtype=jnp.float64)
+
+    with numpyro.plate(f"{LENS_LIGHT_PRIOR_KWARGS['plate_name']} free - [{len(free_indices)}]", len(free_indices)):
+        A_free = numpyro.sample("A_lens_free", dist.LogUniform(1e-5, 1e6))
+        sigma_free = numpyro.sample(
+            "sigma_lens_free",
+            dist.LogUniform(sigma_bins[:-1][free_idx], sigma_bins[1:][free_idx]),
+        )
+        with numpyro.plate(f"{LENS_LIGHT_PRIOR_KWARGS['plate_name']} free vectors - [2]", 2):
+            e_free = numpyro.sample(
+                "e_lens_free",
+                dist.TruncatedNormal(0, 0.1, low=LENS_LIGHT_PRIOR_KWARGS["e_low"], high=LENS_LIGHT_PRIOR_KWARGS["e_high"]),
+            )
+            if (LENS_LIGHT_PRIOR_KWARGS.get("center_low") is not None) or (LENS_LIGHT_PRIOR_KWARGS.get("center_high") is not None):
+                center_free = numpyro.sample(
+                    "center_lens_free",
+                    dist.TruncatedNormal(
+                        0.0,
+                        0.1,
+                        low=LENS_LIGHT_PRIOR_KWARGS.get("center_low"),
+                        high=LENS_LIGHT_PRIOR_KWARGS.get("center_high"),
+                    ),
+                )
+            else:
+                center_free = numpyro.sample("center_lens_free", dist.Normal(0.0, 0.5))
+
+    A_lens = numpyro.deterministic("A_lens", A_fixed.at[free_idx].set(A_free))
+    sigma_lens = numpyro.deterministic("sigma_lens", sigma_fixed.at[free_idx].set(sigma_free))
+    e_lens = numpyro.deterministic("e_lens", e_fixed.at[:, free_idx].set(e_free))
+    center_lens = numpyro.deterministic("center_lens", center_fixed.at[:, free_idx].set(center_free))
+    amp_lens = numpyro.deterministic("amp_lens", A_lens * sigma_lens**2)
+
+    return [{
+        "amp": amp_lens,
+        "sigma": sigma_lens,
+        "e1": e_lens[0],
+        "e2": e_lens[1],
+        "center_x": center_lens[0],
+        "center_y": center_lens[1],
+    }]
+
+
 def model(
     data,
     k_values=None,
@@ -295,6 +389,8 @@ def model(
     mass_prior_kwargs=None,
     psf_kernel=None,
     enable_psf_corr=False,
+    lens_light_fixed_sites=None,
+    lens_light_free_indices=None,
 ):
     if mass_prior_kwargs is None:
         mass_prior_kwargs = {}
@@ -314,7 +410,10 @@ def model(
         theta_mean=SIS_G2_PRIOR["theta_mean"],
         theta_sigma=SIS_G2_PRIOR["theta_sigma"],
     )
-    lens_light = multi_gauss_light(**LENS_LIGHT_PRIOR_KWARGS)
+    lens_light = sample_lens_light_for_stage(
+        fixed_sites=lens_light_fixed_sites,
+        free_indices=lens_light_free_indices,
+    )
 
     n_ps = conj_points.shape[0]
     ra_ps = numpyro.sample(
@@ -801,15 +900,30 @@ scheduler_stage3 = optax.exponential_decay(
 optim_stage3 = optax.adabelief(learning_rate=scheduler_stage3)
 loss_stage3 = infer.TraceMeanField_ELBO()
 
+stage3_lens_light_free_indices = STAGE3_FREE_LENS_LIGHT_INDICES if STAGE3_FREE_ONLY_LARGEST_TWO_GAUSSIANS else None
+
+
+def model_stage3(*args, **kwargs):
+    return model(
+        *args,
+        **kwargs,
+        lens_light_fixed_sites=LENS_LIGHT_FIXED_SITES if stage3_lens_light_free_indices is not None else None,
+        lens_light_free_indices=stage3_lens_light_free_indices,
+    )
+
+
 svi_keys_stage3 = jax.random.split(jax.random.fold_in(rng_key_, 3003), num_chains_stage3)
 stage3_results_list = []
 stage3_guides = []
 
 for i in range(num_chains_stage3):
-    init_values_stage3_i = get_value_from_index(multi_svi_pixel_median_stage2, i) | LENS_LIGHT_FIXED_PARAMS
+    init_values_stage3_i = get_value_from_index(multi_svi_pixel_median_stage2, i) | LENS_LIGHT_FIXED_PARAMS | get_stage3_lens_light_free_init(
+        get_value_from_index(multi_svi_pixel_median_stage2, i),
+        stage3_lens_light_free_indices,
+    )
     init_fun_stage3_i = init_to_value_or_defer(values=init_values_stage3_i)
-    guide_stage3_i = autoguide.AutoDiagonalNormal(model, init_loc_fn=init_fun_stage3_i, init_scale=0.01)
-    svi_stage3_i = infer.SVI(model, guide_stage3_i, optim_stage3, loss_stage3)
+    guide_stage3_i = autoguide.AutoDiagonalNormal(model_stage3, init_loc_fn=init_fun_stage3_i, init_scale=0.01)
+    svi_stage3_i = infer.SVI(model_stage3, guide_stage3_i, optim_stage3, loss_stage3)
     result_i = svi_stage3_i.run(
         svi_keys_stage3[i],
         max_iterations_stage3,
@@ -824,7 +938,11 @@ for i in range(num_chains_stage3):
 
 multi_svi_pixel_results_stage3 = jax.tree.map(_stack_or_none, *stage3_results_list)
 guide_pixel_stage3 = stage3_guides[0]
-multi_svi_pixel_median_stage3 = guide_pixel_stage3.median(multi_svi_pixel_results_stage3.params)
+multi_svi_pixel_median_stage3 = expand_stage3_lens_light_sites(
+    guide_pixel_stage3.median(multi_svi_pixel_results_stage3.params),
+    LENS_LIGHT_FIXED_SITES,
+    stage3_lens_light_free_indices,
+)
 multi_svi_pixel_median_herc_stage3 = median_params2kwargs(
     lambda p, fixed_params={}: params2kwargs(p, fixed_params=fixed_params, pixelated=True),
     multi_svi_pixel_median_stage3,
