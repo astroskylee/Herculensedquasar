@@ -302,12 +302,30 @@ def get_stage3_lens_light_free_init(params, free_indices):
 def expand_stage3_lens_light_sites(params, fixed_sites, free_indices):
     if free_indices is None:
         return params
+
+    def _broadcast_fixed_like(fixed_value, free_value):
+        fixed_value = jnp.asarray(fixed_value, dtype=jnp.float64)
+        free_value = jnp.asarray(free_value, dtype=jnp.float64)
+        if fixed_value.ndim < free_value.ndim:
+            fixed_value = jnp.broadcast_to(
+                fixed_value,
+                free_value.shape[:-fixed_value.ndim] + fixed_value.shape,
+            )
+        return fixed_value, free_value
+
     free_idx = jnp.asarray(free_indices, dtype=jnp.int32)
     params_full = dict(params)
-    A_lens = jnp.asarray(fixed_sites["A_lens"], dtype=jnp.float64).at[free_idx].set(params["A_lens_free"])
-    sigma_lens = jnp.asarray(fixed_sites["sigma_lens"], dtype=jnp.float64).at[free_idx].set(params["sigma_lens_free"])
-    e_lens = jnp.asarray(fixed_sites["e_lens"], dtype=jnp.float64).at[:, free_idx].set(params["e_lens_free"])
-    center_lens = jnp.asarray(fixed_sites["center_lens"], dtype=jnp.float64).at[:, free_idx].set(params["center_lens_free"])
+
+    A_fixed, A_free = _broadcast_fixed_like(fixed_sites["A_lens"], params["A_lens_free"])
+    sigma_fixed, sigma_free = _broadcast_fixed_like(fixed_sites["sigma_lens"], params["sigma_lens_free"])
+    e_fixed, e_free = _broadcast_fixed_like(fixed_sites["e_lens"], params["e_lens_free"])
+    center_fixed, center_free = _broadcast_fixed_like(fixed_sites["center_lens"], params["center_lens_free"])
+
+    A_lens = A_fixed.at[..., free_idx].set(A_free)
+    sigma_lens = sigma_fixed.at[..., free_idx].set(sigma_free)
+    e_lens = e_fixed.at[..., free_idx].set(e_free)
+    center_lens = center_fixed.at[..., free_idx].set(center_free)
+
     params_full["A_lens"] = A_lens
     params_full["sigma_lens"] = sigma_lens
     params_full["e_lens"] = e_lens
