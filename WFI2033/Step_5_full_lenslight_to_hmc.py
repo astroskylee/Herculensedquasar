@@ -580,7 +580,7 @@ HMC_RUN_KWARGS = PIXELATED_BASE_KWARGS | {
     "enable_psf_corr": True,
 }
 
-from lens_images_extension import pixelize_plane as pixelize_plane_single
+from lens_image_extension import pixelize_plane as pixelize_plane_single
 
 orig_source_list = []
 for idx in range(num_chains):

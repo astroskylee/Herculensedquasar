@@ -43,8 +43,8 @@ from herculens.MassModel.mass_model import MassModel
 from herculens.LightModel.light_model_multiplane import MPLightModel
 from herculens.LightModel.light_model import LightModel
 from herculens.LensImage.lens_image_multiplane import MPLensImage
-from lens_images_extension import LensImageExtension
-from lens_images_extension import pixelize_plane as pixelize_plane_single
+from lens_image_extension import LensImageExtension
+from lens_image_extension import pixelize_plane as pixelize_plane_single
 #priors:
 ##########################################################################################################
 ##########################################################################################################
