@@ -2,6 +2,8 @@ Currently Loaded Modulefiles: 1) services/slurm <aL> 3) git/2.48.0 2) system/int
 [CudaDevice(id=0)]
 0.031224452218231436
 Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
-pixel_grid_shape = 75
+pixel_grid_shape = 76
 Updated RMS map in memory from stage2-best PSF extra error
-best_stage2_i = 0
+best_stage2_i = 4
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_0_ss=2_full_light.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_1_ss=2_full_light.nc

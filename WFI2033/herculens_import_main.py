@@ -160,7 +160,7 @@ def multi_gauss_light(plate_name, param_name, n_gauss, sigma_lims, center_low=No
     )
 
     with numpyro.plate(f'{plate_name} - [{n_gauss}]', n_gauss):
-        A = numpyro.sample(f'A_{param_name}', dist.LogUniform(1e-5, 1e5))
+        A = numpyro.sample(f'A_{param_name}', dist.LogUniform(1e-5, 1e6))
         sigma = numpyro.sample(
             f'sigma_{param_name}',
             dist.LogUniform(sigma_bins[:-1], sigma_bins[1:])

@@ -18,7 +18,7 @@ warnings.simplefilter("ignore")
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
-suffix = '_ss=2_onegibbs'
+suffix = '_ss=2_full_light'
 
 def resolve_nc_path() -> str:
     """Resolve the HMC netCDF path across common lustre layouts and filenames."""
