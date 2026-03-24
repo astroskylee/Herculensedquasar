@@ -275,24 +275,60 @@ class LensImageExtension(LensImage):
             raise NotImplementedError(
                 "Explicit supersampled PSF override is not enabled in this LensImage path."
             )
-        return super().model(
-            kwargs_lens=kwargs_lens,
-            kwargs_source=kwargs_source,
-            kwargs_lens_light=kwargs_lens_light,
-            kwargs_point_source=kwargs_point_source,
-            unconvolved=unconvolved,
-            supersampled=supersampled,
-            source_add=source_add,
-            lens_light_add=lens_light_add,
-            point_source_add=point_source_add,
-            k_lens=k_lens,
-            k_source=k_source,
-            k_lens_light=k_lens_light,
-            k_point_source=k_point_source,
-            adapted_source_pixels_coords=adapted_source_pixels_coords,
-            return_source_pixels_coords=return_source_pixels_coords,
-            psf_kernel=psf_kernel,
-        )
+        model = jnp.zeros((self.Grid.num_pixel_axes))
+        if supersampled:
+            model = jnp.zeros((self.ImageNumerics.grid_class.num_grid_points,))
+        if source_add is True:
+            if self.source_arc_mask is not None:
+                return_as_list = True
+            else:
+                return_as_list = False
+            source_model, adapted_source_pixels_coords = self.source_surface_brightness(
+                kwargs_source,
+                kwargs_lens,
+                unconvolved=unconvolved,
+                supersampled=supersampled,
+                k=k_source,
+                k_lens=k_lens,
+                adapted_pixels_coords=adapted_source_pixels_coords,
+                return_pixels_coords=True,
+                return_as_list=return_as_list,
+                psf_kernel=psf_kernel,
+            )
+            if return_as_list:
+                pixelated_index = self.SourceModel.pixelated_index
+                if pixelated_index is None:
+                    pixelated_profiles = [
+                        i for i, profile in enumerate(self.SourceModel.profile_type_list)
+                        if profile == 'PIXELATED'
+                    ]
+                    if len(pixelated_profiles) == 1:
+                        pixelated_index = pixelated_profiles[0]
+                if pixelated_index is None:
+                    source_model = [comp * self.source_arc_mask for comp in source_model]
+                else:
+                    source_model[pixelated_index] *= self.source_arc_mask
+                source_model = jnp.sum(jnp.array(source_model), axis=0)
+            model += source_model
+        if lens_light_add is True:
+            model += self.lens_surface_brightness(
+                kwargs_lens_light,
+                unconvolved=unconvolved,
+                supersampled=supersampled,
+                k=k_lens_light,
+                psf_kernel=psf_kernel,
+            )
+        if point_source_add:
+            model += self.point_source_image(
+                kwargs_point_source,
+                kwargs_lens,
+                kwargs_solver=self.kwargs_lens_equation_solver,
+                k=k_point_source,
+                psf_kernel=psf_kernel,
+            )
+        if return_source_pixels_coords:
+            return model, adapted_source_pixels_coords
+        return model
 
 
 def pixelize_plane(lens_image, herc_dict, num_pix, source_grid_scale=None):
@@ -304,7 +340,10 @@ def pixelize_plane(lens_image, herc_dict, num_pix, source_grid_scale=None):
         npix_src=num_pix,
         source_grid_scale=source_grid_scale,
     )
-    xgrid, ygrid = jnp.meshgrid(x, y)
+    if jnp.ndim(x) == 1 and jnp.ndim(y) == 1:
+        xgrid, ygrid = jnp.meshgrid(x, y)
+    else:
+        xgrid, ygrid = x, y
     image_grid = lens_image.SourceModel.surface_brightness(
         xgrid,
         ygrid,

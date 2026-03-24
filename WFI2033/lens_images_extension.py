@@ -144,7 +144,7 @@ class LensImageExtension(LensImage):
             )
         return result
 
-    @partial(jax.jit, static_argnums=(0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+    @partial(jax.jit, static_argnums=(0, 5, 6, 7, 8, 9, 10, 11, 12, 13))
     def model(
         self,
         kwargs_lens=None,
@@ -160,7 +160,6 @@ class LensImageExtension(LensImage):
         k_source=None,
         k_lens_light=None,
         k_point_source=None,
-        psf_noise_fft=None,
         psf_kernel=None,
         psf_kernel_super=None
     ):
