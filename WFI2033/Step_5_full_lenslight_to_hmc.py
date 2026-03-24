@@ -78,6 +78,14 @@ mask = jnp.array(fits.getdata(mask_path), dtype=bool)
 mask_out = jnp.array(fits.getdata(maskout_path), dtype=bool)
 mask = jnp.array(mask_out, dtype=bool)
 
+ny, nx = mask_out.shape
+xc, yc = nx / 2, ny / 2
+r = 16
+
+y, x = jnp.indices((ny, nx))
+circle = (x - xc) ** 2 + (y - yc) ** 2 <= r ** 2
+mask_out = jnp.logical_or(mask_out, circle)
+
 valid = jnp.isfinite(data) & jnp.isfinite(rms_file) & (rms_file > 0)
 mask = mask & valid
 npix = int(mask_out.sum())
@@ -296,6 +304,7 @@ def model(
     n_value=None,
     mass_prior_kwargs=None,
     psf_kernel=None,
+    psf_kernel_super=None,
     enable_psf_corr=False,
 ):
     if mass_prior_kwargs is None:
@@ -416,6 +425,7 @@ def model(
         source_add=True,
         point_source_add=True,
         psf_kernel=psf_kernel_eff,
+        psf_kernel_super=psf_kernel_super,
     )
 
     if provided_rms:
@@ -514,7 +524,7 @@ for i in range(num_chains):
         max_iterations,
         data,
         **PARAMETRIC_SVI_KWARGS,
-        progress_bar=False,
+        progress_bar=True,
         stable_update=True,
     )
     param_guides.append(guide_i)
@@ -663,7 +673,7 @@ for i in range(num_chains):
         max_iterations,
         data,
         **PIXELATED_STAGE1_KWARGS,
-        progress_bar=False,
+        progress_bar=True,
         stable_update=True,
     )
     stage1_guides.append(guide_stage1_i)
@@ -709,7 +719,7 @@ for i in range(num_chains):
         data,
         **PIXELATED_STAGE2_KWARGS,
         psf_kernel=psf_hst,
-        progress_bar=False,
+        progress_bar=True,
         stable_update=True,
     )
     stage2_guides.append(guide_stage2_i)
@@ -817,7 +827,7 @@ for i in range(num_chains_stage3):
         data,
         **PIXELATED_STAGE3_KWARGS,
         psf_kernel=psf_hst,
-        progress_bar=False,
+        progress_bar=True,
         stable_update=True,
     )
     stage3_guides.append(guide_stage3_i)
