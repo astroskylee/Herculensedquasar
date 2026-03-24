@@ -917,8 +917,9 @@ stage3_results_list = []
 stage3_guides = []
 
 for i in range(num_chains_stage3):
-    init_values_stage3_i = get_value_from_index(multi_svi_pixel_median_stage2, i) | LENS_LIGHT_FIXED_PARAMS | get_stage3_lens_light_free_init(
-        get_value_from_index(multi_svi_pixel_median_stage2, i),
+    stage2_full_i = get_value_from_index(multi_svi_pixel_median_stage2, i) | LENS_LIGHT_FIXED_PARAMS
+    init_values_stage3_i = stage2_full_i | get_stage3_lens_light_free_init(
+        stage2_full_i,
         stage3_lens_light_free_indices,
     )
     init_fun_stage3_i = init_to_value_or_defer(values=init_values_stage3_i)
