@@ -39,6 +39,8 @@ warnings.simplefilter("ignore")
 # Imports
 # -----------------------------
 from herculens_import_main import *  # noqa: F401,F403
+from lens_images_extension import LensImageExtension
+from lens_images_extension import pixelize_plane as pixelize_plane_single
 import jax
 import numpyro
 import arviz as az
@@ -580,7 +582,6 @@ HMC_RUN_KWARGS = PIXELATED_BASE_KWARGS | {
     "enable_psf_corr": True,
 }
 
-from lens_image_extension import pixelize_plane as pixelize_plane_single
 
 orig_source_list = []
 for idx in range(num_chains):
