@@ -870,6 +870,7 @@ multi_svi_pixel_median_herc_stage3 = median_params2kwargs(
     multi_svi_pixel_median_stage3,
     jnp.arange(num_chains_stage3),
 )
+stage3_psf_kernel_det, _ = get_stage2_deterministics_from_median(multi_svi_pixel_median_stage3)
 
 # -----------------------------
 # Stage4 pixel SVI (fix first three Gaussians, infer last two)
@@ -879,6 +880,7 @@ best_stage3_i = int(np.argmin(stage3_losses_np[:, -1]))
 
 best_stage3_params = get_value_from_index(multi_svi_pixel_median_stage3, best_stage3_i)
 best_stage3_kwargs = get_value_from_index(multi_svi_pixel_median_herc_stage3, best_stage3_i)
+best_stage3_fixed_psf = np.asarray(get_value_from_index(stage3_psf_kernel_det, best_stage3_i), dtype=np.float32)
 
 best_lens_light_full = best_stage3_kwargs["kwargs_lens_light"][0]
 kwargs_lens_light_first_three = [{
@@ -901,7 +903,7 @@ np.savez(
 )
 fits.writeto(
     FIXED_FIRST_THREE_PSF_PATH,
-    np.asarray(data_psf_ori, dtype=np.float32),
+    best_stage3_fixed_psf,
     overwrite=True,
 )
 print(f"Saved fixed first-three Gaussians to: {FIXED_FIRST_THREE_GAUSS_PATH}")
@@ -943,7 +945,7 @@ loss_stage4 = infer.TraceMeanField_ELBO()
 PIXELATED_STAGE4_KWARGS = PIXELATED_STAGE3_KWARGS | {
     "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_TWO_GAUSS_KWARGS,
     "fixed_lens_light_kwargs": kwargs_lens_light_first_three,
-    "fixed_lens_light_psf_kernel": data_psf_ori,
+    "fixed_lens_light_psf_kernel": best_stage3_fixed_psf,
 }
 HMC_RUN_KWARGS = PIXELATED_STAGE4_KWARGS | {
     "conj": False,
