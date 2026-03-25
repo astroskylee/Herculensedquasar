@@ -137,6 +137,8 @@ num_chains = 6
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
 OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix}"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+FIXED_FIRST_THREE_GAUSS_PATH = OUTPUT_DIR / f"fixed_first_three_gaussians{suffix}.npz"
+FIXED_FIRST_THREE_PSF_PATH = OUTPUT_DIR / f"fixed_first_three_psf{suffix}.fits"
 
 def compute_psf_corner_median(psf_kernel, corner_size=PSF_CORNER_SIZE):
     ny, nx = psf_kernel.shape
@@ -887,6 +889,23 @@ kwargs_lens_light_first_three = [{
     "center_x": jnp.asarray(best_lens_light_full["center_x"])[:3],
     "center_y": jnp.asarray(best_lens_light_full["center_y"])[:3],
 }]
+
+np.savez(
+    FIXED_FIRST_THREE_GAUSS_PATH,
+    amp=np.asarray(kwargs_lens_light_first_three[0]["amp"], dtype=np.float64),
+    sigma=np.asarray(kwargs_lens_light_first_three[0]["sigma"], dtype=np.float64),
+    e1=np.asarray(kwargs_lens_light_first_three[0]["e1"], dtype=np.float64),
+    e2=np.asarray(kwargs_lens_light_first_three[0]["e2"], dtype=np.float64),
+    center_x=np.asarray(kwargs_lens_light_first_three[0]["center_x"], dtype=np.float64),
+    center_y=np.asarray(kwargs_lens_light_first_three[0]["center_y"], dtype=np.float64),
+)
+fits.writeto(
+    FIXED_FIRST_THREE_PSF_PATH,
+    np.asarray(data_psf_ori, dtype=np.float32),
+    overwrite=True,
+)
+print(f"Saved fixed first-three Gaussians to: {FIXED_FIRST_THREE_GAUSS_PATH}")
+print(f"Saved fixed first-three PSF to: {FIXED_FIRST_THREE_PSF_PATH}")
 
 sigma_bins_lens_full = jnp.logspace(
     jnp.log10(sigma_lims_lens[0]),

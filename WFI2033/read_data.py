@@ -51,16 +51,18 @@ def resolve_nc_path() -> str:
 
 
 NC_PATH = resolve_nc_path()
+RUN_OUTPUT_DIR = Path(NC_PATH).resolve().parent
 DATA_DIR = "../../Data/WFI2033"
 
 RAW_DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
 DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d_cut_x6985_y3594_150.fits")
 RMS_WITH_PSF_EXTRA_PATH = "./psf_data/WFI2033_ERR_with_stage2_psf_extra.fits"
-BASE_PSF_PATH = "./psf_data/PSF_model_step3_svi.fits"
 OUTPUT_DIR = Path(__file__).resolve().parent / "result" / f"result{suffix}"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 DATA_PRODUCTS_DIR = OUTPUT_DIR / "data_products"
 DATA_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)
+FIXED_FIRST_THREE_GAUSS_PATH = RUN_OUTPUT_DIR / f"fixed_first_three_gaussians{suffix}.npz"
+FIXED_FIRST_THREE_PSF_PATH = RUN_OUTPUT_DIR / f"fixed_first_three_psf{suffix}.fits"
 
 # --------------------------------
 # Read posterior (.nc) and print key info
@@ -139,8 +141,9 @@ data = data - bkg_mean
 
 rms_file = np.array(fits.getdata(RMS_WITH_PSF_EXTRA_PATH), dtype=float)
 
-with fits.open(BASE_PSF_PATH, memmap=True) as hdul_psf:
-    psf_base = np.array(hdul_psf["DET_PSF_MODEL"].data, dtype=float)
+fixed_first_three = np.load(FIXED_FIRST_THREE_GAUSS_PATH)
+with fits.open(FIXED_FIRST_THREE_PSF_PATH, memmap=True) as hdul_psf:
+    psf_base = np.array(hdul_psf[0].data, dtype=float)
 psf_base = np.clip(psf_base, 0.0, None)
 psf_base = psf_base / np.sum(psf_base)
 
@@ -148,6 +151,20 @@ psf_base = psf_base / np.sum(psf_base)
 fits.writeto(DATA_PRODUCTS_DIR / f"data_bkg_sub{suffix}.fits", data.astype(np.float32), overwrite=True)
 fits.writeto(DATA_PRODUCTS_DIR / f"rms_with_psf_extra{suffix}.fits", rms_file.astype(np.float32), overwrite=True)
 fits.writeto(DATA_PRODUCTS_DIR / f"psf_base{suffix}.fits", psf_base.astype(np.float32), overwrite=True)
+np.savez(
+    DATA_PRODUCTS_DIR / f"fixed_first_three_gaussians{suffix}.npz",
+    amp=np.asarray(fixed_first_three["amp"], dtype=np.float64),
+    sigma=np.asarray(fixed_first_three["sigma"], dtype=np.float64),
+    e1=np.asarray(fixed_first_three["e1"], dtype=np.float64),
+    e2=np.asarray(fixed_first_three["e2"], dtype=np.float64),
+    center_x=np.asarray(fixed_first_three["center_x"], dtype=np.float64),
+    center_y=np.asarray(fixed_first_three["center_y"], dtype=np.float64),
+)
+fits.writeto(
+    DATA_PRODUCTS_DIR / f"fixed_first_three_psf{suffix}.fits",
+    psf_base.astype(np.float32),
+    overwrite=True,
+)
 print(f"Saved common products to: {DATA_PRODUCTS_DIR}")
 
 # --------------------------------
