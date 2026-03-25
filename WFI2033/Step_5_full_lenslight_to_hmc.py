@@ -10,7 +10,8 @@ This script mirrors the core computation flow in
 3) Pixel stage2 SVI with PSF correction and the same frozen lens light
 4) Build updated RMS map using stage2-best AGN + alpha map
 5) Pixel stage3 SVI with the lens light released again
-6) HMC/GIBBS run initialized from the stage3 posterior median
+6) Pixel stage4 SVI with the first 3 Gaussians fixed and the last 2 inferred
+7) HMC/GIBBS run initialized from the stage4 posterior median
 
 No figures are generated or saved.
 Only the final concatenated HMC inference data is saved.
@@ -101,9 +102,10 @@ rms = float(np.nanmedian(np.array(rms_file[mask_out])))
 # Step3 PSF output (detector sampled)
 psf_path_model = os.path.join("./psf_data", "PSF_model_step3_svi.fits")
 with fits.open(psf_path_model, memmap=True) as hdul_psf:
-    psf_hst = np.array(hdul_psf["DET_PSF_MODEL"].data, dtype=float)
+    psf_hst_ori = np.array(hdul_psf["DET_PSF_MODEL"].data, dtype=float)
 
-psf_hst = np.clip(psf_hst, 0.0, None)
+psf_hst_ori = np.clip(psf_hst_ori, 0.0, None)
+psf_hst_ori = psf_hst_ori / np.sum(psf_hst_ori)
 psf_hst = np.load("./data/svi_corrected_psf.npy")
 psf_hst = np.clip(psf_hst, 0.0, None)
 psf_hst = psf_hst / np.sum(psf_hst)
@@ -295,8 +297,22 @@ npix = int(mask_out.sum())
 N_HIGH_SOURCE_GRID = SOURCE_GRID_PRIOR["n_high"]
 
 
+def build_fixed_lens_light_image(lens_img, fixed_lens_light_kwargs, fixed_lens_light_psf_kernel):
+    if fixed_lens_light_kwargs is None:
+        return 0.0
+    lens_light_fixed_unconv = lens_img.lens_surface_brightness(fixed_lens_light_kwargs)
+    return lens_img.ImageNumerics.re_size_convolve(
+        lens_light_fixed_unconv,
+        unconvolved=False,
+        psf_kernel=fixed_lens_light_psf_kernel,
+    )
+
+
 def model(
     data,
+    lens_light_prior_kwargs,
+    fixed_lens_light_kwargs,
+    fixed_lens_light_psf_kernel,
     k_values=None,
     conj=True,
     provided_rms=False,
@@ -325,7 +341,7 @@ def model(
         theta_mean=SIS_G2_PRIOR["theta_mean"],
         theta_sigma=SIS_G2_PRIOR["theta_sigma"],
     )
-    lens_light = multi_gauss_light(**LENS_LIGHT_PRIOR_KWARGS)
+    lens_light = multi_gauss_light(**lens_light_prior_kwargs)
 
     n_ps = conj_points.shape[0]
     ra_ps = numpyro.sample(
@@ -427,6 +443,11 @@ def model(
         psf_kernel=psf_kernel_eff,
         psf_kernel_super=psf_kernel_super,
     )
+    model_image = model_image + build_fixed_lens_light_image(
+        lens_img,
+        fixed_lens_light_kwargs,
+        fixed_lens_light_psf_kernel,
+    )
 
     if provided_rms:
         model_std = rms_file
@@ -501,6 +522,9 @@ PARAMETRIC_SVI_KWARGS = {
     "n_value": None,
     "provided_rms": provided_rms,
     "mass_prior_kwargs": MASS_PRIOR_PARAMETRIC,
+    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_KWARGS,
+    "fixed_lens_light_kwargs": None,
+    "fixed_lens_light_psf_kernel": None,
 }
 
 amp_ps_start = jnp.array([10120.25246224, 5648.26269992, 5112.50014416, 3735.28867656], dtype=jnp.float64)
@@ -577,6 +601,9 @@ PIXELATED_BASE_KWARGS = {
     "n_value": None,
     "provided_rms": provided_rms,
     "mass_prior_kwargs": MASS_PRIOR_PIXELATED,
+    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_KWARGS,
+    "fixed_lens_light_kwargs": None,
+    "fixed_lens_light_psf_kernel": None,
 }
 PIXELATED_STAGE1_KWARGS = PIXELATED_BASE_KWARGS | {
     "enable_psf_corr": False,
@@ -842,7 +869,92 @@ multi_svi_pixel_median_herc_stage3 = median_params2kwargs(
     jnp.arange(num_chains_stage3),
 )
 
-# HMC starts from the stage3 posterior median and uses the same model config.
+# -----------------------------
+# Stage4 pixel SVI (fix first three Gaussians, infer last two)
+# -----------------------------
+stage3_losses_np = np.array(jax.device_get(multi_svi_pixel_results_stage3.losses), dtype=float)
+best_stage3_i = int(np.argmin(stage3_losses_np[:, -1]))
+
+best_stage3_params = get_value_from_index(multi_svi_pixel_median_stage3, best_stage3_i)
+best_stage3_kwargs = get_value_from_index(multi_svi_pixel_median_herc_stage3, best_stage3_i)
+
+best_lens_light_full = best_stage3_kwargs["kwargs_lens_light"][0]
+kwargs_lens_light_first_three = [{
+    "amp": jnp.asarray(best_lens_light_full["amp"])[:3],
+    "sigma": jnp.asarray(best_lens_light_full["sigma"])[:3],
+    "e1": jnp.asarray(best_lens_light_full["e1"])[:3],
+    "e2": jnp.asarray(best_lens_light_full["e2"])[:3],
+    "center_x": jnp.asarray(best_lens_light_full["center_x"])[:3],
+    "center_y": jnp.asarray(best_lens_light_full["center_y"])[:3],
+}]
+
+LENS_LIGHT_PRIOR_TWO_GAUSS_KWARGS = LENS_LIGHT_PRIOR_KWARGS | {
+    "n_gauss": 2,
+}
+
+stage4_best_two_lens_init = {
+    "A_lens": best_stage3_params["A_lens"][-2:],
+    "sigma_lens": best_stage3_params["sigma_lens"][-2:],
+    "e_lens": best_stage3_params["e_lens"][:, -2:],
+    "center_lens": best_stage3_params["center_lens"][:, -2:],
+}
+
+max_iterations_stage4 = max_iterations_stage3
+num_chains_stage4 = num_chains_stage3
+
+scheduler_stage4 = optax.exponential_decay(
+    init_value=5e-3,
+    transition_steps=200,
+    decay_rate=0.99,
+)
+optim_stage4 = optax.adabelief(learning_rate=scheduler_stage4)
+loss_stage4 = infer.TraceMeanField_ELBO()
+
+PIXELATED_STAGE4_KWARGS = PIXELATED_STAGE3_KWARGS | {
+    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_TWO_GAUSS_KWARGS,
+    "fixed_lens_light_kwargs": kwargs_lens_light_first_three,
+    "fixed_lens_light_psf_kernel": psf_hst_ori,
+}
+HMC_RUN_KWARGS = PIXELATED_STAGE4_KWARGS | {
+    "conj": False,
+}
+
+svi_keys_stage4 = jax.random.split(jax.random.fold_in(rng_key_, 4004), num_chains_stage4)
+stage4_results_list = []
+stage4_guides = []
+
+for i in range(num_chains_stage4):
+    params_stage3_i = get_value_from_index(multi_svi_pixel_median_stage3, i)
+    params_stage4_init_i = {
+        k: v
+        for k, v in params_stage3_i.items()
+        if k not in {"A_lens", "sigma_lens", "e_lens", "center_lens", "amp_lens"}
+    } | stage4_best_two_lens_init
+    init_fun_stage4_i = init_to_value_or_defer(values=params_stage4_init_i)
+    guide_stage4_i = autoguide.AutoDiagonalNormal(model, init_loc_fn=init_fun_stage4_i, init_scale=0.01)
+    svi_stage4_i = infer.SVI(model, guide_stage4_i, optim_stage4, loss_stage4)
+    result_i = svi_stage4_i.run(
+        svi_keys_stage4[i],
+        max_iterations_stage4,
+        data,
+        **PIXELATED_STAGE4_KWARGS,
+        psf_kernel=psf_hst,
+        progress_bar=False,
+        stable_update=True,
+    )
+    stage4_guides.append(guide_stage4_i)
+    stage4_results_list.append(result_i)
+
+multi_svi_pixel_results_stage4 = jax.tree.map(_stack_or_none, *stage4_results_list)
+guide_pixel_stage4 = stage4_guides[0]
+multi_svi_pixel_median_stage4 = guide_pixel_stage4.median(multi_svi_pixel_results_stage4.params)
+multi_svi_pixel_median_herc_stage4 = median_params2kwargs(
+    lambda p, fixed_params={}: params2kwargs(p, fixed_params=fixed_params, pixelated=True),
+    multi_svi_pixel_median_stage4,
+    jnp.arange(num_chains_stage4),
+)
+
+# HMC starts from the stage4 posterior median and uses the same hybrid lens-light model.
 
 
 # -----------------------------
@@ -854,7 +966,7 @@ vars_psf = ["ra_ps", "dec_ps", "log10_amp_ps"]
 vars_psf_corr = ["log_psf_corr_center"]
 
 multi_svi_pixel_median_vars = {
-    k: multi_svi_pixel_median_stage3[k]
+    k: multi_svi_pixel_median_stage4[k]
     for k in vars_mass + vars_power + vars_pixel + vars_other + vars_lens_light + vars_psf + vars_psf_corr
 }
 
@@ -873,7 +985,7 @@ rng_key, rng_key_ = jax.random.split(rng_key)
 from numpyro.infer import NUTS, MCMC
 from custom_gibbs import MultiHMCGibbs
 
-init_fun_pixel = init_to_value_or_defer(values=get_value_from_index(multi_svi_pixel_median_stage3, 0))
+init_fun_pixel = init_to_value_or_defer(values=get_value_from_index(multi_svi_pixel_median_stage4, 0))
 
 inner_kernels = [
     NUTS(
