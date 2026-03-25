@@ -102,15 +102,15 @@ rms = float(np.nanmedian(np.array(rms_file[mask_out])))
 # Step3 PSF output (detector sampled)
 psf_path_model = os.path.join("./psf_data", "PSF_model_step3_svi.fits")
 with fits.open(psf_path_model, memmap=True) as hdul_psf:
-    psf_hst_ori = np.array(hdul_psf["DET_PSF_MODEL"].data, dtype=float)
+    data_psf_ori = np.array(hdul_psf["DET_PSF_MODEL"].data, dtype=float)
 
-psf_hst_ori = np.clip(psf_hst_ori, 0.0, None)
-psf_hst_ori = psf_hst_ori / np.sum(psf_hst_ori)
-psf_hst = np.load("./data/svi_corrected_psf.npy")
-psf_hst = np.clip(psf_hst, 0.0, None)
-psf_hst = psf_hst / np.sum(psf_hst)
+data_psf_ori = np.clip(data_psf_ori, 0.0, None)
+data_psf_ori = data_psf_ori / np.sum(data_psf_ori)
+data_psf = np.load("./data/svi_corrected_psf.npy")
+data_psf = np.clip(data_psf, 0.0, None)
+data_psf = data_psf / np.sum(data_psf)
 psf_used = "./data/svi_corrected_psf.npy"
-psf = PSF(psf_type="PIXEL", kernel_point_source=psf_hst)
+psf = PSF(psf_type="PIXEL", kernel_point_source=data_psf)
 
 pixel_grid, xgrid, ygrid, x_axis, y_axis, extent, nx, ny = get_pixel_grid(data, pix_scale)
 noise = Noise(nx, ny, exposure_time=exposure_time)
@@ -152,7 +152,7 @@ def compute_psf_corner_median(psf_kernel, corner_size=PSF_CORNER_SIZE):
     return float(np.nanmedian(corners))
 
 
-psf_corner_median = compute_psf_corner_median(psf_hst, corner_size=PSF_CORNER_SIZE)
+psf_corner_median = compute_psf_corner_median(data_psf, corner_size=PSF_CORNER_SIZE)
 
 
 def subtract_psf_corner_median(model_image, psf_median=psf_corner_median):
@@ -411,7 +411,7 @@ def model(
             center_det=source_center,
         )
 
-    psf_ref = jnp.asarray(psf_hst if psf_kernel is None else psf_kernel)
+    psf_ref = jnp.asarray(data_psf if psf_kernel is None else psf_kernel)
     psf_kernel_eff = psf_kernel
     psf_kernel_det = psf_ref
     corr_field = jnp.ones_like(psf_ref)
@@ -735,7 +735,7 @@ stage2_guides = []
 
 for i in range(num_chains):
     init_values_stage2_i = get_value_from_index(multi_svi_pixel_median_stage1, i) | LENS_LIGHT_FIXED_PARAMS | {
-        "log_psf_corr_center": jnp.zeros(psf_hst.shape),
+        "log_psf_corr_center": jnp.zeros(data_psf.shape),
     }
     init_fun_stage2_i = init_to_value_or_defer(values=init_values_stage2_i)
     guide_stage2_i = autoguide.AutoDiagonalNormal(MODEL_STAGE12, init_loc_fn=init_fun_stage2_i, init_scale=0.01)
@@ -745,7 +745,7 @@ for i in range(num_chains):
         max_iterations,
         data,
         **PIXELATED_STAGE2_KWARGS,
-        psf_kernel=psf_hst,
+        psf_kernel=data_psf,
         progress_bar=False,
         stable_update=True,
     )
@@ -778,7 +778,7 @@ def get_stage2_deterministics_from_median(params_all):
         ).get_trace(
             data,
             **PIXELATED_STAGE2_KWARGS,
-            psf_kernel=psf_hst,
+            psf_kernel=data_psf,
         )
         psf_kernel_all.append(trace_i["psf_kernel_corrected"]["value"])
         corr_field_all.append(trace_i["psf_corr_factor_field"]["value"])
@@ -853,7 +853,7 @@ for i in range(num_chains_stage3):
         max_iterations_stage3,
         data,
         **PIXELATED_STAGE3_KWARGS,
-        psf_kernel=psf_hst,
+        psf_kernel=data_psf,
         progress_bar=False,
         stable_update=True,
     )
@@ -888,8 +888,19 @@ kwargs_lens_light_first_three = [{
     "center_y": jnp.asarray(best_lens_light_full["center_y"])[:3],
 }]
 
+sigma_bins_lens_full = jnp.logspace(
+    jnp.log10(sigma_lims_lens[0]),
+    jnp.log10(sigma_lims_lens[1]),
+    N_gauss_light + 1,
+)
+sigma_lims_lens_stage4 = [
+    float(sigma_bins_lens_full[-3]),
+    float(sigma_bins_lens_full[-1]),
+]
+
 LENS_LIGHT_PRIOR_TWO_GAUSS_KWARGS = LENS_LIGHT_PRIOR_KWARGS | {
     "n_gauss": 2,
+    "sigma_lims": sigma_lims_lens_stage4,
 }
 
 stage4_best_two_lens_init = {
@@ -913,7 +924,7 @@ loss_stage4 = infer.TraceMeanField_ELBO()
 PIXELATED_STAGE4_KWARGS = PIXELATED_STAGE3_KWARGS | {
     "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_TWO_GAUSS_KWARGS,
     "fixed_lens_light_kwargs": kwargs_lens_light_first_three,
-    "fixed_lens_light_psf_kernel": psf_hst_ori,
+    "fixed_lens_light_psf_kernel": data_psf_ori,
 }
 HMC_RUN_KWARGS = PIXELATED_STAGE4_KWARGS | {
     "conj": False,
@@ -938,7 +949,7 @@ for i in range(num_chains_stage4):
         max_iterations_stage4,
         data,
         **PIXELATED_STAGE4_KWARGS,
-        psf_kernel=psf_hst,
+        psf_kernel=data_psf,
         progress_bar=False,
         stable_update=True,
     )
@@ -974,7 +985,7 @@ unconstrined_svi_pixel_median = jax.vmap(
     lambda p: infer.util.unconstrain_fn(
         model,
         (data,),
-        HMC_RUN_KWARGS | {"psf_kernel": psf_hst},
+        HMC_RUN_KWARGS | {"psf_kernel": data_psf},
         p,
     )
 )(multi_svi_pixel_median_vars)
@@ -1033,7 +1044,7 @@ for i in range(batch_number):
             rng_key_,
             data,
             **HMC_RUN_KWARGS,
-            psf_kernel=psf_hst,
+            psf_kernel=data_psf,
             init_params=unconstrined_svi_pixel_median,
         )
     else:
@@ -1042,7 +1053,7 @@ for i in range(batch_number):
             mcmc_pixel.post_warmup_state.rng_key,
             data,
             **HMC_RUN_KWARGS,
-            psf_kernel=psf_hst,
+            psf_kernel=data_psf,
         )
 
     mcmc_pixel._states = jax.device_get(mcmc_pixel._states)
