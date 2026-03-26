@@ -5,12 +5,12 @@
 This script mirrors the core computation flow in
 `Step_5_full_lenslight.ipynb` and appends a standalone HMC/GIBBS stage:
 
-1) Parametric SVI with fixed 5-Gaussian lens light
-2) Pixel stage1 SVI with the same frozen lens light
-3) Pixel stage2 SVI with PSF correction and the same frozen lens light
+1) Parametric SVI with inner-3 fixed lens light + free outer-2
+2) Pixel stage1 SVI with the same hybrid lens light
+3) Pixel stage2 SVI with PSF correction and the same hybrid lens light
 4) Build updated RMS map using stage2-best AGN + alpha map
-5) Pixel stage3 SVI with the lens light released again
-6) Pixel stage4 SVI with the first 3 Gaussians fixed and the last 2 inferred
+5) Pixel stage3 SVI with the same hybrid lens light
+6) Pixel stage4 SVI refining the free outer-2 from the best stage3 chain
 7) HMC/GIBBS run initialized from the stage4 posterior median
 
 No figures are generated or saved.
@@ -20,6 +20,7 @@ Only the final concatenated HMC inference data is saved.
 from __future__ import annotations
 
 from pathlib import Path
+from datetime import datetime
 import os
 import warnings
 
@@ -102,14 +103,13 @@ rms = float(np.nanmedian(np.array(rms_file[mask_out])))
 # Step3 PSF output (detector sampled)
 psf_path_model = os.path.join("./psf_data", "PSF_model_step3_svi.fits")
 with fits.open(psf_path_model, memmap=True) as hdul_psf:
-    data_psf_ori = np.array(hdul_psf["DET_PSF_MODEL"].data, dtype=float)
+    data_psf = np.array(hdul_psf["DET_PSF_MODEL"].data, dtype=float)
 
-data_psf_ori = np.clip(data_psf_ori, 0.0, None)
-data_psf_ori = data_psf_ori / np.sum(data_psf_ori)
-data_psf = np.load("./data/svi_corrected_psf.npy")
 data_psf = np.clip(data_psf, 0.0, None)
 data_psf = data_psf / np.sum(data_psf)
-psf_used = "./data/svi_corrected_psf.npy"
+fixed_inner_three_psf = np.load("./data/svi_corrected_psf.npy")
+fixed_inner_three_psf = np.clip(fixed_inner_three_psf, 0.0, None)
+fixed_inner_three_psf = fixed_inner_three_psf / np.sum(fixed_inner_three_psf)
 psf = PSF(psf_type="PIXEL", kernel_point_source=data_psf)
 
 pixel_grid, xgrid, ygrid, x_axis, y_axis, extent, nx, ny = get_pixel_grid(data, pix_scale)
@@ -135,8 +135,11 @@ suffix = f'_ss={ss_factor}_full_light'
 PSF_CORNER_SIZE = 5
 num_chains = 6
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
-OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix}"
+RUN_TAG = datetime.now().strftime("%Y%m%d_%H")
+OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix}_{RUN_TAG}"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+RESULT_DIR = SCRIPT_DIR / "result" / f"result{suffix}_{RUN_TAG}"
+RESULT_DIR.mkdir(parents=True, exist_ok=True)
 FIXED_FIRST_THREE_GAUSS_PATH = OUTPUT_DIR / f"fixed_first_three_gaussians{suffix}.npz"
 FIXED_FIRST_THREE_PSF_PATH = OUTPUT_DIR / f"fixed_first_three_psf{suffix}.fits"
 
@@ -256,11 +259,40 @@ SIS_G2_PRIOR = {
 
 G2_MASS_CENTER = (2.145, -3.326)
 
-FREEZE_LENS_LIGHT_STAGE12 = True
 LENS_LIGHT_FIXED_SITES = {k: jnp.asarray(v, dtype=jnp.float64) for k, v in LENS_LIGHT_FIXED_SITES_RAW.items()}
-LENS_LIGHT_FIXED_PARAMS = LENS_LIGHT_FIXED_SITES | {
-    "amp_lens": LENS_LIGHT_FIXED_SITES["A_lens"] * (LENS_LIGHT_FIXED_SITES["sigma_lens"] ** 2),
+lens_sigma_bins = jnp.logspace(
+    jnp.log10(sigma_lims_lens[0]),
+    jnp.log10(sigma_lims_lens[1]),
+    N_gauss_light + 1,
+)
+LENS_LIGHT_PRIOR_OUTER_TWO_KWARGS = LENS_LIGHT_PRIOR_KWARGS | {
+    "n_gauss": 2,
+    "sigma_lims": [float(lens_sigma_bins[-3]), float(lens_sigma_bins[-1])],
 }
+LENS_LIGHT_FIXED_INNER_THREE_SITES = {
+    "A_lens": LENS_LIGHT_FIXED_SITES["A_lens"][:3],
+    "sigma_lens": LENS_LIGHT_FIXED_SITES["sigma_lens"][:3],
+    "e_lens": LENS_LIGHT_FIXED_SITES["e_lens"][:, :3],
+    "center_lens": LENS_LIGHT_FIXED_SITES["center_lens"][:, :3],
+}
+LENS_LIGHT_FIXED_INNER_THREE_PARAMS = LENS_LIGHT_FIXED_INNER_THREE_SITES | {
+    "amp_lens": LENS_LIGHT_FIXED_INNER_THREE_SITES["A_lens"]
+    * (LENS_LIGHT_FIXED_INNER_THREE_SITES["sigma_lens"] ** 2),
+}
+LENS_LIGHT_OUTER_TWO_INIT_PARAMS = {
+    "A_lens": LENS_LIGHT_FIXED_SITES["A_lens"][-2:],
+    "sigma_lens": LENS_LIGHT_FIXED_SITES["sigma_lens"][-2:],
+    "e_lens": LENS_LIGHT_FIXED_SITES["e_lens"][:, -2:],
+    "center_lens": LENS_LIGHT_FIXED_SITES["center_lens"][:, -2:],
+}
+FIXED_INNER_THREE_KWARGS = [{
+    "amp": LENS_LIGHT_FIXED_INNER_THREE_PARAMS["amp_lens"],
+    "sigma": LENS_LIGHT_FIXED_INNER_THREE_PARAMS["sigma_lens"],
+    "e1": LENS_LIGHT_FIXED_INNER_THREE_PARAMS["e_lens"][0],
+    "e2": LENS_LIGHT_FIXED_INNER_THREE_PARAMS["e_lens"][1],
+    "center_x": LENS_LIGHT_FIXED_INNER_THREE_PARAMS["center_lens"][0],
+    "center_y": LENS_LIGHT_FIXED_INNER_THREE_PARAMS["center_lens"][1],
+}]
 
 
 # -----------------------------
@@ -308,6 +340,36 @@ def build_fixed_lens_light_image(lens_img, fixed_lens_light_kwargs, fixed_lens_l
         unconvolved=False,
         psf_kernel=fixed_lens_light_psf_kernel,
     )
+
+
+def build_model_components_with_fixed_lens_light(
+    lens_img,
+    kwargs_free,
+    fixed_lens_light_kwargs,
+    fixed_lens_light_psf_kernel,
+    free_psf_kernel=None,
+):
+    fixed_lens_light = build_fixed_lens_light_image(
+        lens_img,
+        fixed_lens_light_kwargs,
+        fixed_lens_light_psf_kernel,
+    )
+    free_model = lens_img.model(
+        **kwargs_free,
+        source_add=True,
+        point_source_add=True,
+        psf_kernel=free_psf_kernel,
+    )
+    free_lens_light = lens_img.model(
+        **kwargs_free,
+        source_add=False,
+        point_source_add=False,
+        psf_kernel=free_psf_kernel,
+    )
+    full_model = free_model + fixed_lens_light
+    full_lens_light = free_lens_light + fixed_lens_light
+    source_plus_point = full_model - full_lens_light
+    return full_model, full_lens_light, source_plus_point, fixed_lens_light
 
 
 def model(
@@ -508,10 +570,7 @@ def params2kwargs(params, fixed_params={}, pixelated=False):
     }
 
 
-MODEL_STAGE12 = numpyro.handlers.condition(
-    model,
-    data=LENS_LIGHT_FIXED_SITES,
-) if FREEZE_LENS_LIGHT_STAGE12 else model
+MODEL_STAGE12 = model
 
 
 # -----------------------------
@@ -524,13 +583,13 @@ PARAMETRIC_SVI_KWARGS = {
     "n_value": None,
     "provided_rms": provided_rms,
     "mass_prior_kwargs": MASS_PRIOR_PARAMETRIC,
-    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_KWARGS,
-    "fixed_lens_light_kwargs": None,
-    "fixed_lens_light_psf_kernel": None,
+    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_OUTER_TWO_KWARGS,
+    "fixed_lens_light_kwargs": FIXED_INNER_THREE_KWARGS,
+    "fixed_lens_light_psf_kernel": fixed_inner_three_psf,
 }
 
 amp_ps_start = jnp.array([10120.25246224, 5648.26269992, 5112.50014416, 3735.28867656], dtype=jnp.float64)
-init_values_parametric = {"log10_amp_ps": jnp.log10(amp_ps_start)} | LENS_LIGHT_FIXED_PARAMS
+init_values_parametric = {"log10_amp_ps": jnp.log10(amp_ps_start)} | LENS_LIGHT_OUTER_TWO_INIT_PARAMS
 init_fun = init_to_value_or_defer(values=init_values_parametric)
 scheduler = split_scheduler(max_iterations, init_value=0.01, transition_steps=[200, 10])
 optim = optax.adabelief(learning_rate=scheduler)
@@ -550,7 +609,7 @@ for i in range(num_chains):
         max_iterations,
         data,
         **PARAMETRIC_SVI_KWARGS,
-        progress_bar=False,
+        progress_bar=True,
         stable_update=True,
     )
     param_guides.append(guide_i)
@@ -567,7 +626,7 @@ multi_svi_results = jax.tree.map(_stack_or_none, *param_results_list)
 guide = param_guides[0]
 multi_svi_median = guide.median(multi_svi_results.params)
 multi_svi_median_herc = median_params2kwargs(
-    lambda p, fixed_params=LENS_LIGHT_FIXED_PARAMS: params2kwargs(p, fixed_params=fixed_params),
+    lambda p: params2kwargs(p),
     multi_svi_median,
     jnp.arange(num_chains),
 )
@@ -603,9 +662,9 @@ PIXELATED_BASE_KWARGS = {
     "n_value": None,
     "provided_rms": provided_rms,
     "mass_prior_kwargs": MASS_PRIOR_PIXELATED,
-    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_KWARGS,
-    "fixed_lens_light_kwargs": None,
-    "fixed_lens_light_psf_kernel": None,
+    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_OUTER_TWO_KWARGS,
+    "fixed_lens_light_kwargs": FIXED_INNER_THREE_KWARGS,
+    "fixed_lens_light_psf_kernel": fixed_inner_three_psf,
 }
 PIXELATED_STAGE1_KWARGS = PIXELATED_BASE_KWARGS | {
     "enable_psf_corr": False,
@@ -641,7 +700,7 @@ ps_fits = source_power_spectrum(orig_source, ps_keys, None, True)
 keys_for_pixel_init = vars_lens_light + vars_mass + vars_point_source + vars_other
 multi_svi_median_pixelated = {
     k: multi_svi_median[k] for k in keys_for_pixel_init if k in multi_svi_median
-} | ps_fits | LENS_LIGHT_FIXED_PARAMS
+} | ps_fits
 
 
 # -----------------------------
@@ -694,7 +753,7 @@ stage1_results_list = []
 stage1_guides = []
 
 for i in range(num_chains):
-    init_fun_stage1_i = init_to_value_or_defer(values=get_value_from_index(multi_svi_median_pixelated, i) | LENS_LIGHT_FIXED_PARAMS)
+    init_fun_stage1_i = init_to_value_or_defer(values=get_value_from_index(multi_svi_median_pixelated, i))
     guide_stage1_i = autoguide.AutoDiagonalNormal(MODEL_STAGE12, init_loc_fn=init_fun_stage1_i, init_scale=0.01)
     svi_stage1_i = infer.SVI(MODEL_STAGE12, guide_stage1_i, optim_stage1, loss_stage1)
     result_i = svi_stage1_i.run(
@@ -702,7 +761,7 @@ for i in range(num_chains):
         max_iterations,
         data,
         **PIXELATED_STAGE1_KWARGS,
-        progress_bar=False,
+        progress_bar=True,
         stable_update=True,
     )
     stage1_guides.append(guide_stage1_i)
@@ -712,7 +771,7 @@ multi_svi_pixel_results_stage1 = jax.tree.map(_stack_or_none, *stage1_results_li
 guide_pixel_stage1 = stage1_guides[0]
 multi_svi_pixel_median_stage1 = guide_pixel_stage1.median(multi_svi_pixel_results_stage1.params)
 multi_svi_pixel_median_herc_stage1 = median_params2kwargs(
-    lambda p, fixed_params=LENS_LIGHT_FIXED_PARAMS: params2kwargs(p, fixed_params=fixed_params, pixelated=True),
+    lambda p: params2kwargs(p, pixelated=True),
     multi_svi_pixel_median_stage1,
     jnp.arange(num_chains),
 )
@@ -736,7 +795,7 @@ stage2_results_list = []
 stage2_guides = []
 
 for i in range(num_chains):
-    init_values_stage2_i = get_value_from_index(multi_svi_pixel_median_stage1, i) | LENS_LIGHT_FIXED_PARAMS | {
+    init_values_stage2_i = get_value_from_index(multi_svi_pixel_median_stage1, i) | {
         "log_psf_corr_center": jnp.zeros(data_psf.shape),
     }
     init_fun_stage2_i = init_to_value_or_defer(values=init_values_stage2_i)
@@ -748,7 +807,7 @@ for i in range(num_chains):
         data,
         **PIXELATED_STAGE2_KWARGS,
         psf_kernel=data_psf,
-        progress_bar=False,
+        progress_bar=True,
         stable_update=True,
     )
     stage2_guides.append(guide_stage2_i)
@@ -758,7 +817,7 @@ multi_svi_pixel_results_stage2 = jax.tree.map(_stack_or_none, *stage2_results_li
 guide_pixel_stage2 = stage2_guides[0]
 multi_svi_pixel_median_stage2 = guide_pixel_stage2.median(multi_svi_pixel_results_stage2.params)
 multi_svi_pixel_median_herc_stage2 = median_params2kwargs(
-    lambda p, fixed_params=LENS_LIGHT_FIXED_PARAMS: params2kwargs(p, fixed_params=fixed_params, pixelated=True),
+    lambda p: params2kwargs(p, pixelated=True),
     multi_svi_pixel_median_stage2,
     jnp.arange(num_chains),
 )
@@ -771,7 +830,7 @@ def get_stage2_deterministics_from_median(params_all):
     psf_kernel_all = []
     corr_field_all = []
     for i in range(num_chains):
-        params_i = get_value_from_index(params_all, i) | LENS_LIGHT_FIXED_PARAMS
+        params_i = get_value_from_index(params_all, i)
         trace_i = numpyro.handlers.trace(
             numpyro.handlers.substitute(
                 numpyro.handlers.seed(model, jax.random.PRNGKey(1000 + i)),
@@ -794,7 +853,7 @@ from psf_extra_error import extract_stage2_arcsec_and_flux, build_error_map_with
 
 stage2_losses_np = np.array(jax.device_get(multi_svi_pixel_results_stage2.losses), dtype=float)
 best_stage2_i = int(np.argmin(stage2_losses_np[:, -1]))
-params_stage2_best = get_value_from_index(multi_svi_pixel_median_stage2, best_stage2_i) | LENS_LIGHT_FIXED_PARAMS
+params_stage2_best = get_value_from_index(multi_svi_pixel_median_stage2, best_stage2_i)
 agn_positions_arcsec, agn_flux = extract_stage2_arcsec_and_flux(stage2_params=params_stage2_best)
 
 stage2_psf_kernel_det, _ = get_stage2_deterministics_from_median(multi_svi_pixel_median_stage2)
@@ -846,7 +905,7 @@ stage3_results_list = []
 stage3_guides = []
 
 for i in range(num_chains_stage3):
-    init_values_stage3_i = get_value_from_index(multi_svi_pixel_median_stage2, i) | LENS_LIGHT_FIXED_PARAMS
+    init_values_stage3_i = get_value_from_index(multi_svi_pixel_median_stage2, i)
     init_fun_stage3_i = init_to_value_or_defer(values=init_values_stage3_i)
     guide_stage3_i = autoguide.AutoDiagonalNormal(model, init_loc_fn=init_fun_stage3_i, init_scale=0.01)
     svi_stage3_i = infer.SVI(model, guide_stage3_i, optim_stage3, loss_stage3)
@@ -856,7 +915,7 @@ for i in range(num_chains_stage3):
         data,
         **PIXELATED_STAGE3_KWARGS,
         psf_kernel=data_psf,
-        progress_bar=False,
+        progress_bar=True,
         stable_update=True,
     )
     stage3_guides.append(guide_stage3_i)
@@ -866,7 +925,7 @@ multi_svi_pixel_results_stage3 = jax.tree.map(_stack_or_none, *stage3_results_li
 guide_pixel_stage3 = stage3_guides[0]
 multi_svi_pixel_median_stage3 = guide_pixel_stage3.median(multi_svi_pixel_results_stage3.params)
 multi_svi_pixel_median_herc_stage3 = median_params2kwargs(
-    lambda p, fixed_params={}: params2kwargs(p, fixed_params=fixed_params, pixelated=True),
+    lambda p: params2kwargs(p, pixelated=True),
     multi_svi_pixel_median_stage3,
     jnp.arange(num_chains_stage3),
 )
@@ -879,50 +938,22 @@ stage3_losses_np = np.array(jax.device_get(multi_svi_pixel_results_stage3.losses
 best_stage3_i = int(np.argmin(stage3_losses_np[:, -1]))
 
 best_stage3_params = get_value_from_index(multi_svi_pixel_median_stage3, best_stage3_i)
-best_stage3_kwargs = get_value_from_index(multi_svi_pixel_median_herc_stage3, best_stage3_i)
-best_stage3_fixed_psf = np.asarray(get_value_from_index(stage3_psf_kernel_det, best_stage3_i), dtype=np.float32)
-
-best_lens_light_full = best_stage3_kwargs["kwargs_lens_light"][0]
-kwargs_lens_light_first_three = [{
-    "amp": jnp.asarray(best_lens_light_full["amp"])[:3],
-    "sigma": jnp.asarray(best_lens_light_full["sigma"])[:3],
-    "e1": jnp.asarray(best_lens_light_full["e1"])[:3],
-    "e2": jnp.asarray(best_lens_light_full["e2"])[:3],
-    "center_x": jnp.asarray(best_lens_light_full["center_x"])[:3],
-    "center_y": jnp.asarray(best_lens_light_full["center_y"])[:3],
-}]
-
 np.savez(
     FIXED_FIRST_THREE_GAUSS_PATH,
-    amp=np.asarray(kwargs_lens_light_first_three[0]["amp"], dtype=np.float64),
-    sigma=np.asarray(kwargs_lens_light_first_three[0]["sigma"], dtype=np.float64),
-    e1=np.asarray(kwargs_lens_light_first_three[0]["e1"], dtype=np.float64),
-    e2=np.asarray(kwargs_lens_light_first_three[0]["e2"], dtype=np.float64),
-    center_x=np.asarray(kwargs_lens_light_first_three[0]["center_x"], dtype=np.float64),
-    center_y=np.asarray(kwargs_lens_light_first_three[0]["center_y"], dtype=np.float64),
+    amp=np.asarray(FIXED_INNER_THREE_KWARGS[0]["amp"], dtype=np.float64),
+    sigma=np.asarray(FIXED_INNER_THREE_KWARGS[0]["sigma"], dtype=np.float64),
+    e1=np.asarray(FIXED_INNER_THREE_KWARGS[0]["e1"], dtype=np.float64),
+    e2=np.asarray(FIXED_INNER_THREE_KWARGS[0]["e2"], dtype=np.float64),
+    center_x=np.asarray(FIXED_INNER_THREE_KWARGS[0]["center_x"], dtype=np.float64),
+    center_y=np.asarray(FIXED_INNER_THREE_KWARGS[0]["center_y"], dtype=np.float64),
 )
 fits.writeto(
     FIXED_FIRST_THREE_PSF_PATH,
-    best_stage3_fixed_psf,
+    np.asarray(fixed_inner_three_psf, dtype=np.float32),
     overwrite=True,
 )
 print(f"Saved fixed first-three Gaussians to: {FIXED_FIRST_THREE_GAUSS_PATH}")
 print(f"Saved fixed first-three PSF to: {FIXED_FIRST_THREE_PSF_PATH}")
-
-sigma_bins_lens_full = jnp.logspace(
-    jnp.log10(sigma_lims_lens[0]),
-    jnp.log10(sigma_lims_lens[1]),
-    N_gauss_light + 1,
-)
-sigma_lims_lens_stage4 = [
-    float(sigma_bins_lens_full[-3]),
-    float(sigma_bins_lens_full[-1]),
-]
-
-LENS_LIGHT_PRIOR_TWO_GAUSS_KWARGS = LENS_LIGHT_PRIOR_KWARGS | {
-    "n_gauss": 2,
-    "sigma_lims": sigma_lims_lens_stage4,
-}
 
 stage4_best_two_lens_init = {
     "A_lens": best_stage3_params["A_lens"][-2:],
@@ -943,9 +974,9 @@ optim_stage4 = optax.adabelief(learning_rate=scheduler_stage4)
 loss_stage4 = infer.TraceMeanField_ELBO()
 
 PIXELATED_STAGE4_KWARGS = PIXELATED_STAGE3_KWARGS | {
-    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_TWO_GAUSS_KWARGS,
-    "fixed_lens_light_kwargs": kwargs_lens_light_first_three,
-    "fixed_lens_light_psf_kernel": best_stage3_fixed_psf,
+    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_OUTER_TWO_KWARGS,
+    "fixed_lens_light_kwargs": FIXED_INNER_THREE_KWARGS,
+    "fixed_lens_light_psf_kernel": fixed_inner_three_psf,
 }
 HMC_RUN_KWARGS = PIXELATED_STAGE4_KWARGS | {
     "conj": False,
@@ -971,7 +1002,7 @@ for i in range(num_chains_stage4):
         data,
         **PIXELATED_STAGE4_KWARGS,
         psf_kernel=data_psf,
-        progress_bar=False,
+        progress_bar=True,
         stable_update=True,
     )
     stage4_guides.append(guide_stage4_i)
@@ -981,9 +1012,123 @@ multi_svi_pixel_results_stage4 = jax.tree.map(_stack_or_none, *stage4_results_li
 guide_pixel_stage4 = stage4_guides[0]
 multi_svi_pixel_median_stage4 = guide_pixel_stage4.median(multi_svi_pixel_results_stage4.params)
 multi_svi_pixel_median_herc_stage4 = median_params2kwargs(
-    lambda p, fixed_params={}: params2kwargs(p, fixed_params=fixed_params, pixelated=True),
+    lambda p: params2kwargs(p, pixelated=True),
     multi_svi_pixel_median_stage4,
     jnp.arange(num_chains_stage4),
+)
+
+def get_stage4_psf_kernel_from_median(params_all):
+    n_chain = params_all["ra_ps"].shape[0]
+    psf_kernel_all = []
+    for i in range(n_chain):
+        params_i = get_value_from_index(params_all, i)
+        psf_kernel_i = build_corrected_psf_kernel(data_psf, params_i["log_psf_corr_center"])
+        psf_kernel_all.append(psf_kernel_i)
+    return jnp.stack(psf_kernel_all)
+
+
+def save_stage4_two_gaussian_result_set(kwargs_all, psf_kernel_all, stage_label):
+    for i in range(num_chains_stage4):
+        kwargs_i = get_value_from_index(kwargs_all, i)
+        psf_kernel_i = np.array(get_value_from_index(psf_kernel_all, i), dtype=float)
+
+        image_model, lens_light_full, source_plus_point, _ = build_model_components_with_fixed_lens_light(
+            lens_image_pixel,
+            kwargs_i,
+            FIXED_INNER_THREE_KWARGS,
+            fixed_inner_three_psf,
+            free_psf_kernel=psf_kernel_i,
+        )
+        source, source_extent = pixelize_plane_single(
+            lens_image_pixel,
+            kwargs_i,
+            pixel_grid_shape,
+        )
+        src_x, src_y = trace_current_agn_to_source(lens_image_pixel, kwargs_i)
+
+        fig, ax = plt.subplots(2, 4, figsize=(16, 8))
+        fig.suptitle(f"{stage_label} | chain {i}", y=0.96)
+
+        ax[0, 0].imshow(
+            np.ma.array(data, mask=~mask_out),
+            norm="log",
+            cmap="twilight",
+            extent=extent,
+            origin="lower",
+            vmin=0.001,
+            vmax=100,
+        )
+        ax[0, 0].set_title("data")
+
+        ax[0, 1].imshow(
+            np.ma.array(image_model, mask=~mask_out),
+            norm="log",
+            cmap="twilight",
+            extent=extent,
+            origin="lower",
+            vmin=0.001,
+            vmax=100,
+        )
+        ax[0, 1].set_title("full model")
+
+        ax[0, 2].imshow(
+            np.ma.array((data - image_model) / rms_file, mask=~mask_out),
+            cmap="bwr",
+            vmin=-3,
+            vmax=3,
+            extent=extent,
+            origin="lower",
+        )
+        ax[0, 2].set_title("residual / rms")
+
+        ax[0, 3].imshow(
+            np.ma.array(data - lens_light_full, mask=~mask_out),
+            norm="log",
+            cmap="twilight",
+            extent=extent,
+            origin="lower",
+            vmin=0.0001,
+            vmax=1,
+        )
+        ax[0, 3].set_title("data - lens light")
+
+        ax[1, 0].imshow(
+            np.ma.array(source_plus_point, mask=~mask_out),
+            norm="log",
+            cmap="twilight",
+            extent=extent,
+            origin="lower",
+            vmin=0.0001,
+            vmax=1,
+        )
+        ax[1, 0].set_title("source + point source")
+
+        ax[1, 1].imshow(source, extent=source_extent, cmap="twilight", origin="lower")
+        ax[1, 1].scatter(np.array(src_x), np.array(src_y), s=40, facecolors="cyan", linewidths=1.0, marker="+", zorder=10)
+        ax[1, 1].set_title("source plane")
+
+        ax[1, 2].imshow(fixed_inner_three_psf, origin="lower", norm="log", cmap="twilight")
+        ax[1, 2].set_title("fixed inner-three corrected psf")
+
+        ax[1, 3].imshow(psf_kernel_i, origin="lower", norm="log", cmap="twilight")
+        ax[1, 3].set_title("modified psf")
+
+        for a in ax.ravel():
+            a.set_xticks([])
+            a.set_yticks([])
+
+        fig.tight_layout()
+        out_path = RESULT_DIR / f"stage4_chain_{i:02d}{suffix}.png"
+        fig.savefig(out_path, dpi=180, bbox_inches="tight")
+        print(f"Saved stage4 figure: {out_path}")
+        plt.close(fig)
+
+
+stage4_psf_kernel_det = get_stage4_psf_kernel_from_median(multi_svi_pixel_median_stage4)
+save_stage4_two_gaussian_result_set(
+    multi_svi_pixel_median_herc_stage4,
+    stage4_psf_kernel_det,
+    stage_label="stage4 (last two Gaussian lens light)",
 )
 
 # HMC starts from the stage4 posterior median and uses the same hybrid lens-light model.
