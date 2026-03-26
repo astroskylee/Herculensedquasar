@@ -20,37 +20,8 @@ numpyro.enable_x64()
 
 suffix = '_ss=2_full_light'
 
-def resolve_nc_path() -> str:
-    """Resolve the HMC netCDF path across common lustre layouts and filenames."""
-    env_path = os.environ.get("WFI2033_NC_PATH", "").strip()
-    if env_path and Path(env_path).is_file():
-        return env_path
+NC_PATH = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light/WFI2033_6{suffix}.nc"
 
-    names = [f"WFI2033_psf_correct_all{suffix}.nc"]
-    names = [f"/mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light/WFI2033_5_ss=2_full_light.nc"]
-    roots = [
-        Path("/mnt/lustre/tianli/quasar_hmc"),
-        Path("/mnt/lustre2/tianli/quasar_hmc"),
-        Path("/users/tianli/quasar_hmc"),
-        Path.cwd(),
-        Path(__file__).resolve().parent,
-    ]
-    candidates = []
-    for root in roots:
-        for name in names:
-            p = root / name
-            candidates.append(p)
-            if p.is_file():
-                return str(p)
-
-    cand_txt = "\n".join(str(p) for p in candidates)
-    raise FileNotFoundError(
-        "Cannot find WFI2033 netCDF file. Set WFI2033_NC_PATH or place file at one candidate path:\n"
-        f"{cand_txt}"
-    )
-
-
-NC_PATH = resolve_nc_path()
 RUN_OUTPUT_DIR = Path(NC_PATH).resolve().parent
 DATA_DIR = "../../Data/WFI2033"
 
