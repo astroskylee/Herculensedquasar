@@ -604,12 +604,13 @@ param_guides = []
 for i in range(num_chains):
     guide_i = autoguide.AutoLowRankMultivariateNormal(MODEL_STAGE12, init_loc_fn=init_fun)
     svi_i = infer.SVI(MODEL_STAGE12, guide_i, optim, loss)
+    print(f"Starting parametric SVI chain {i + 1}/{num_chains}")
     result_i = svi_i.run(
         svi_keys[i],
         max_iterations,
         data,
         **PARAMETRIC_SVI_KWARGS,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     param_guides.append(guide_i)
@@ -756,12 +757,13 @@ for i in range(num_chains):
     init_fun_stage1_i = init_to_value_or_defer(values=get_value_from_index(multi_svi_median_pixelated, i))
     guide_stage1_i = autoguide.AutoDiagonalNormal(MODEL_STAGE12, init_loc_fn=init_fun_stage1_i, init_scale=0.01)
     svi_stage1_i = infer.SVI(MODEL_STAGE12, guide_stage1_i, optim_stage1, loss_stage1)
+    print(f"Starting stage1 SVI chain {i + 1}/{num_chains}")
     result_i = svi_stage1_i.run(
         svi_keys[i],
         max_iterations,
         data,
         **PIXELATED_STAGE1_KWARGS,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage1_guides.append(guide_stage1_i)
@@ -801,13 +803,14 @@ for i in range(num_chains):
     init_fun_stage2_i = init_to_value_or_defer(values=init_values_stage2_i)
     guide_stage2_i = autoguide.AutoDiagonalNormal(MODEL_STAGE12, init_loc_fn=init_fun_stage2_i, init_scale=0.01)
     svi_stage2_i = infer.SVI(MODEL_STAGE12, guide_stage2_i, optim_stage2, loss_stage2)
+    print(f"Starting stage2 SVI chain {i + 1}/{num_chains}")
     result_i = svi_stage2_i.run(
         svi_keys[i],
         max_iterations,
         data,
         **PIXELATED_STAGE2_KWARGS,
         psf_kernel=data_psf,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage2_guides.append(guide_stage2_i)
@@ -909,13 +912,14 @@ for i in range(num_chains_stage3):
     init_fun_stage3_i = init_to_value_or_defer(values=init_values_stage3_i)
     guide_stage3_i = autoguide.AutoDiagonalNormal(model, init_loc_fn=init_fun_stage3_i, init_scale=0.01)
     svi_stage3_i = infer.SVI(model, guide_stage3_i, optim_stage3, loss_stage3)
+    print(f"Starting stage3 SVI chain {i + 1}/{num_chains_stage3}")
     result_i = svi_stage3_i.run(
         svi_keys_stage3[i],
         max_iterations_stage3,
         data,
         **PIXELATED_STAGE3_KWARGS,
         psf_kernel=data_psf,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage3_guides.append(guide_stage3_i)
@@ -996,13 +1000,14 @@ for i in range(num_chains_stage4):
     init_fun_stage4_i = init_to_value_or_defer(values=params_stage4_init_i)
     guide_stage4_i = autoguide.AutoDiagonalNormal(model, init_loc_fn=init_fun_stage4_i, init_scale=0.01)
     svi_stage4_i = infer.SVI(model, guide_stage4_i, optim_stage4, loss_stage4)
+    print(f"Starting stage4 SVI chain {i + 1}/{num_chains_stage4}")
     result_i = svi_stage4_i.run(
         svi_keys_stage4[i],
         max_iterations_stage4,
         data,
         **PIXELATED_STAGE4_KWARGS,
         psf_kernel=data_psf,
-        progress_bar=True,
+        progress_bar=False,
         stable_update=True,
     )
     stage4_guides.append(guide_stage4_i)
