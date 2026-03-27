@@ -1,0 +1,168 @@
+Currently Loaded Modulefiles: 1) services/slurm <aL> 3) git/2.48.0 2) system/intel64(default) 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+[CudaDevice(id=0)]
+0.031224452218231436
+Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
+Starting parametric SVI chain 1/6
+Starting parametric SVI chain 2/6
+Starting parametric SVI chain 3/6
+Starting parametric SVI chain 4/6
+Starting parametric SVI chain 5/6
+Starting parametric SVI chain 6/6
+pixel_grid_shape = 75
+Starting stage1 SVI chain 1/6
+Starting stage1 SVI chain 2/6
+Starting stage1 SVI chain 3/6
+Starting stage1 SVI chain 4/6
+Starting stage1 SVI chain 5/6
+Starting stage1 SVI chain 6/6
+Starting stage2 SVI chain 1/6
+Starting stage2 SVI chain 2/6
+Starting stage2 SVI chain 3/6
+Starting stage2 SVI chain 4/6
+Starting stage2 SVI chain 5/6
+Starting stage2 SVI chain 6/6
+Updated RMS map in memory from stage2-best PSF extra error
+best_stage2_i = 0
+Starting stage3 SVI chain 1/6
+Starting stage3 SVI chain 2/6
+Starting stage3 SVI chain 3/6
+Starting stage3 SVI chain 4/6
+Starting stage3 SVI chain 5/6
+Starting stage3 SVI chain 6/6
+Saved fixed first-three Gaussians to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/fixed_first_three_gaussians_ss=2_full_light.npz
+Saved fixed first-three PSF to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/fixed_first_three_psf_ss=2_full_light.fits
+Starting stage4 SVI chain 1/6
+Starting stage4 SVI chain 2/6
+Starting stage4 SVI chain 3/6
+Starting stage4 SVI chain 4/6
+Starting stage4 SVI chain 5/6
+Starting stage4 SVI chain 6/6
+Saved stage4 figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/stage4_chain_00_ss=2_full_light.png
+Saved stage4 figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/stage4_chain_01_ss=2_full_light.png
+Saved stage4 figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/stage4_chain_02_ss=2_full_light.png
+Saved stage4 figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/stage4_chain_03_ss=2_full_light.png
+Saved stage4 figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/stage4_chain_04_ss=2_full_light.png
+Saved stage4 figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/stage4_chain_05_ss=2_full_light.png
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_0_ss=2_full_light.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_1_ss=2_full_light.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_2_ss=2_full_light.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_3_ss=2_full_light.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_4_ss=2_full_light.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_5_ss=2_full_light.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_6_ss=2_full_light.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_7_ss=2_full_light.nc
+Saved final HMC inf_data to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_all_ss=2_full_light.nc
+Using netCDF: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_20260326_14/WFI2033_all_ss=2_full_light.nc
+Saved HMC_median to: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/HMC_median_draw_ss=2_full_light.nc
+<xarray.Dataset> Size: 25GB
+Dimensions:                                  (chain: 6, draw: 8000,
+                                              Lens light - [2]: 2,
+                                              amp_lens_dim_0: 2,
+                                              center_1_dim_0: 2,
+                                              Mass model g1 scalers - [1]: 1,
+                                              Mass model g2 scalers - [1]: 1,
+                                              ...
+                                              Source grid fft y - [75]: 75,
+                                              psf_corr_factor_field_dim_0: 101,
+                                              psf_corr_factor_field_dim_1: 101,
+                                              psf_kernel_corrected_dim_0: 101,
+                                              psf_kernel_corrected_dim_1: 101,
+                                              ra_ps_dim_0: 4)
+Coordinates: (12/26)
+  * chain                                    (chain) int64 48B 0 1 2 3 4 5
+  * draw                                     (draw) int64 64kB 0 1 ... 7998 7999
+  * Lens light - [2]                         (Lens light - [2]) int64 16B 0 1
+  * amp_lens_dim_0                           (amp_lens_dim_0) int64 16B 0 1
+  * center_1_dim_0                           (center_1_dim_0) int64 16B 0 1
+  * Mass model g1 scalers - [1]              (Mass model g1 scalers - [1]) int64 8B ...
+    ...                                       ...
+  * Source grid fft y - [75]                 (Source grid fft y - [75]) int64 600B ...
+  * psf_corr_factor_field_dim_0              (psf_corr_factor_field_dim_0) int64 808B ...
+  * psf_corr_factor_field_dim_1              (psf_corr_factor_field_dim_1) int64 808B ...
+  * psf_kernel_corrected_dim_0               (psf_kernel_corrected_dim_0) int64 808B ...
+  * psf_kernel_corrected_dim_1               (psf_kernel_corrected_dim_1) int64 808B ...
+  * ra_ps_dim_0                              (ra_ps_dim_0) int64 32B 0 1 2 3
+Data variables: (12/28)
+    A_lens                                   (chain, draw, Lens light - [2]) float64 768kB ...
+    amp_lens                                 (chain, draw, amp_lens_dim_0) float64 768kB ...
+    center_1                                 (chain, draw, center_1_dim_0) float64 768kB ...
+    center_1_g1                              (chain, draw, Mass model g1 scalers - [1]) float64 384kB ...
+    center_1_g2                              (chain, draw, Mass model g2 scalers - [1]) float64 384kB ...
+    center_2_g1                              (chain, draw, Mass model g1 scalers - [1]) float64 384kB ...
+    ...                                       ...
+    rho_source_grid                          (chain, draw, Source grid power spectrum params - [1]) float64 384kB ...
+    sigma_lens                               (chain, draw, Lens light - [2]) float64 768kB ...
+    sigma_source_grid                        (chain, draw, Source grid power spectrum params - [1]) float64 384kB ...
+    theta_E_1                                (chain, draw, Mass model scalers - [1]) float64 384kB ...
+    theta_E_g1                               (chain, draw, Mass model g1 scalers - [1]) float64 384kB ...
+    theta_E_g2                               (chain, draw, Mass model g2 scalers - [1]) float64 384kB ...
+Attributes:
+    created_at:                 2026-03-27T09:10:13.407213+00:00
+    arviz_version:              0.22.0
+    inference_library:          numpyro
+    inference_library_version:  0.19.0
+    previous_created_at:        ['2026-03-27T09:10:13.407213+00:00', '2026-03...
+
+posterior vars:
+['A_lens', 'amp_lens', 'center_1', 'center_1_g1', 'center_1_g2', 'center_2_g1', 'center_2_g2', 'center_lens', 'dec_ps', 'e_1', 'e_lens', 'gamma_1', 'gamma_sheer_1', 'log10_amp_ps', 'log_psf_corr_center', 'model_image', 'n_source_grid', 'pixels_source_grid', 'pixels_wn_source_grid', 'psf_corr_factor_field', 'psf_kernel_corrected', 'ra_ps', 'rho_source_grid', 'sigma_lens', 'sigma_source_grid', 'theta_E_1', 'theta_E_g1', 'theta_E_g2']
+
+var summary:
+A_lens                         dims=('chain', 'draw', 'Lens light - [2]') shape=(6, 8000, 2) dtype=float64 min=3.013e+03 max=1.075e+04
+amp_lens                       dims=('chain', 'draw', 'amp_lens_dim_0') shape=(6, 8000, 2) dtype=float64 min=5.320e+02 max=2.600e+03
+center_1                       dims=('chain', 'draw', 'center_1_dim_0') shape=(6, 8000, 2) dtype=float64 min=-3.354e-02 max=1.521e-02
+center_1_g1                    dims=('chain', 'draw', 'Mass model g1 scalers - [1]') shape=(6, 8000, 1) dtype=float64 min=1.556e+00 max=1.556e+00
+center_1_g2                    dims=('chain', 'draw', 'Mass model g2 scalers - [1]') shape=(6, 8000, 1) dtype=float64 min=2.145e+00 max=2.145e+00
+center_2_g1                    dims=('chain', 'draw', 'Mass model g1 scalers - [1]') shape=(6, 8000, 1) dtype=float64 min=1.299e+00 max=1.299e+00
+center_2_g2                    dims=('chain', 'draw', 'Mass model g2 scalers - [1]') shape=(6, 8000, 1) dtype=float64 min=-3.326e+00 max=-3.326e+00
+center_lens                    dims=('chain', 'draw', 'Lens light vectors - [2]', 'Lens light - [2]') shape=(6, 8000, 2, 2) dtype=float64 min=-4.792e-02 max=2.304e-01
+dec_ps                         dims=('chain', 'draw', 'dec_ps_dim_0') shape=(6, 8000, 4) dtype=float64 min=-9.023e-01 max=1.023e+00
+e_1                            dims=('chain', 'draw', 'Mass model vectors - [2]', 'Mass model scalers - [1]') shape=(6, 8000, 2, 1) dtype=float64 min=-7.156e-02 max=8.550e-02
+e_lens                         dims=('chain', 'draw', 'Lens light vectors - [2]', 'Lens light - [2]') shape=(6, 8000, 2, 2) dtype=float64 min=-7.665e-02 max=1.543e-01
+gamma_1                        dims=('chain', 'draw', 'Mass model scalers - [1]') shape=(6, 8000, 1) dtype=float64 min=1.810e+00 max=1.875e+00
+gamma_sheer_1                  dims=('chain', 'draw', 'Mass model vectors - [2]', 'Mass model scalers - [1]') shape=(6, 8000, 2, 1) dtype=float64 min=-1.409e-01 max=5.883e-03
+log10_amp_ps                   dims=('chain', 'draw', 'log10_amp_ps_dim_0') shape=(6, 8000, 4) dtype=float64 min=3.445e+00 max=3.979e+00
+log_psf_corr_center            dims=('chain', 'draw', 'log_psf_corr_center_dim_0', 'log_psf_corr_center_dim_1') shape=(6, 8000, 101, 101) dtype=float64 min=-6.243e+00 max=6.907e+00
+model_image                    dims=('chain', 'draw', 'model_image_dim_0', 'model_image_dim_1') shape=(6, 8000, 150, 150) dtype=float64 min=1.850e-04 max=1.031e+03
+n_source_grid                  dims=('chain', 'draw', 'Source grid power spectrum params - [1]') shape=(6, 8000, 1) dtype=float64 min=1.279e-04 max=6.753e-02
+pixels_source_grid             dims=('chain', 'draw', 'pixels_source_grid_dim_0', 'pixels_source_grid_dim_1') shape=(6, 8000, 75, 75) dtype=float64 min=5.575e-125 max=2.822e+00
+pixels_wn_source_grid          dims=('chain', 'draw', 'Source grid fft x - [75]', 'Source grid fft y - [75]') shape=(6, 8000, 75, 75) dtype=float64 min=-5.909e+00 max=6.154e+00
+psf_corr_factor_field          dims=('chain', 'draw', 'psf_corr_factor_field_dim_0', 'psf_corr_factor_field_dim_1') shape=(6, 8000, 101, 101) dtype=float64 min=6.738e-03 max=1.484e+02
+psf_kernel_corrected           dims=('chain', 'draw', 'psf_kernel_corrected_dim_0', 'psf_kernel_corrected_dim_1') shape=(6, 8000, 101, 101) dtype=float64 min=4.506e-10 max=2.072e-01
+ra_ps                          dims=('chain', 'draw', 'ra_ps_dim_0') shape=(6, 8000, 4) dtype=float64 min=-1.058e+00 max=1.213e+00
+rho_source_grid                dims=('chain', 'draw', 'Source grid power spectrum params - [1]') shape=(6, 8000, 1) dtype=float64 min=3.062e-01 max=6.858e+01
+sigma_lens                     dims=('chain', 'draw', 'Lens light - [2]') shape=(6, 8000, 2) dtype=float64 min=2.256e-01 max=8.987e-01
+sigma_source_grid              dims=('chain', 'draw', 'Source grid power spectrum params - [1]') shape=(6, 8000, 1) dtype=float64 min=5.487e-01 max=9.317e+00
+theta_E_1                      dims=('chain', 'draw', 'Mass model scalers - [1]') shape=(6, 8000, 1) dtype=float64 min=1.009e+00 max=1.039e+00
+theta_E_g1                     dims=('chain', 'draw', 'Mass model g1 scalers - [1]') shape=(6, 8000, 1) dtype=float64 min=3.174e-02 max=7.073e-02
+theta_E_g2                     dims=('chain', 'draw', 'Mass model g2 scalers - [1]') shape=(6, 8000, 1) dtype=float64 min=5.553e-01 max=6.732e-01
+divergences per chain per step:
+[[698 408 460 372  76 313]
+ [  0   0   0   0   0   0]]
+                       mean     sd  hdi_3%  hdi_97%  mcse_mean  mcse_sd  ess_bulk  ess_tail  r_hat
+theta_E_1[0]          1.027  0.004   1.018    1.034      0.000    0.000     194.0     543.0   1.04
+gamma_1[0]            1.838  0.011   1.823    1.860      0.003    0.002      14.0      26.0   1.35
+e_1[0, 0]            -0.056  0.005  -0.065   -0.048      0.001    0.000      26.0     145.0   1.16
+e_1[1, 0]             0.069  0.004   0.062    0.078      0.001    0.001      15.0      25.0   1.31
+center_1[0]           0.007  0.003   0.002    0.012      0.001    0.000      16.0      29.0   1.29
+center_1[1]          -0.026  0.002  -0.029   -0.023      0.000    0.000    1101.0    3519.0   1.01
+gamma_sheer_1[0, 0]  -0.002  0.003  -0.008    0.002      0.000    0.000      97.0     757.0   1.06
+gamma_sheer_1[1, 0]  -0.126  0.003  -0.133   -0.120      0.000    0.000    1196.0    2037.0   1.01
+n_source_grid[0]      0.008  0.007   0.000    0.021      0.000    0.000   10730.0    7441.0   1.00
+rho_source_grid[0]    6.116  4.992   0.583   15.223      0.061    0.077    6316.0   11067.0   1.00
+sigma_source_grid[0]  2.019  1.086   0.716    3.985      0.014    0.023    7341.0    7077.0   1.01
+Saved trace plot: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/trace_mass_power_ss=2_full_light.png
+Saved corner plot: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/corner_mass_overlay_ss=2_full_light.png
+EXPTIME = 1.000 s
+Saved common products to: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/data_products
+Saved figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/chain_00_data_model_residual_psf_source.png
+Saved chain 0 products to: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/data_products
+Saved figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/chain_01_data_model_residual_psf_source.png
+Saved chain 1 products to: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/data_products
+Saved figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/chain_02_data_model_residual_psf_source.png
+Saved chain 2 products to: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/data_products
+Saved figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/chain_03_data_model_residual_psf_source.png
+Saved chain 3 products to: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/data_products
+Saved figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/chain_04_data_model_residual_psf_source.png
+Saved chain 4 products to: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/data_products
+Saved figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/chain_05_data_model_residual_psf_source.png
+Saved chain 5 products to: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_20260326_14/data_products
