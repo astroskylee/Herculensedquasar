@@ -138,8 +138,8 @@ def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs
         'dec_0':  center[1],
     }]
 def params2kwargs_GNFW_w_shear(params, param_name, Rs_value=None, gamma_in_value=None, sph=False):
-    R_s = params[f'Rs_{param_name}'] if f'Rs_{param_name}' in params else jnp.float64(Rs_value)
-    gamma = params[f'gammain_{param_name}'] if f'gammain_{param_name}' in params else jnp.float64(gamma_in_value)
+    R_s = params[f'Rs_{param_name}']
+    gamma = params[f'gammain_{param_name}']
     if f'e_{param_name}' in params:
         e_mass = params[f'e_{param_name}']
     elif sph:
