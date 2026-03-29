@@ -92,7 +92,7 @@ def params2kwargs_EPL_w_shear(params, param_name):
         'dec_0': params[f'center_{param_name}'][1]
     }]
 from numpyro.distributions import transforms as T
-def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs_high = None, Rs_low = None, Rs_mean = None ,Rs_std = None, Rs_value = None, gamma_in_value = None, e_low=-0.2, e_high=0.2, center_x = None, center_y = None, kappa_s_low = 0.0, kappa_s_high = 1, sph = False, gamma_sheer_low = -0.2, gamma_sheer_high = 0.2):
+def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs_high = None, Rs_low = None, Rs_mean = None ,Rs_std = None, Rs_value = None, e_low=-0.2, e_high=0.2, center_x = None, center_y = None, kappa_s_low = 0.0, kappa_s_high = 1, sph = False, gamma_sheer_low = -0.2, gamma_sheer_high = 0.2):
     if Rs_value is not None:
         Rs = numpyro.deterministic(f'Rs_{param_name}', jnp.float64(Rs_value))
     elif Rs_low is not None:
@@ -101,21 +101,14 @@ def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs
         Rs = numpyro.sample(f'Rs_{param_name}', dist.TruncatedNormal(Rs_mean, Rs_std, low=Rs_mean-1*Rs_std,  high=Rs_mean+1*Rs_std))
 
     kappa_s   = numpyro.sample(f'kappa_s_{param_name}',   dist.Uniform(kappa_s_low, kappa_s_high))
-    if gamma_in_value is not None:
-        gamma_in = numpyro.deterministic(f'gammain_{param_name}', jnp.float64(gamma_in_value))
-    else:
-        gamma_in  = numpyro.sample(f'gammain_{param_name}',   dist.Uniform(gamma_in_low, gamma_in_up))
+    gamma_in  = numpyro.sample(f'gammain_{param_name}',   dist.Uniform(gamma_in_low, gamma_in_up))
 
-    gamma_sheer = numpyro.sample(
-        f'gamma_sheer_{param_name}',
-        dist.Uniform(gamma_sheer_low, gamma_sheer_high).expand([2]),
-    )
+    with numpyro.plate(f'{plate_name} vectors - [2]', 2):
+        gamma_sheer  = numpyro.sample(f'gamma_sheer_{param_name}', dist.Uniform(gamma_sheer_low, gamma_sheer_high))
 
     if sph is False:
-        e_mass = numpyro.sample(
-            f'e_{param_name}',
-            dist.TruncatedNormal(0, 0.25, low=e_low, high=e_high).expand([2]),
-        )
+        with numpyro.plate(f'{plate_name} vectors - [2]', 2):
+            e_mass = numpyro.sample(f'e_{param_name}', dist.TruncatedNormal(0, 0.25, low=e_low,  high=e_high))
     else:
         e_mass = numpyro.deterministic(f"e_{param_name}", jnp.array([0.0001, -0.0001]))
         
@@ -128,9 +121,9 @@ def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs
         center = numpyro.deterministic(f"center_{param_name}", jnp.array([center_x, center_y]))
     
     return [{
-        'R_s':  Rs,
-        'gamma':   gamma_in,
-        'kappa_s': kappa_s,
+        'R_s':  Rs,          # ← 去掉 [0]
+        'gamma':   gamma_in,    # ← 去掉 [0]
+        'kappa_s': kappa_s,     # ← 去掉 [0]
         'e1': e_mass[0],
         'e2': e_mass[1],
         'center_x': center[0],
@@ -141,21 +134,13 @@ def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs
         'ra_0':   center[0],
         'dec_0':  center[1],
     }]
-def params2kwargs_GNFW_w_shear(params, param_name, Rs_value=None, gamma_in_value=None, sph=False):
-    R_s = params[f'Rs_{param_name}']
-    gamma = params[f'gammain_{param_name}']
-    if f'e_{param_name}' in params:
-        e_mass = params[f'e_{param_name}']
-    elif sph:
-        e_mass = jnp.array([0.0001, -0.0001], dtype=jnp.float64)
-    else:
-        raise KeyError(f'e_{param_name}')
+def params2kwargs_GNFW_w_shear(params, param_name):
     return [{
-        'R_s': R_s,
-        'gamma': gamma,
+        'R_s': params[f'Rs_{param_name}'],
+        'gamma': params[f'gammain_{param_name}'],
         'kappa_s': params[f'kappa_s_{param_name}'],
-        'e1': e_mass[0],
-        'e2': e_mass[1],
+        'e1': params[f'e_{param_name}'][0],
+        'e2': params[f'e_{param_name}'][1],
         'center_x': params[f'center_{param_name}'][0],
         'center_y': params[f'center_{param_name}'][1]
     }, {
@@ -666,10 +651,7 @@ def matern_power_spectrum(
         sigma = numpyro.sample(f'sigma_{param_name}', dist.LogUniform(sigma_low, sigma_high))
         rho = numpyro.sample(f'rho_{param_name}', dist.LogNormal(2.1, 1.1))
 
-    n0 = jnp.asarray(n).reshape(-1)[0]
-    sigma0 = jnp.asarray(sigma).reshape(-1)[0]
-    rho0 = jnp.asarray(rho).reshape(-1)[0]
-    P = P_Matern(k, n0, sigma0, rho0, k_zero=k_zero)
+    P = P_Matern(k, n[0], sigma[0], rho[0], k_zero=k_zero)
     scale = jnp.sqrt(P)
 
     ny, nx = scale.shape
