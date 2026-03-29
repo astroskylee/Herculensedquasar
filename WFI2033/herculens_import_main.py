@@ -666,7 +666,10 @@ def matern_power_spectrum(
         sigma = numpyro.sample(f'sigma_{param_name}', dist.LogUniform(sigma_low, sigma_high))
         rho = numpyro.sample(f'rho_{param_name}', dist.LogNormal(2.1, 1.1))
 
-    P = P_Matern(k, n[0], sigma[0], rho[0], k_zero=k_zero)
+    n0 = jnp.asarray(n).reshape(-1)[0]
+    sigma0 = jnp.asarray(sigma).reshape(-1)[0]
+    rho0 = jnp.asarray(rho).reshape(-1)[0]
+    P = P_Matern(k, n0, sigma0, rho0, k_zero=k_zero)
     scale = jnp.sqrt(P)
 
     ny, nx = scale.shape
