@@ -106,12 +106,16 @@ def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs
     else:
         gamma_in  = numpyro.sample(f'gammain_{param_name}',   dist.Uniform(gamma_in_low, gamma_in_up))
 
-    with numpyro.plate(f'{plate_name} vectors - [2]', 2):
-        gamma_sheer  = numpyro.sample(f'gamma_sheer_{param_name}', dist.Uniform(gamma_sheer_low, gamma_sheer_high))
+    gamma_sheer = numpyro.sample(
+        f'gamma_sheer_{param_name}',
+        dist.Uniform(gamma_sheer_low, gamma_sheer_high).expand([2]),
+    )
 
     if sph is False:
-        with numpyro.plate(f'{plate_name} vectors - [2]', 2):
-            e_mass = numpyro.sample(f'e_{param_name}', dist.TruncatedNormal(0, 0.25, low=e_low,  high=e_high))
+        e_mass = numpyro.sample(
+            f'e_{param_name}',
+            dist.TruncatedNormal(0, 0.25, low=e_low, high=e_high).expand([2]),
+        )
     else:
         e_mass = numpyro.deterministic(f"e_{param_name}", jnp.array([0.0001, -0.0001]))
         
