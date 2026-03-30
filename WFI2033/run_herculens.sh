@@ -22,5 +22,5 @@ source /mnt/lustre2/shared_conda/envs/tianli/herculens_tian/bin/activate
 cd /users/tianli/LensModelling/Herculensedquasar/WFI2033
 
 
-python -u Step_5_full_lenslight_to_hmc.py
+python -u Step_5_full_lenslight_multimass_to_hmc.py
 python -u read_data.py

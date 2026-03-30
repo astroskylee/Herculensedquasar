@@ -18,17 +18,18 @@ warnings.simplefilter("ignore")
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
-suffix = '_ss=2_full_light'
-
-NC_PATH = f"/mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light/WFI2033_6{suffix}.nc"
-
-RUN_OUTPUT_DIR = Path(NC_PATH).resolve().parent
+suffix = '_ss=2_full_light_full_light_multimass'
+OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
+run_dirs = sorted(OUTPUT_ROOT.glob(f"WFI2033{suffix}_*"))
+RUN_OUTPUT_DIR = run_dirs[-1]
+NC_PATH = RUN_OUTPUT_DIR / f"WFI2033_all{suffix}.nc"
+run_tag = RUN_OUTPUT_DIR.name.removeprefix(f"WFI2033{suffix}_")
 DATA_DIR = "../../Data/WFI2033"
 
 RAW_DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
 DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d_cut_x6985_y3594_150.fits")
 RMS_WITH_PSF_EXTRA_PATH = "./psf_data/WFI2033_ERR_with_stage2_psf_extra.fits"
-OUTPUT_DIR = Path(__file__).resolve().parent / "result" / f"result{suffix}"
+OUTPUT_DIR = Path(__file__).resolve().parent / "result" / f"result{suffix}_{run_tag}"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 DATA_PRODUCTS_DIR = OUTPUT_DIR / "data_products"
 DATA_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)

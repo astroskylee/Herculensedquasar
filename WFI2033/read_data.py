@@ -18,7 +18,7 @@ warnings.simplefilter("ignore")
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
-suffix = '_ss=2_full_light'
+suffix = '_ss=2_full_light_full_light_multimass'
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
 run_dirs = sorted(OUTPUT_ROOT.glob(f"WFI2033{suffix}_*"))
 RUN_OUTPUT_DIR = run_dirs[-1]
