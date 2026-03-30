@@ -477,16 +477,6 @@ def model(
         with numpyro.plate(f"Conjugate points 2 - [{nc}]", nc):
             numpyro.sample("conjugate_points", dist.Exponential(conj_rate), obs=conj_distance)
 
-    fermat = lens_img.MassModel.fermat_potential(
-        kwargs_point_source[0]["ra"],
-        kwargs_point_source[0]["dec"],
-        mass_params,
-    )
-    numpyro.deterministic("fermat_potential_images", fermat)
-    numpyro.deterministic("fpd_31", fermat[2] - fermat[0])
-    numpyro.deterministic("fpd_32", fermat[2] - fermat[1])
-    numpyro.deterministic("fpd_34", fermat[2] - fermat[3])
-
     if pixelated:
         if k_values is None:
             raise ValueError("k_values is required when pixelated=True")
