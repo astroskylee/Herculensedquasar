@@ -477,19 +477,24 @@ def model(
         with numpyro.plate(f"Conjugate points 2 - [{nc}]", nc):
             numpyro.sample("conjugate_points", dist.Exponential(conj_rate), obs=conj_distance)
 
+    fermat = lens_img.MassModel.fermat_potential(
+        kwargs_point_source[0]["ra"],
+        kwargs_point_source[0]["dec"],
+        mass_params,
+    )
+    numpyro.deterministic("fermat_potential_images", fermat)
+    numpyro.deterministic("fpd_31", fermat[2] - fermat[0])
+    numpyro.deterministic("fpd_32", fermat[2] - fermat[1])
+    numpyro.deterministic("fpd_34", fermat[2] - fermat[3])
+
     if pixelated:
         if k_values is None:
             raise ValueError("k_values is required when pixelated=True")
         source_light = [
             matern_power_spectrum(
-                SOURCE_GRID_PRIOR["plate_name"],
-                SOURCE_GRID_PRIOR["param_name"],
-                k_values,
-                n_high=SOURCE_GRID_PRIOR["n_high"],
+                k=k_values,
                 n_value=n_value,
-                sigma_low=SOURCE_GRID_PRIOR["sigma_low"],
-                sigma_high=SOURCE_GRID_PRIOR["sigma_high"],
-                positive=SOURCE_GRID_PRIOR["positive"],
+                **SOURCE_GRID_PRIOR,
             )
         ]
     else:
