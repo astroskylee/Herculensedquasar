@@ -1209,7 +1209,7 @@ inner_kernels = [
             ("n_source_grid", "rho_source_grid", "sigma_source_grid"),
             ("A_lens", "sigma_lens", "e_lens", "center_lens"),
             ("ra_ps", "dec_ps", "log10_amp_ps"),
-            ("center_1","theta_E_1", "theta_E_g1", "theta_E_g2","e_1", "gamma_1", "gamma_sheer_1")
+            ("center_1","theta_E_1", "theta_E_g1", "theta_E_g2", "theta_E_g3", "theta_E_g7", "e_1", "gamma_1", "gamma_sheer_1")
         ],
     ),
     NUTS(
