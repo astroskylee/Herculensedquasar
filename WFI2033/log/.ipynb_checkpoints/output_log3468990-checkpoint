@@ -27,13 +27,3 @@ Starting stage3 SVI chain 1/6
 Starting stage3 SVI chain 2/6
 Starting stage3 SVI chain 3/6
 Starting stage3 SVI chain 4/6
-Starting stage3 SVI chain 5/6
-Starting stage3 SVI chain 6/6
-Saved fixed first-three Gaussians to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_20260330_12/fixed_first_three_gaussians_ss=2_full_light_multimass.npz
-Saved fixed first-three PSF to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_20260330_12/fixed_first_three_psf_ss=2_full_light_multimass.fits
-Starting stage4 SVI chain 1/6
-Starting stage4 SVI chain 2/6
-Starting stage4 SVI chain 3/6
-Starting stage4 SVI chain 4/6
-Starting stage4 SVI chain 5/6
-Starting stage4 SVI chain 6/6
