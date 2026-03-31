@@ -18,11 +18,19 @@ warnings.simplefilter("ignore")
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
-suffix = '_ss=2_full_light_full_light_multimass'
+suffix = '_ss=2_full_light_multimass'
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
-run_dirs = sorted(OUTPUT_ROOT.glob(f"WFI2033{suffix}_*"))
+run_pattern = f"WFI2033{suffix}_*"
+run_dirs = sorted(OUTPUT_ROOT.glob(run_pattern))
+if not run_dirs:
+    raise FileNotFoundError(
+        f"No output directories matched {OUTPUT_ROOT / run_pattern}. "
+        f"Check suffix={suffix!r} and whether the HMC run finished."
+    )
 RUN_OUTPUT_DIR = run_dirs[-1]
 NC_PATH = RUN_OUTPUT_DIR / f"WFI2033_all{suffix}.nc"
+if not NC_PATH.exists():
+    raise FileNotFoundError(f"Missing netCDF output: {NC_PATH}")
 run_tag = RUN_OUTPUT_DIR.name.removeprefix(f"WFI2033{suffix}_")
 DATA_DIR = "../../Data/WFI2033"
 
@@ -35,6 +43,10 @@ DATA_PRODUCTS_DIR = OUTPUT_DIR / "data_products"
 DATA_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)
 FIXED_FIRST_THREE_GAUSS_PATH = RUN_OUTPUT_DIR / f"fixed_first_three_gaussians{suffix}.npz"
 FIXED_FIRST_THREE_PSF_PATH = RUN_OUTPUT_DIR / f"fixed_first_three_psf{suffix}.fits"
+if not FIXED_FIRST_THREE_GAUSS_PATH.exists():
+    raise FileNotFoundError(f"Missing fixed-Gaussian file: {FIXED_FIRST_THREE_GAUSS_PATH}")
+if not FIXED_FIRST_THREE_PSF_PATH.exists():
+    raise FileNotFoundError(f"Missing fixed-PSF file: {FIXED_FIRST_THREE_PSF_PATH}")
 
 # --------------------------------
 # Read posterior (.nc) and print key info
