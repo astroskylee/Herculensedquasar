@@ -73,12 +73,24 @@ for name, da in post.data_vars.items():
 
 vars_mass = ["theta_E_1", "gamma_1", "e_1", "center_1", "gamma_sheer_1"]
 vars_power = ["n_source_grid", "rho_source_grid", "sigma_source_grid"]
-print(
-    f"divergences per chain per step:\n"
-    f"{inf_data_pixel.sample_stats.diverging.values.sum(axis=1).T}"
-)
-print(az.summary(inf_data_pixel, var_names=vars_mass + vars_power))
 num_chains = inf_data_pixel.posterior.sizes["chain"]
+num_draws = inf_data_pixel.posterior.sizes["draw"]
+print(f"posterior shape: chains={num_chains}, draws={num_draws}")
+
+div = inf_data_pixel.sample_stats["diverging"]
+if div.dims == ("chain", "draw", "diverging_dim_0"):
+    div_counts = np.asarray(div.sum(dim="draw").values, dtype=int)
+    print("divergences per chain:")
+    print(f"  block 0 (main mass/source/lens-light/AGN): {div_counts[:, 0]}")
+    print(f"  block 1 (psf correction): {div_counts[:, 1]}")
+elif div.dims == ("chain", "draw"):
+    div_counts = np.asarray(div.sum(dim="draw").values, dtype=int)
+    print(f"divergences per chain: {div_counts}")
+else:
+    print(f"unexpected diverging dims: {div.dims}")
+    print(div)
+
+print(az.summary(inf_data_pixel, var_names=vars_mass + vars_power))
 
 # --------------------------------
 # Save trace and corner diagnostics

@@ -572,8 +572,8 @@ def model(
 def params2kwargs(params, fixed_params={}, pixelated=False):
     params_full = params | fixed_params
     theta_E_g2 = params_full["theta_E_g2"][0]
-    theta_E_g3 = params_full["theta_E_g3"][0]
-    theta_E_g7 = params_full["theta_E_g7"][0]
+    theta_E_g3 = params_full["theta_E_g3"]
+    theta_E_g7 = params_full["theta_E_g7"]
     kwargs_lens = (
         params2kwargs_EPL_w_shear(params_full, "1")
         + params2kwargs_SIS(params_full, "g1")
@@ -1248,7 +1248,7 @@ mcmc_pixel = MCMC(
     chain_method="vectorized",
 )
 
-batch_number = 8
+batch_number = 4
 batch_list = []
 for i in range(batch_number):
     if i == 0:
