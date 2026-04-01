@@ -18,12 +18,21 @@ warnings.simplefilter("ignore")
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
-suffix = '_ss=2_full_light_full_light_multimass'
+suffix = '_ss=2_full_light_multimass'
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
-run_dirs = sorted(OUTPUT_ROOT.glob(f"WFI2033{suffix}_*"))
+run_pattern = f"WFI2033{suffix}_*"
+run_dirs = sorted(OUTPUT_ROOT.glob(run_pattern))
+if not run_dirs:
+    raise FileNotFoundError(
+        f"No output directories matched {OUTPUT_ROOT / run_pattern}. "
+        f"Check suffix={suffix!r} and whether the HMC run finished."
+    )
 RUN_OUTPUT_DIR = run_dirs[-1]
 NC_PATH = RUN_OUTPUT_DIR / f"WFI2033_all{suffix}.nc"
+if not NC_PATH.exists():
+    raise FileNotFoundError(f"Missing netCDF output: {NC_PATH}")
 run_tag = RUN_OUTPUT_DIR.name.removeprefix(f"WFI2033{suffix}_")
+run_tag = "20260401_00"
 DATA_DIR = "../../Data/WFI2033"
 
 RAW_DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
@@ -35,6 +44,10 @@ DATA_PRODUCTS_DIR = OUTPUT_DIR / "data_products"
 DATA_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)
 FIXED_FIRST_THREE_GAUSS_PATH = RUN_OUTPUT_DIR / f"fixed_first_three_gaussians{suffix}.npz"
 FIXED_FIRST_THREE_PSF_PATH = RUN_OUTPUT_DIR / f"fixed_first_three_psf{suffix}.fits"
+if not FIXED_FIRST_THREE_GAUSS_PATH.exists():
+    raise FileNotFoundError(f"Missing fixed-Gaussian file: {FIXED_FIRST_THREE_GAUSS_PATH}")
+if not FIXED_FIRST_THREE_PSF_PATH.exists():
+    raise FileNotFoundError(f"Missing fixed-PSF file: {FIXED_FIRST_THREE_PSF_PATH}")
 
 # --------------------------------
 # Read posterior (.nc) and print key info
@@ -61,12 +74,24 @@ for name, da in post.data_vars.items():
 
 vars_mass = ["theta_E_1", "gamma_1", "e_1", "center_1", "gamma_sheer_1"]
 vars_power = ["n_source_grid", "rho_source_grid", "sigma_source_grid"]
-print(
-    f"divergences per chain per step:\n"
-    f"{inf_data_pixel.sample_stats.diverging.values.sum(axis=1).T}"
-)
-print(az.summary(inf_data_pixel, var_names=vars_mass + vars_power))
 num_chains = inf_data_pixel.posterior.sizes["chain"]
+num_draws = inf_data_pixel.posterior.sizes["draw"]
+print(f"posterior shape: chains={num_chains}, draws={num_draws}")
+
+div = inf_data_pixel.sample_stats["diverging"]
+if div.dims == ("chain", "draw", "diverging_dim_0"):
+    div_counts = np.asarray(div.sum(dim="draw").values, dtype=int)
+    print("divergences per chain:")
+    print(f"  block 0 (main mass/source/lens-light/AGN): {div_counts[:, 0]}")
+    print(f"  block 1 (psf correction): {div_counts[:, 1]}")
+elif div.dims == ("chain", "draw"):
+    div_counts = np.asarray(div.sum(dim="draw").values, dtype=int)
+    print(f"divergences per chain: {div_counts}")
+else:
+    print(f"unexpected diverging dims: {div.dims}")
+    print(div)
+
+print(az.summary(inf_data_pixel, var_names=vars_mass + vars_power))
 
 # --------------------------------
 # Save trace and corner diagnostics

@@ -1,0 +1,11 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) git/2.48.0 3) system/intel64(default) 2) services/slurm <aL> 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+[CudaDevice(id=0)]
+0.031224452218231436
+Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
+Starting parametric SVI chain 1/6
+Starting parametric SVI chain 2/6
+Starting parametric SVI chain 3/6
+Starting parametric SVI chain 4/6
+Starting parametric SVI chain 5/6

@@ -32,6 +32,7 @@ NC_PATH = RUN_OUTPUT_DIR / f"WFI2033_all{suffix}.nc"
 if not NC_PATH.exists():
     raise FileNotFoundError(f"Missing netCDF output: {NC_PATH}")
 run_tag = RUN_OUTPUT_DIR.name.removeprefix(f"WFI2033{suffix}_")
+run_tag = "20260401_00"
 DATA_DIR = "../../Data/WFI2033"
 
 RAW_DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
