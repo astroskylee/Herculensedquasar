@@ -389,9 +389,7 @@ def build_model_components_with_fixed_lens_light(
 
 
 def scale_theta_E_from_g2(theta_E_g2, target_prior):
-    return (
-        (theta_E_g2 - SIS_G2_PRIOR["theta_mean"])/SIS_G2_PRIOR["theta_mean"]*target_prior["theta_mean"]+target_prior["theta_mean"]
-    )
+    return ((theta_E_g2 - SIS_G2_PRIOR["theta_mean"])/SIS_G2_PRIOR["theta_mean"]*target_prior["theta_mean"] + target_prior["theta_mean"])
 
 
 def fixed_sis_from_theta_E(theta_E, origin):
