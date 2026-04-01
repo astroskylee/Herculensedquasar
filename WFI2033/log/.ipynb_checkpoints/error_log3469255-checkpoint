@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/read_data.py", line 33, in <module>
+    raise FileNotFoundError(f"Missing netCDF output: {NC_PATH}")
+FileNotFoundError: Missing netCDF output: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_20260401_00/WFI2033_all_ss=2_full_light_multimass.nc

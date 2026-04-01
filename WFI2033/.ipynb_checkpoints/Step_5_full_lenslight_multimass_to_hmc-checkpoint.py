@@ -255,6 +255,8 @@ G1_MASS_CENTER = (1.556, 1.299)
 SIS_G2_PRIOR = {
     "theta_mean": 0.622,
     "theta_sigma": 0.062,
+    "theta_high": 0.7,
+    "theta_low": 0.5
 }
 
 G2_MASS_CENTER = (2.145, -3.326)
@@ -386,6 +388,21 @@ def build_model_components_with_fixed_lens_light(
     return full_model, full_lens_light, source_plus_point, fixed_lens_light
 
 
+def scale_theta_E_from_g2(theta_E_g2, target_prior):
+    return (
+        (theta_E_g2 - SIS_G2_PRIOR["theta_mean"])/SIS_G2_PRIOR["theta_mean"]
+        + target_prior["theta_mean"]
+    )
+
+
+def fixed_sis_from_theta_E(theta_E, origin):
+    return [{
+        "theta_E": theta_E,
+        "center_x": origin[0],
+        "center_y": origin[1],
+    }]
+
+
 def model(
     data,
     lens_light_prior_kwargs,
@@ -416,23 +433,22 @@ def model(
         "Mass model g2",
         "g2",
         origin=G2_MASS_CENTER,
-        theta_mean=SIS_G2_PRIOR["theta_mean"],
-        theta_sigma=SIS_G2_PRIOR["theta_sigma"],
+        # theta_mean=SIS_G2_PRIOR["theta_mean"],
+        # theta_sigma=SIS_G2_PRIOR["theta_sigma"],
+        theta_low=SIS_G2_PRIOR["theta_low"],
+        theta_high=SIS_G2_PRIOR["theta_high"],
     )
-    mass_params = mass_params + SIS(
-        "Mass model g3",
-        "g3",
-        origin=G3_MASS_CENTER,
-        theta_mean=SIS_G3_PRIOR["theta_mean"],
-        theta_sigma=SIS_G3_PRIOR["theta_sigma"],
+    theta_E_g2 = mass_params[-1]["theta_E"]
+    theta_E_g3 = numpyro.deterministic(
+        "theta_E_g3",
+        scale_theta_E_from_g2(theta_E_g2, SIS_G3_PRIOR),
     )
-    mass_params = mass_params + SIS(
-        "Mass model g7",
-        "g7",
-        origin=G7_MASS_CENTER,
-        theta_mean=SIS_G7_PRIOR["theta_mean"],
-        theta_sigma=SIS_G7_PRIOR["theta_sigma"],
+    theta_E_g7 = numpyro.deterministic(
+        "theta_E_g7",
+        scale_theta_E_from_g2(theta_E_g2, SIS_G7_PRIOR),
     )
+    mass_params = mass_params + fixed_sis_from_theta_E(theta_E_g3, G3_MASS_CENTER)
+    mass_params = mass_params + fixed_sis_from_theta_E(theta_E_g7, G7_MASS_CENTER)
     lens_light = multi_gauss_light(**lens_light_prior_kwargs)
 
     n_ps = conj_points.shape[0]
@@ -482,14 +498,9 @@ def model(
             raise ValueError("k_values is required when pixelated=True")
         source_light = [
             matern_power_spectrum(
-                SOURCE_GRID_PRIOR["plate_name"],
-                SOURCE_GRID_PRIOR["param_name"],
-                k_values,
-                n_high=SOURCE_GRID_PRIOR["n_high"],
+                k=k_values,
                 n_value=n_value,
-                sigma_low=SOURCE_GRID_PRIOR["sigma_low"],
-                sigma_high=SOURCE_GRID_PRIOR["sigma_high"],
-                positive=SOURCE_GRID_PRIOR["positive"],
+                **SOURCE_GRID_PRIOR,
             )
         ]
     else:
@@ -563,12 +574,15 @@ def model(
 
 def params2kwargs(params, fixed_params={}, pixelated=False):
     params_full = params | fixed_params
+    theta_E_g2 = params_full["theta_E_g2"][0]
+    theta_E_g3 = params_full["theta_E_g3"]
+    theta_E_g7 = params_full["theta_E_g7"]
     kwargs_lens = (
         params2kwargs_EPL_w_shear(params_full, "1")
         + params2kwargs_SIS(params_full, "g1")
-        + params2kwargs_SIS(params_full, "g2")
-        + params2kwargs_SIS(params_full, "g3")
-        + params2kwargs_SIS(params_full, "g7")
+        + fixed_sis_from_theta_E(theta_E_g2, G2_MASS_CENTER)
+        + fixed_sis_from_theta_E(theta_E_g3, G3_MASS_CENTER)
+        + fixed_sis_from_theta_E(theta_E_g7, G7_MASS_CENTER)
     )
     kwargs_lens_light = params2kwargs_multi_gauss_light(params_full, "lens")
     kwargs_point_source = [{
@@ -679,7 +693,7 @@ best_pix_sizes = np.array(
 pixel_grid_shape = np.median(best_pix_sizes).astype(int) * 1
 print(f"pixel_grid_shape = {pixel_grid_shape}")
 
-vars_mass = ["theta_E_1", "theta_E_g1", "theta_E_g2", "theta_E_g3", "theta_E_g7", "gamma_1", "e_1", "center_1", "gamma_sheer_1"]
+vars_mass = ["theta_E_1", "theta_E_g1", "theta_E_g2", "gamma_1", "e_1", "center_1", "gamma_sheer_1"]
 vars_lens_light = ["A_lens", "sigma_lens", "e_lens", "center_lens"]
 vars_source_light = ["A_source", "sigma_source", "e_source"]
 vars_point_source = ["ra_ps", "dec_ps", "log10_amp_ps"]
@@ -1209,7 +1223,7 @@ inner_kernels = [
             ("n_source_grid", "rho_source_grid", "sigma_source_grid"),
             ("A_lens", "sigma_lens", "e_lens", "center_lens"),
             ("ra_ps", "dec_ps", "log10_amp_ps"),
-            ("center_1","theta_E_1", "theta_E_g1", "theta_E_g2","e_1", "gamma_1", "gamma_sheer_1")
+            ("center_1","theta_E_1", "theta_E_g1", "theta_E_g2", "e_1", "gamma_1", "gamma_sheer_1")
         ],
     ),
     NUTS(
@@ -1237,7 +1251,7 @@ mcmc_pixel = MCMC(
     chain_method="vectorized",
 )
 
-batch_number = 8
+batch_number = 4
 batch_list = []
 for i in range(batch_number):
     if i == 0:

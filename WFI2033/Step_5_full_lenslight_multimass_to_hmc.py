@@ -255,6 +255,8 @@ G1_MASS_CENTER = (1.556, 1.299)
 SIS_G2_PRIOR = {
     "theta_mean": 0.622,
     "theta_sigma": 0.062,
+    "theta_high": 0.7,
+    "theta_low": 0.5
 }
 
 G2_MASS_CENTER = (2.145, -3.326)
@@ -388,9 +390,7 @@ def build_model_components_with_fixed_lens_light(
 
 def scale_theta_E_from_g2(theta_E_g2, target_prior):
     return (
-        (theta_E_g2 - SIS_G2_PRIOR["theta_mean"])
-        * (target_prior["theta_sigma"] / SIS_G2_PRIOR["theta_sigma"])
-        + target_prior["theta_mean"]
+        (theta_E_g2 - SIS_G2_PRIOR["theta_mean"])/SIS_G2_PRIOR["theta_mean"]*target_prior["theta_mean"]
     )
 
 
@@ -432,8 +432,10 @@ def model(
         "Mass model g2",
         "g2",
         origin=G2_MASS_CENTER,
-        theta_mean=SIS_G2_PRIOR["theta_mean"],
-        theta_sigma=SIS_G2_PRIOR["theta_sigma"],
+        # theta_mean=SIS_G2_PRIOR["theta_mean"],
+        # theta_sigma=SIS_G2_PRIOR["theta_sigma"],
+        theta_low=SIS_G2_PRIOR["theta_low"],
+        theta_high=SIS_G2_PRIOR["theta_high"],
     )
     theta_E_g2 = mass_params[-1]["theta_E"]
     theta_E_g3 = numpyro.deterministic(
