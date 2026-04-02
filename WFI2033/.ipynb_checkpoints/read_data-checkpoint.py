@@ -19,20 +19,14 @@ jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
 suffix = '_ss=2_full_light_multimass'
+run_tag = "20260401_11"
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
-run_pattern = f"WFI2033{suffix}_*"
-run_dirs = sorted(OUTPUT_ROOT.glob(run_pattern))
-if not run_dirs:
-    raise FileNotFoundError(
-        f"No output directories matched {OUTPUT_ROOT / run_pattern}. "
-        f"Check suffix={suffix!r} and whether the HMC run finished."
-    )
-RUN_OUTPUT_DIR = run_dirs[-1]
+RUN_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix}_{run_tag}"
+if not RUN_OUTPUT_DIR.exists():
+    raise FileNotFoundError(f"Missing run directory: {RUN_OUTPUT_DIR}")
 NC_PATH = RUN_OUTPUT_DIR / f"WFI2033_all{suffix}.nc"
 if not NC_PATH.exists():
     raise FileNotFoundError(f"Missing netCDF output: {NC_PATH}")
-run_tag = RUN_OUTPUT_DIR.name.removeprefix(f"WFI2033{suffix}_")
-run_tag = "20260401_00"
 DATA_DIR = "../../Data/WFI2033"
 
 RAW_DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
