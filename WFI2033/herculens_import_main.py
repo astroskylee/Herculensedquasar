@@ -92,7 +92,7 @@ def params2kwargs_EPL_w_shear(params, param_name):
         'dec_0': params[f'center_{param_name}'][1]
     }]
 from numpyro.distributions import transforms as T
-def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs_high = None, Rs_low = None, Rs_mean = None ,Rs_std = None, Rs_value = None, e_low=-0.2, e_high=0.2, center_x = None, center_y = None, kappa_s_low = 0.0, kappa_s_high = 1, sph = False, gamma_sheer_low = -0.2, gamma_sheer_high = 0.2):
+def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs_high = None, Rs_low = None, Rs_mean = None ,Rs_std = None, Rs_value = None, e_low=-0.2, e_high=0.2, center_x = None, center_y = None, kappa_s_low = 0.0, kappa_s_high = 1, sph = False, gamma_sheer_low = -0.2, gamma_sheer_high = 0.2, gamma_sheer_value = None):
     if Rs_value is not None:
         Rs = numpyro.deterministic(f'Rs_{param_name}', jnp.float64(Rs_value))
     elif Rs_low is not None:
@@ -103,8 +103,14 @@ def GNFW_w_shear(plate_name, param_name, gamma_in_up = 2, gamma_in_low = 0.5, Rs
     kappa_s   = numpyro.sample(f'kappa_s_{param_name}',   dist.Uniform(kappa_s_low, kappa_s_high))
     gamma_in  = numpyro.sample(f'gammain_{param_name}',   dist.Uniform(gamma_in_low, gamma_in_up))
 
-    with numpyro.plate(f'{plate_name} vectors - [2]', 2):
-        gamma_sheer  = numpyro.sample(f'gamma_sheer_{param_name}', dist.Uniform(gamma_sheer_low, gamma_sheer_high))
+    if gamma_sheer_value is None:
+        with numpyro.plate(f'{plate_name} vectors - [2]', 2):
+            gamma_sheer  = numpyro.sample(f'gamma_sheer_{param_name}', dist.Uniform(gamma_sheer_low, gamma_sheer_high))
+    else:
+        gamma_sheer = numpyro.deterministic(
+            f'gamma_sheer_{param_name}',
+            jnp.asarray(gamma_sheer_value, dtype=jnp.float64).reshape(2,),
+        )
 
     if sph is False:
         with numpyro.plate(f'{plate_name} vectors - [2]', 2):
