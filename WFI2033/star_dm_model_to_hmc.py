@@ -1012,6 +1012,11 @@ STEP3_KWARGS = {
     'm2l_ratio_slope_high': 0.5,
 }
 
+STEP3_HMC_KWARGS = {
+    **STEP3_KWARGS,
+    'use_conjugate_prior': False,
+}
+
 
 def build_step3_init_values(i):
     cosmo_prior = COSMO_PRIORS[STEP3_KWARGS['cosmo_prior_name']]
@@ -1056,7 +1061,7 @@ multi_svi_stage3_median = stack_dicts(step3_output['medians'])
 unconstrained_stage3_median = jax.vmap(
     lambda p: infer.util.unconstrain_fn(
         model_step6,
-        (data_subtracted, STEP3_KWARGS),
+        (data_subtracted, STEP3_HMC_KWARGS),
         {},
         p,
     )
@@ -1130,8 +1135,8 @@ outer_kernel = MultiHMCGibbs(
     ],
 )
 
-num_warmup = 1500
-num_samples = 1000
+num_warmup = 100
+num_samples = 50
 batch_number = 4
 
 rng_key_hmc = jax.random.PRNGKey(5252)
@@ -1151,7 +1156,7 @@ for i in range(batch_number):
         mcmc_stage3.run(
             rng_key_hmc,
             data_subtracted,
-            STEP3_KWARGS,
+            STEP3_HMC_KWARGS,
             init_params=unconstrained_stage3_median,
         )
     else:
@@ -1159,7 +1164,7 @@ for i in range(batch_number):
         mcmc_stage3.run(
             mcmc_stage3.post_warmup_state.rng_key,
             data_subtracted,
-            STEP3_KWARGS,
+            STEP3_HMC_KWARGS,
         )
 
     mcmc_stage3._states = jax.device_get(mcmc_stage3._states)
