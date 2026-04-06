@@ -1114,7 +1114,7 @@ stage3_kernel = NUTS(
 
 num_warmup = 100
 num_samples = 50
-batch_number = 4
+batch_number = 1
 
 rng_key_hmc = jax.random.PRNGKey(5252)
 
@@ -1126,6 +1126,37 @@ mcmc_stage3 = MCMC(
     progress_bar=True,
     chain_method='vectorized',
 )
+
+
+def validate_scaled_perturbers(inf_data, atol=1e-10):
+    post = inf_data.posterior
+    g2 = np.asarray(post['theta_E_g2'].values, dtype=float).reshape(post.sizes['chain'], post.sizes['draw'])
+    g3 = np.asarray(post['theta_E_g3'].values, dtype=float).reshape(post.sizes['chain'], post.sizes['draw'])
+    g7 = np.asarray(post['theta_E_g7'].values, dtype=float).reshape(post.sizes['chain'], post.sizes['draw'])
+
+    exp_g3 = g2 * (SIS_PRIORS['g3']['theta_mean'] / SIS_PRIORS['g2']['theta_mean'])
+    exp_g7 = g2 * (SIS_PRIORS['g7']['theta_mean'] / SIS_PRIORS['g2']['theta_mean'])
+
+    max_abs_diff_g3 = float(np.max(np.abs(g3 - exp_g3)))
+    max_abs_diff_g7 = float(np.max(np.abs(g7 - exp_g7)))
+    mean_abs_diff_g3 = float(np.mean(np.abs(g3 - exp_g3)))
+    mean_abs_diff_g7 = float(np.mean(np.abs(g7 - exp_g7)))
+
+    print(
+        'Scaled SIS validation: '
+        f'max|g3-exp|={max_abs_diff_g3:.3e}, '
+        f'mean|g3-exp|={mean_abs_diff_g3:.3e}, '
+        f'max|g7-exp|={max_abs_diff_g7:.3e}, '
+        f'mean|g7-exp|={mean_abs_diff_g7:.3e}'
+    )
+
+    if max_abs_diff_g3 > atol or max_abs_diff_g7 > atol:
+        raise RuntimeError(
+            'Scaled SIS validation failed: '
+            f'max|g3-exp|={max_abs_diff_g3:.6e}, '
+            f'max|g7-exp|={max_abs_diff_g7:.6e}.'
+        )
+
 
 batch_list = []
 for i in range(batch_number):
@@ -1147,12 +1178,13 @@ for i in range(batch_number):
     mcmc_stage3._states = jax.device_get(mcmc_stage3._states)
     mcmc_stage3._states_flat = jax.device_get(mcmc_stage3._states_flat)
     inf_data_batch = az.from_numpyro(mcmc_stage3)
+    validate_scaled_perturbers(inf_data_batch)
     batch_path = HMC_OUTPUT_DIR / f'WFI2033_{i}{suffix_hmc}.nc'
     inf_data_batch.to_netcdf(batch_path)
     print(f'Saved HMC batch to: {batch_path}')
     batch_list.append(inf_data_batch)
 
-inf_data_all = az.concat(*batch_list, dim='draw')
+inf_data_all = batch_list[0] if len(batch_list) == 1 else az.concat(*batch_list, dim='draw')
 final_hmc_path = HMC_OUTPUT_DIR / f'WFI2033_all{suffix_hmc}.nc'
 inf_data_all.to_netcdf(final_hmc_path)
 print(f'Saved final HMC inf_data to: {final_hmc_path}')
