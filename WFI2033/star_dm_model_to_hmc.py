@@ -511,7 +511,7 @@ STEP2_KWARGS = {
     'free_sis': ('g1', 'g2'),
     'scale_with_g2': True,
     'free_point_source': True,
-    'enable_psf_corr': True,
+    'enable_psf_corr': False,
     'use_conjugate_prior': True,
     'compute_fermat_diffs': True,
     'use_ml_gradient': False,
@@ -849,7 +849,6 @@ def build_step2_extra_init(i):
         'ra_ps': jnp.asarray(chain_array('ra_ps', i), dtype=jnp.float64),
         'dec_ps': jnp.asarray(chain_array('dec_ps', i), dtype=jnp.float64),
         'log10_amp_ps': jnp.asarray(chain_array('log10_amp_ps', i), dtype=jnp.float64),
-        'log_psf_corr_center': jnp.asarray(chain_array('log_psf_corr_center', i), dtype=jnp.float64),
     }
 
 
@@ -1040,9 +1039,6 @@ plot_stage_results(step3_output, STEP6_RESULT_DIR)
 
 # %% Stage 3 HMC
 from numpyro.infer import NUTS, MCMC
-from custom_gibbs import MultiHMCGibbs
-
-
 def stack_dicts(dict_list):
     return jax.tree.map(lambda *xs: jnp.stack(xs), *dict_list)
 
@@ -1090,48 +1086,29 @@ vars_mass = [
 ]
 vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps']
 vars_cosmo = ['cosmo_vec', 'kappa_ext']
-vars_psf_corr = ['log_psf_corr_center']
 
-inner_kernels = [
-    NUTS(
-        model_step6,
-        init_strategy=init_fun_hmc,
-        target_accept_prob=0.95,
-        max_tree_depth=10,
-        dense_mass=[
-            ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
-            (
-                'm2l_ratio',
-                'm2l_ratio_slope',
-                'kappa_s_halo',
-                'gammain_halo',
-                'e_halo',
-                'Rs_halo',
-                'center_halo',
-                'gamma_sheer_halo',
-                'theta_E_g1',
-                'theta_E_g2',
-                'cosmo_vec',
-                'kappa_ext',
-            ),
-            (   'ra_ps',
-                'dec_ps',
-                'log10_amp_ps',)
-        ],
-    ),
-    NUTS(
-        model_step6,
-        init_strategy=init_fun_hmc,
-        target_accept_prob=0.9,
-        max_tree_depth=10,
-    ),
-]
-
-outer_kernel = MultiHMCGibbs(
-    inner_kernels,
-    gibbs_sites_list=[
-        vars_pixel + vars_power + vars_mass + vars_point_source + vars_cosmo,
-        vars_psf_corr,
+stage3_kernel = NUTS(
+    model_step6,
+    init_strategy=init_fun_hmc,
+    target_accept_prob=0.95,
+    max_tree_depth=10,
+    dense_mass=[
+        ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
+        (
+            'm2l_ratio',
+            'm2l_ratio_slope',
+            'kappa_s_halo',
+            'gammain_halo',
+            'e_halo',
+            'Rs_halo',
+            'center_halo',
+            'gamma_sheer_halo',
+            'theta_E_g1',
+            'theta_E_g2',
+            'cosmo_vec',
+            'kappa_ext',
+        ),
+        ('ra_ps', 'dec_ps', 'log10_amp_ps'),
     ],
 )
 
@@ -1142,7 +1119,7 @@ batch_number = 4
 rng_key_hmc = jax.random.PRNGKey(5252)
 
 mcmc_stage3 = MCMC(
-    outer_kernel,
+    stage3_kernel,
     num_warmup=num_warmup,
     num_samples=num_samples,
     num_chains=num_chains,
