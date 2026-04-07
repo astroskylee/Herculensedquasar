@@ -57,7 +57,7 @@ PRODUCTS_DIR = RESULT_DIR / 'data_products'
 DATA_DIR = Path('../../Data/WFI2033')
 RAW_DATA_PATH = DATA_DIR / 'jw01198-o004_t004_nircam_clear-f115w_i2d.fits'
 DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light{suffix}.fits'
-HMC_ALL_PATH = RUN_OUTPUT_DIR / f'WFI2033_all{suffix}.nc'
+HMC_MEDIAN_PATH = SCRIPT_DIR.parent / f'HMC_median_draw{suffix}.nc'
 FIXED_FIRST_THREE_PATH = RUN_OUTPUT_DIR / f'fixed_first_three_gaussians{suffix}.npz'
 MASK_OUT_PATH = SCRIPT_DIR / 'data' / 'mask_out_center_r16.fits'
 
@@ -71,16 +71,13 @@ data_subtracted = np.array(fits.getdata(DATA_SUB_PATH), dtype=float)
 rms_file = np.array(fits.getdata(PRODUCTS_DIR / f'rms_with_psf_extra{suffix}.fits'), dtype=float)
 mask_out = np.array(fits.getdata(MASK_OUT_PATH), dtype=bool)
 fixed_first_three = np.load(FIXED_FIRST_THREE_PATH)
-inf_data_step5 = az.from_netcdf(HMC_ALL_PATH)
-HMC_posterior = inf_data_step5.posterior
-HMC_last = HMC_posterior.isel(draw=-1)
-HMC_reference = HMC_last.median(dim='chain')
-HMC_global_reference = HMC_posterior.median(dim=('chain', 'draw'))
+HMC_median = xr.open_dataset(HMC_MEDIAN_PATH)
+HMC_reference = HMC_median.median(dim='chain')
 
 pixel_grid_shape = 74
 source_grid_scale = 0.8
 ss_factor = 2
-num_chains = int(HMC_last.sizes['chain'])
+num_chains = int(HMC_median.sizes['chain'])
 
 POINT_SOURCE_PRIOR = {
     'pos_sigma': 0.05,
@@ -265,8 +262,8 @@ fixed_point_source = [{
     'amp': np.power(10.0, np.array(HMC_reference['log10_amp_ps'].values, dtype=float)),
 }]
 
-# Step 6 uses a single fixed PSF: the global median corrected PSF from Step 5.
-fixed_psf = np.array(HMC_global_reference['psf_kernel_corrected'].values, dtype=float)
+# Step 6 uses a single fixed PSF: the chain-median corrected PSF median from Step 5.
+fixed_psf = np.array(HMC_reference['psf_kernel_corrected'].values, dtype=float)
 fixed_psf = np.clip(fixed_psf, 0.0, None)
 fixed_psf = fixed_psf / fixed_psf.sum()
 
@@ -274,7 +271,7 @@ epl_center = np.array(HMC_reference['center_1'].values, dtype=float).reshape(2,)
 
 
 def chain_array(name, i):
-    return HMC_last[name].isel(chain=i).values
+    return HMC_median[name].isel(chain=i).values
 
 
 fixed_sis_g1 = [{
