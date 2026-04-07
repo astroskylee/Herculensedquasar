@@ -74,6 +74,7 @@ inf_data_step5 = az.from_netcdf(HMC_ALL_PATH)
 HMC_posterior = inf_data_step5.posterior
 HMC_last = HMC_posterior.isel(draw=-1)
 HMC_reference = HMC_last.median(dim='chain')
+HMC_global_reference = HMC_posterior.median(dim=('chain', 'draw'))
 
 ny, nx = mask_out.shape
 xc, yc = nx / 2, ny / 2
@@ -269,7 +270,8 @@ fixed_point_source = [{
     'amp': np.power(10.0, np.array(HMC_reference['log10_amp_ps'].values, dtype=float)),
 }]
 
-fixed_psf = np.array(HMC_reference['psf_kernel_corrected'].values, dtype=float)
+# Step 6 uses a single fixed PSF: the global median corrected PSF from Step 5.
+fixed_psf = np.array(HMC_global_reference['psf_kernel_corrected'].values, dtype=float)
 fixed_psf = np.clip(fixed_psf, 0.0, None)
 fixed_psf = fixed_psf / fixed_psf.sum()
 
@@ -691,20 +693,9 @@ def build_stage_point_source(stage_kwargs):
     }]
 
 
-def build_stage_psf(stage_kwargs):
-    psf_base = jnp.asarray(fixed_psf)
-    corr_field = jnp.ones_like(psf_base)
-    psf_kernel = psf_base
-
-    if stage_kwargs['enable_psf_corr']:
-        log_psf_corr_center = numpyro.sample(
-            'log_psf_corr_center',
-            dist.Normal(0.0, PSF_CORR_PRIOR['sigma_log']).expand(psf_base.shape),
-        )
-        corr_field = build_psf_corr_factor_field(log_psf_corr_center, psf_base.shape)
-        psf_kernel = build_corrected_psf_kernel(psf_base, log_psf_corr_center)
-
-    numpyro.deterministic('psf_corr_factor_field', corr_field)
+def build_stage_psf():
+    psf_kernel = jnp.asarray(fixed_psf)
+    numpyro.deterministic('psf_corr_factor_field', jnp.ones_like(psf_kernel))
     numpyro.deterministic('psf_kernel_corrected', psf_kernel)
     return psf_kernel
 
@@ -783,7 +774,7 @@ def model_step6(data_subtracted, stage_kwargs):
         if stage_kwargs.get('use_time_delay_likelihood', False):
             add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs)
 
-    psf_kernel = build_stage_psf(stage_kwargs)
+    psf_kernel = build_stage_psf()
 
     model_image = lens_image_step6.model(
         kwargs_lens=kwargs_lens,
@@ -793,7 +784,6 @@ def model_step6(data_subtracted, stage_kwargs):
         source_add=True,
         lens_light_add=False,
         point_source_add=True,
-        psf_kernel=psf_kernel,
     )
     numpyro.deterministic('model_image', model_image)
 
