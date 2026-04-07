@@ -836,6 +836,33 @@ def build_source_init_values(i):
     }
 
 
+STEP1_LATENT_KEYS = (
+    'm2l_ratio',
+    'kappa_s_halo',
+    'gammain_halo',
+    'e_halo',
+    'n_source_grid',
+    'sigma_source_grid',
+    'rho_source_grid',
+    'pixels_wn_source_grid',
+)
+
+STEP2_LATENT_KEYS = STEP1_LATENT_KEYS + (
+    'Rs_halo',
+    'center_halo',
+    'gamma_sheer_halo',
+    'theta_E_g1',
+    'theta_E_g2',
+    'ra_ps',
+    'dec_ps',
+    'log10_amp_ps',
+)
+
+
+def select_init_values(params, allowed_keys):
+    return {k: params[k] for k in allowed_keys if k in params}
+
+
 def build_step1_init_values(i):
     return build_source_init_values(i) | STEP6_MASS_INITS[i]
 
@@ -844,6 +871,7 @@ def build_step2_extra_init(i):
     return {
         'Rs_halo': jnp.asarray(5.0, dtype=jnp.float64),
         'center_halo': jnp.asarray(chain_array('center_1', i), dtype=jnp.float64).reshape(2,),
+        'gamma_sheer_halo': jnp.asarray(chain_array('gamma_sheer_1', i), dtype=jnp.float64).reshape(2,),
         'theta_E_g1': jnp.asarray(chain_array('theta_E_g1', i), dtype=jnp.float64),
         'theta_E_g2': jnp.asarray(chain_array('theta_E_g2', i), dtype=jnp.float64),
         'ra_ps': jnp.asarray(chain_array('ra_ps', i), dtype=jnp.float64),
@@ -1149,7 +1177,7 @@ save_manifest()
 
 # %% Cell 9
 def build_step2_init_values(i):
-    return dict(step1_output['medians'][i]) | build_step2_extra_init(i)
+    return select_init_values(step1_output['medians'][i], STEP1_LATENT_KEYS) | build_step2_extra_init(i)
 
 
 step2_output = run_stage(
@@ -1183,7 +1211,7 @@ STEP3_HMC_KWARGS = {
 
 def build_step3_init_values(i):
     cosmo_prior = COSMO_PRIORS[STEP3_KWARGS['cosmo_prior_name']]
-    return dict(step2_output['medians'][i]) | {
+    return select_init_values(step2_output['medians'][i], STEP2_LATENT_KEYS) | {
         'cosmo_vec': jnp.asarray(cosmo_prior['mean_vec'], dtype=jnp.float64),
         'kappa_ext': jnp.asarray(KAPPA_EXT_PRIOR['mean'], dtype=jnp.float64),
         'm2l_ratio_slope': jnp.asarray(0.0, dtype=jnp.float64),
@@ -1209,6 +1237,7 @@ def stack_dicts(dict_list):
     return jax.tree.map(lambda *xs: jnp.stack(xs), *dict_list)
 
 
+
 # Keep the input suffix for reading Step-5 products unchanged.
 # Use a separate HMC suffix for Step-6 stage3 outputs.
 suffix_hmc = STEP3_SUFFIX
@@ -1221,27 +1250,6 @@ save_dataset(
     mapping_to_dataset({k: np.asarray(v) for k, v in multi_svi_stage3_median.items()}, leading_dims=('chain',)),
     'stage3_svi_median',
 )
-
-unconstrained_stage3_median = jax.vmap(
-    lambda p: infer.util.unconstrain_fn(
-        model_step6,
-        (data_subtracted, STEP3_HMC_KWARGS),
-        {},
-        p,
-    )
-)(multi_svi_stage3_median)
-
-unconstrained_stage3_median = {
-    k: jnp.asarray(v, dtype=jnp.float64)
-    for k, v in unconstrained_stage3_median.items()
-}
-save_dataset(
-    HMC_OUTPUT_DIR / 'stage3_unconstrained_init.nc',
-    mapping_to_dataset({k: np.asarray(v) for k, v in unconstrained_stage3_median.items()}, leading_dims=('chain',)),
-    'stage3_unconstrained_init',
-)
-
-init_fun_hmc = init_to_value_or_defer(values=step3_output['medians'][0])
 
 vars_pixel = ['pixels_wn_source_grid']
 vars_power = ['n_source_grid', 'rho_source_grid', 'sigma_source_grid']
@@ -1259,6 +1267,34 @@ vars_mass = [
 ]
 vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps']
 vars_cosmo = ['cosmo_vec', 'kappa_ext']
+
+# Match Step-5 HMC init logic: only pass true latent/sample sites into HMC init.
+multi_svi_stage3_median_vars = {
+    k: multi_svi_stage3_median[k]
+    for k in vars_pixel + vars_power + vars_mass + vars_point_source + vars_cosmo
+    if k in multi_svi_stage3_median
+}
+
+unconstrained_stage3_median = jax.vmap(
+    lambda p: infer.util.unconstrain_fn(
+        model_step6,
+        (data_subtracted, STEP3_HMC_KWARGS),
+        {},
+        p,
+    )
+)(multi_svi_stage3_median_vars)
+
+unconstrained_stage3_median = {
+    k: jnp.asarray(v, dtype=jnp.float64)
+    for k, v in unconstrained_stage3_median.items()
+}
+save_dataset(
+    HMC_OUTPUT_DIR / 'stage3_unconstrained_init.nc',
+    mapping_to_dataset({k: np.asarray(v) for k, v in unconstrained_stage3_median.items()}, leading_dims=('chain',)),
+    'stage3_unconstrained_init',
+)
+
+init_fun_hmc = init_to_value_or_defer(values=get_value_from_index(multi_svi_stage3_median_vars, 0))
 
 stage3_kernel = NUTS(
     model_step6,
