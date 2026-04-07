@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-# Generated from step6_stardm_model.ipynb and adapted for stage3 HMC.
+# Generated from step6_stardm_model.ipynb and adapted for Step 6 stage3 HMC.
 
 
 # %% Cell 1
