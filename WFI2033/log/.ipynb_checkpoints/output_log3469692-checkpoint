@@ -1,0 +1,18 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) git/2.48.0 3) system/intel64(default) 2) services/slurm <aL> 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+[CudaDevice(id=0)]
+Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
+chain 0: m2l_ratio=1.5214, kappa_s_halo=0.1826, e1=-0.0814, e2=0.0393, success=True, cost=95.9138
+chain 1: m2l_ratio=1.4585, kappa_s_halo=0.1846, e1=-0.0866, e2=0.0392, success=True, cost=72.3689
+chain 2: m2l_ratio=1.3954, kappa_s_halo=0.1749, e1=-0.0957, e2=0.0285, success=True, cost=93.2432
+chain 3: m2l_ratio=1.5653, kappa_s_halo=0.1797, e1=-0.0863, e2=0.0328, success=True, cost=129.0922
+chain 4: m2l_ratio=1.5229, kappa_s_halo=0.1827, e1=-0.0914, e2=0.0408, success=True, cost=118.5526
+chain 5: m2l_ratio=1.4940, kappa_s_halo=0.1829, e1=-0.0923, e2=0.0415, success=True, cost=95.8444
+Saved stage loss figure: result/result_ss=2_full_light_multimass_step6_desi_planck_20260406_23/step1_loss.png
+Saved stage result figure: result/result_ss=2_full_light_multimass_step6_desi_planck_20260406_23/step1_chain_00.png
+Saved stage result figure: result/result_ss=2_full_light_multimass_step6_desi_planck_20260406_23/step1_chain_01.png
+Saved stage result figure: result/result_ss=2_full_light_multimass_step6_desi_planck_20260406_23/step1_chain_02.png
+Saved stage result figure: result/result_ss=2_full_light_multimass_step6_desi_planck_20260406_23/step1_chain_03.png
+Saved stage result figure: result/result_ss=2_full_light_multimass_step6_desi_planck_20260406_23/step1_chain_04.png
+Saved stage result figure: result/result_ss=2_full_light_multimass_step6_desi_planck_20260406_23/step1_chain_05.png
