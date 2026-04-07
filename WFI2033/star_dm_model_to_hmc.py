@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-# Generated from star_dm_model.ipynb and adapted for stage3 HMC.
+# Generated from step6_stardm_model.ipynb and adapted for stage3 HMC.
 
 
 # %% Cell 1
@@ -1000,7 +1000,11 @@ def save_manifest():
 def save_adapt_state(adapt_state):
     payload = {}
     if hasattr(adapt_state, 'step_size'):
-        payload['step_size'] = float(np.asarray(adapt_state.step_size))
+        step_size = np.asarray(adapt_state.step_size)
+        if step_size.size == 1:
+            payload['step_size'] = float(step_size.reshape(-1)[0])
+        else:
+            payload['step_size'] = step_size.tolist()
     if hasattr(adapt_state, 'inverse_mass_matrix'):
         imm = adapt_state.inverse_mass_matrix
         if isinstance(imm, (tuple, list)):
