@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-# Generated from step6_stardm_model.ipynb and adapted for Step 6 stage3 HMC.
+# Generated from Step_6_stardm_model.ipynb and adapted for Step 6 stage3 HMC.
 
 
 # %% Cell 1
@@ -59,6 +59,7 @@ RAW_DATA_PATH = DATA_DIR / 'jw01198-o004_t004_nircam_clear-f115w_i2d.fits'
 DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light{suffix}.fits'
 HMC_ALL_PATH = RUN_OUTPUT_DIR / f'WFI2033_all{suffix}.nc'
 FIXED_FIRST_THREE_PATH = RUN_OUTPUT_DIR / f'fixed_first_three_gaussians{suffix}.npz'
+MASK_OUT_PATH = SCRIPT_DIR / 'data' / 'mask_out_center_r16.fits'
 
 with fits.open(RAW_DATA_PATH, memmap=True) as hdul_raw:
     raw_header = hdul_raw['SCI'].header if 'SCI' in hdul_raw else hdul_raw[0].header
@@ -68,19 +69,13 @@ pix_scale = float(np.sqrt(raw_header['PIXAR_A2']))
 data = np.array(fits.getdata(PRODUCTS_DIR / f'data_bkg_sub{suffix}.fits'), dtype=float)
 data_subtracted = np.array(fits.getdata(DATA_SUB_PATH), dtype=float)
 rms_file = np.array(fits.getdata(PRODUCTS_DIR / f'rms_with_psf_extra{suffix}.fits'), dtype=float)
-mask_out = np.array(fits.getdata(DATA_DIR / 'mask_out_center.fits'), dtype=bool)
+mask_out = np.array(fits.getdata(MASK_OUT_PATH), dtype=bool)
 fixed_first_three = np.load(FIXED_FIRST_THREE_PATH)
 inf_data_step5 = az.from_netcdf(HMC_ALL_PATH)
 HMC_posterior = inf_data_step5.posterior
 HMC_last = HMC_posterior.isel(draw=-1)
 HMC_reference = HMC_last.median(dim='chain')
 HMC_global_reference = HMC_posterior.median(dim=('chain', 'draw'))
-
-ny, nx = mask_out.shape
-xc, yc = nx / 2, ny / 2
-r = 16
-Y, X = np.indices((ny, nx))
-mask_out = np.logical_or(mask_out, (X - xc) ** 2 + (Y - yc) ** 2 <= r ** 2)
 
 pixel_grid_shape = 74
 source_grid_scale = 0.8
