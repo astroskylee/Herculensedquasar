@@ -374,8 +374,6 @@ def scale_theta_E_from_g2(theta_E_g2, target_prior):
 FIXED_SIS_THETA_E = {
     'g1': float(np.asarray(HMC_reference['theta_E_g1'].values).reshape(-1)[0]),
     'g2': float(np.asarray(HMC_reference['theta_E_g2'].values).reshape(-1)[0]),
-    'g3': 0.088,
-    'g7': 0.388,
 }
 
 
@@ -478,7 +476,7 @@ STEP1_BASE_KWARGS = {
     },
     'fixed_sis_theta_E': FIXED_SIS_THETA_E,
     'free_sis': (),
-    'scale_with_g2': False,
+    'scale_with_g2': True,
     'free_point_source': False,
     'enable_psf_corr': False,
     'use_conjugate_prior': False,
@@ -632,7 +630,21 @@ def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
 
 def build_stage_sis(stage_kwargs):
     sis_mass = []
-    for name, theta_E in stage_kwargs['fixed_sis_theta_E'].items():
+    fixed_sis_theta_E = dict(stage_kwargs['fixed_sis_theta_E'])
+
+    if 'g1' in fixed_sis_theta_E:
+        sis_mass += fixed_sis(fixed_sis_theta_E.pop('g1'), G1_MASS_CENTER)
+
+    if 'g2' in fixed_sis_theta_E:
+        theta_E_g2 = jnp.asarray(fixed_sis_theta_E.pop('g2'), dtype=jnp.float64)
+        sis_mass += fixed_sis(theta_E_g2, G2_MASS_CENTER)
+        if stage_kwargs['scale_with_g2']:
+            theta_E_g3 = numpyro.deterministic('theta_E_g3', scale_theta_E_from_g2(theta_E_g2, SIS_PRIORS['g3']))
+            theta_E_g7 = numpyro.deterministic('theta_E_g7', scale_theta_E_from_g2(theta_E_g2, SIS_PRIORS['g7']))
+            sis_mass += fixed_sis(theta_E_g3, G3_MASS_CENTER)
+            sis_mass += fixed_sis(theta_E_g7, G7_MASS_CENTER)
+
+    for name, theta_E in fixed_sis_theta_E.items():
         sis_mass += fixed_sis(theta_E, SIS_PRIORS[name]['origin'])
 
     if 'g1' in stage_kwargs['free_sis']:
