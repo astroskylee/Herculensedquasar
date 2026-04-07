@@ -1321,9 +1321,9 @@ stage3_kernel = NUTS(
     ],
 )
 
-num_warmup = 1000
-num_samples = 500
-batch_number = 1
+num_warmup = 1500
+num_samples = 1000
+batch_number = 4
 
 write_json(
     HMC_OUTPUT_DIR / 'run_config.json',
