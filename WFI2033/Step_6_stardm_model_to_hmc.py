@@ -11,8 +11,6 @@ os.environ.setdefault('XLA_PYTHON_CLIENT_PREALLOCATE', 'false')
 
 from datetime import datetime
 from pathlib import Path
-import json
-import pickle
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 os.chdir(SCRIPT_DIR)
@@ -23,12 +21,12 @@ import xarray as xr
 from scipy.optimize import least_squares
 
 from herculens_import_main import *
-from tools_improved import tool as cosmo_tool
 from lens_images_extension import LensImageExtension
 from herculens.PointSourceModel.point_source_model import PointSourceModel
 from herculens.MassModel import mass_model_base
 from jax_lensing_profiles.MassModel.Profiles.CuspyNFW_ellipse_kappa import CuspyNFW_3D_fn
 from jax_lensing_profiles.MassModel.Profiles.MGE import MGE
+from Tian_infra import Plot, ResumeInit, Mass, Numpyro_function, Cosmo
 
 jax.config.update('jax_enable_x64', True)
 numpyro.enable_x64()
@@ -187,7 +185,7 @@ KAPPA_EXT_PRIOR = {
 ARCSEC_TO_RAD = np.deg2rad(1.0 / 3600.0)
 MPC_TO_KM = 3.0856775814913673e19
 DAY_TO_S = 86400.0
-TIME_DELAY_SCALE_DAYS = MPC_TO_KM * ARCSEC_TO_RAD**2 / (cosmo_tool.c_km_s * DAY_TO_S)
+TIME_DELAY_SCALE_DAYS = MPC_TO_KM * ARCSEC_TO_RAD**2 / (Cosmo.c_km_s * DAY_TO_S)
 
 # Current image ordering assumption in this notebook:
 # 1=A1, 2=A2, 3=B, 4=C
@@ -344,11 +342,6 @@ SIS_PRIORS = {
     },
 }
 
-
-def scale_theta_E_from_g2(theta_E_g2, target_prior):
-    return theta_E_g2 * target_prior['theta_mean'] / SIS_PRIORS['g2']['theta_mean']
-
-
 FIXED_SIS_THETA_E = {
     'g1': float(np.asarray(HMC_reference['theta_E_g1'].values).reshape(-1)[0]),
     'g2': float(np.asarray(HMC_reference['theta_E_g2'].values).reshape(-1)[0]),
@@ -502,49 +495,8 @@ def fixed_sis(theta_E, origin):
         'center_y': float(origin[1]),
     }]
 
-
-def split_normal_logpdf(x, mean, sigma_minus, sigma_plus):
-    """Two-piece normal logpdf with asymmetric widths."""
-    x = jnp.asarray(x, dtype=jnp.float64)
-    mean = jnp.asarray(mean, dtype=jnp.float64)
-    sigma_minus = jnp.asarray(sigma_minus, dtype=jnp.float64)
-    sigma_plus = jnp.asarray(sigma_plus, dtype=jnp.float64)
-
-    sigma = jnp.where(x < mean, sigma_minus, sigma_plus)
-    log_norm = jnp.log(jnp.sqrt(2.0 / jnp.pi)) - jnp.log(sigma_minus + sigma_plus)
-    return log_norm - 0.5 * ((x - mean) / sigma) ** 2
-
-
-def sample_cosmology_from_prior(stage_kwargs):
-    prior_name = stage_kwargs['cosmo_prior_name']
-    prior = COSMO_PRIORS[prior_name]
-    cosmo_vec = numpyro.sample(
-        'cosmo_vec',
-        dist.MultivariateNormal(
-            loc=jnp.asarray(prior['mean_vec'], dtype=jnp.float64),
-            covariance_matrix=jnp.asarray(prior['cov'], dtype=jnp.float64),
-        ),
-    )
-    omega_m = numpyro.deterministic('omega_m_cosmo', cosmo_vec[0])
-    H0 = numpyro.deterministic('H0_cosmo', cosmo_vec[1])
-    return {
-        'Omegam': omega_m,
-        'Omegak': jnp.asarray(0.0, dtype=jnp.float64),
-        'w0': jnp.asarray(-1.0, dtype=jnp.float64),
-        'wa': jnp.asarray(0.0, dtype=jnp.float64),
-        'h0': H0,
-    }
-
-
-def compute_time_delay_distances(cosmology, kappa_ext):
-    Dl, Ds, Dls = cosmo_tool.dldsdls(Z_LENS, Z_SOURCE, cosmology)
-    D_dt_true = (1.0 + Z_LENS) * Dl * Ds / Dls
-    D_dt_model = (1.0 - kappa_ext) * D_dt_true
-    return D_dt_true, D_dt_model
-
-
 def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
-    cosmology = sample_cosmology_from_prior(stage_kwargs)
+    cosmology = Cosmo.sample_cosmology_from_prior(stage_kwargs, COSMO_PRIORS)
 
     kappa_ext = numpyro.sample(
         'kappa_ext',
@@ -555,7 +507,7 @@ def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
     )
     numpyro.factor(
         'kappa_ext_prior',
-        split_normal_logpdf(
+        Numpyro_function.split_normal_logpdf(
             kappa_ext,
             KAPPA_EXT_PRIOR['mean'],
             KAPPA_EXT_PRIOR['sigma_minus'],
@@ -563,7 +515,12 @@ def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
         ),
     )
 
-    D_dt_true, D_dt_model = compute_time_delay_distances(cosmology, kappa_ext)
+    D_dt_true, D_dt_model = Cosmo.compute_time_delay_distances(
+        cosmology,
+        kappa_ext,
+        Z_LENS,
+        Z_SOURCE,
+    )
     numpyro.deterministic('D_dt_true_Mpc', D_dt_true)
     numpyro.deterministic('D_dt_model_Mpc', D_dt_model)
 
@@ -577,7 +534,7 @@ def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
 
     numpyro.factor(
         'dt_31_like',
-        split_normal_logpdf(
+        Numpyro_function.split_normal_logpdf(
             dt_31,
             TIME_DELAY_OBS['dt_31_days']['mean'],
             TIME_DELAY_OBS['dt_31_days']['sigma_minus'],
@@ -586,7 +543,7 @@ def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
     )
     numpyro.factor(
         'dt_32_like',
-        split_normal_logpdf(
+        Numpyro_function.split_normal_logpdf(
             dt_32,
             TIME_DELAY_OBS['dt_32_days']['mean'],
             TIME_DELAY_OBS['dt_32_days']['sigma_minus'],
@@ -595,7 +552,7 @@ def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
     )
     numpyro.factor(
         'dt_34_like',
-        split_normal_logpdf(
+        Numpyro_function.split_normal_logpdf(
             dt_34,
             TIME_DELAY_OBS['dt_34_days']['mean'],
             TIME_DELAY_OBS['dt_34_days']['sigma_minus'],
@@ -615,8 +572,22 @@ def build_stage_sis(stage_kwargs):
         theta_E_g2 = jnp.asarray(fixed_sis_theta_E.pop('g2'), dtype=jnp.float64)
         sis_mass += fixed_sis(theta_E_g2, G2_MASS_CENTER)
         if stage_kwargs['scale_with_g2']:
-            theta_E_g3 = numpyro.deterministic('theta_E_g3', scale_theta_E_from_g2(theta_E_g2, SIS_PRIORS['g3']))
-            theta_E_g7 = numpyro.deterministic('theta_E_g7', scale_theta_E_from_g2(theta_E_g2, SIS_PRIORS['g7']))
+            theta_E_g3 = numpyro.deterministic(
+                'theta_E_g3',
+                Mass.scale_theta_E_from_g2(
+                    theta_E_g2,
+                    SIS_PRIORS['g3']['theta_mean'],
+                    SIS_PRIORS['g2']['theta_mean'],
+                ),
+            )
+            theta_E_g7 = numpyro.deterministic(
+                'theta_E_g7',
+                Mass.scale_theta_E_from_g2(
+                    theta_E_g2,
+                    SIS_PRIORS['g7']['theta_mean'],
+                    SIS_PRIORS['g2']['theta_mean'],
+                ),
+            )
             sis_mass += fixed_sis(theta_E_g3, G3_MASS_CENTER)
             sis_mass += fixed_sis(theta_E_g7, G7_MASS_CENTER)
 
@@ -631,8 +602,22 @@ def build_stage_sis(stage_kwargs):
         sis_mass += g2_mass
         if stage_kwargs['scale_with_g2']:
             theta_E_g2 = g2_mass[0]['theta_E']
-            theta_E_g3 = numpyro.deterministic('theta_E_g3', scale_theta_E_from_g2(theta_E_g2, SIS_PRIORS['g3']))
-            theta_E_g7 = numpyro.deterministic('theta_E_g7', scale_theta_E_from_g2(theta_E_g2, SIS_PRIORS['g7']))
+            theta_E_g3 = numpyro.deterministic(
+                'theta_E_g3',
+                Mass.scale_theta_E_from_g2(
+                    theta_E_g2,
+                    SIS_PRIORS['g3']['theta_mean'],
+                    SIS_PRIORS['g2']['theta_mean'],
+                ),
+            )
+            theta_E_g7 = numpyro.deterministic(
+                'theta_E_g7',
+                Mass.scale_theta_E_from_g2(
+                    theta_E_g2,
+                    SIS_PRIORS['g7']['theta_mean'],
+                    SIS_PRIORS['g2']['theta_mean'],
+                ),
+            )
             sis_mass += fixed_sis(theta_E_g3, G3_MASS_CENTER)
             sis_mass += fixed_sis(theta_E_g7, G7_MASS_CENTER)
 
@@ -836,11 +821,6 @@ STEP2_LATENT_KEYS = STEP1_LATENT_KEYS + (
     'log10_amp_ps',
 )
 
-
-def select_init_values(params, allowed_keys):
-    return {k: params[k] for k in allowed_keys if k in params}
-
-
 def build_step1_init_values(i):
     return build_source_init_values(i) | STEP6_MASS_INITS[i]
 
@@ -856,22 +836,6 @@ def build_step2_extra_init(i):
         'dec_ps': jnp.asarray(chain_array('dec_ps', i), dtype=jnp.float64),
         'log10_amp_ps': jnp.asarray(chain_array('log10_amp_ps', i), dtype=jnp.float64),
     }
-
-
-def _stack_or_none(*xs):
-    first = xs[0]
-    return None if first is None else jnp.stack(xs)
-
-
-def sanitize_label(label):
-    return (
-        str(label)
-        .replace(' ', '_')
-        .replace('(', '')
-        .replace(')', '')
-        .replace('/', '_')
-    )
-
 
 def run_stage(stage_kwargs_or_builder, init_builder, max_iterations, seed):
     scheduler = optax.exponential_decay(init_value=5e-3, transition_steps=300, decay_rate=0.99)
@@ -899,7 +863,7 @@ def run_stage(stage_kwargs_or_builder, init_builder, max_iterations, seed):
         init_values_list.append(init_values)
         guide_params_list.append(result.params)
 
-    multi_results = jax.tree.map(_stack_or_none, *results)
+    multi_results = jax.tree.map(ResumeInit.stack_or_none, *results)
     return {
         'label': stage_kwargs_list[0]['label'],
         'results': results,
@@ -920,7 +884,7 @@ def plot_stage_losses(stage_output, output_dir):
     for losses in stage_output['multi_results'].losses:
         _ = plot_loss(losses, stage_output['max_iterations'], ax=ax, axins=axins, alpha=0.25)
     fig.tight_layout()
-    out_path = output_dir / f"{sanitize_label(stage_output['label'])}_loss.png"
+    out_path = output_dir / f"{Plot.sanitize_label(stage_output['label'])}_loss.png"
     fig.savefig(out_path, dpi=180, bbox_inches='tight')
     print(f"Saved stage loss figure: {out_path}")
     plt.close(fig)
@@ -974,7 +938,7 @@ def plot_stage_results(stage_output, output_dir):
         ax[3].set_title('source')
 
         plt.tight_layout()
-        out_path = output_dir / f"{sanitize_label(stage_output['label'])}_chain_{i:02d}.png"
+        out_path = output_dir / f"{Plot.sanitize_label(stage_output['label'])}_chain_{i:02d}.png"
         fig.savefig(out_path, dpi=180, bbox_inches='tight')
         print(f"Saved stage result figure: {out_path}")
         plt.close(fig)
@@ -995,7 +959,7 @@ if not resume_mode:
 
 # %% Cell 9
 def build_step2_init_values(i):
-    return select_init_values(step1_output['medians'][i], STEP1_LATENT_KEYS) | build_step2_extra_init(i)
+    return ResumeInit.select_init_values(step1_output['medians'][i], STEP1_LATENT_KEYS) | build_step2_extra_init(i)
 
 
 # %% Cell 10
@@ -1017,7 +981,7 @@ STEP3_HMC_KWARGS = {
 
 def build_step3_init_values(i):
     cosmo_prior = COSMO_PRIORS[STEP3_KWARGS['cosmo_prior_name']]
-    return select_init_values(step2_output['medians'][i], STEP2_LATENT_KEYS) | {
+    return ResumeInit.select_init_values(step2_output['medians'][i], STEP2_LATENT_KEYS) | {
         'cosmo_vec': jnp.asarray(cosmo_prior['mean_vec'], dtype=jnp.float64),
         'kappa_ext': jnp.asarray(KAPPA_EXT_PRIOR['mean'], dtype=jnp.float64),
         'm2l_ratio_slope': jnp.asarray(0.0, dtype=jnp.float64),
@@ -1051,10 +1015,6 @@ else:
 
 # %% Stage 3 HMC
 from numpyro.infer import NUTS, MCMC
-def stack_dicts(dict_list):
-    return jax.tree.map(lambda *xs: jnp.stack(xs), *dict_list)
-
-
 
 # Keep the input suffix for reading Step-5 products unchanged.
 # Use a separate HMC suffix for Step-6 stage3 outputs.
@@ -1079,30 +1039,8 @@ vars_mass = [
 vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps']
 vars_cosmo = ['cosmo_vec', 'kappa_ext']
 
-def existing_batch_indices(output_dir, suffix_hmc):
-    prefix = 'WFI2033_'
-    indices = []
-    for path in output_dir.glob(f'WFI2033_[0-9]*{suffix_hmc}.nc'):
-        name = path.name
-        idx_str = name[len(prefix):name.index(suffix_hmc)]
-        indices.append(int(idx_str))
-    return sorted(indices)
-
-
-def save_resume_state(path, state):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open('wb') as fh:
-        pickle.dump(jax.device_get(state), fh, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-def load_resume_state(path):
-    with Path(path).open('rb') as fh:
-        return pickle.load(fh)
-
-
 resume_state_path = HMC_OUTPUT_DIR / 'resume_state.pkl'
-existing_indices = existing_batch_indices(HMC_OUTPUT_DIR, suffix_hmc)
+existing_indices = ResumeInit.existing_batch_indices(HMC_OUTPUT_DIR, suffix_hmc)
 start_batch = 0 if not existing_indices else max(existing_indices) + 1
 
 if resume_mode:
@@ -1118,7 +1056,7 @@ if resume_mode:
     unconstrained_stage3_median = None
     init_fun_hmc = init_to_value_or_defer(values={})
 else:
-    multi_svi_stage3_median = stack_dicts(step3_output['medians'])
+    multi_svi_stage3_median = ResumeInit.stack_dicts(step3_output['medians'])
 
     # Match Step-5 HMC init logic: only pass true latent/sample sites into HMC init.
     multi_svi_stage3_median_vars = {
@@ -1187,7 +1125,7 @@ batch_list = []
 for local_i in range(batch_number):
     i = start_batch + local_i
     if local_i == 0 and resume_mode:
-        resume_state = load_resume_state(resume_state_path)
+        resume_state = ResumeInit.load_resume_state(resume_state_path)
         mcmc_stage3.post_warmup_state = resume_state
         mcmc_stage3.run(
             resume_state.rng_key,
@@ -1215,13 +1153,13 @@ for local_i in range(batch_number):
     inf_data_batch = az.from_numpyro(mcmc_stage3)
     batch_path = HMC_OUTPUT_DIR / f'WFI2033_{i}{suffix_hmc}.nc'
     inf_data_batch.to_netcdf(batch_path)
-    save_resume_state(resume_state_path, mcmc_stage3.last_state)
+    ResumeInit.save_resume_state(resume_state_path, mcmc_stage3.last_state)
     print(f'Saved HMC batch to: {batch_path}')
     batch_list.append(inf_data_batch)
 
 all_batch_paths = [
     HMC_OUTPUT_DIR / f'WFI2033_{idx}{suffix_hmc}.nc'
-    for idx in existing_batch_indices(HMC_OUTPUT_DIR, suffix_hmc)
+    for idx in ResumeInit.existing_batch_indices(HMC_OUTPUT_DIR, suffix_hmc)
 ]
 all_batches = [az.from_netcdf(path) for path in all_batch_paths]
 inf_data_all = all_batches[0] if len(all_batches) == 1 else az.concat(*all_batches, dim='draw')
