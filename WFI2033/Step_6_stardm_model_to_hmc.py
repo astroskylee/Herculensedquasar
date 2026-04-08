@@ -12,7 +12,6 @@ os.environ.setdefault('XLA_PYTHON_CLIENT_PREALLOCATE', 'false')
 from datetime import datetime
 from pathlib import Path
 import json
-import subprocess
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 os.chdir(SCRIPT_DIR)
@@ -913,36 +912,11 @@ def to_serializable(obj):
     return obj
 
 
-RUN_MANIFEST = {
-    'script': str(Path(__file__).resolve()),
-    'step3_suffix': STEP3_SUFFIX,
-    'step6_run_tag': STEP6_RUN_TAG,
-    'hmc_output_dir': str(HMC_OUTPUT_DIR),
-    'files': [],
-}
-
-
-def register_output(path, kind, **metadata):
-    RUN_MANIFEST['files'].append({
-        'path': str(Path(path)),
-        'kind': kind,
-        **to_serializable(metadata),
-    })
-
-
 def write_json(path, payload):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open('w') as fh:
         json.dump(to_serializable(payload), fh, indent=2, sort_keys=True)
-    register_output(path, 'json')
-
-
-def write_text(path, content):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(str(content))
-    register_output(path, 'text')
 
 
 def infer_dims(name, array, leading_dims=()):
@@ -972,14 +946,6 @@ def list_of_dicts_to_dataset(dict_list):
         stacked[key] = np.stack([np.asarray(item[key]) for item in dict_list], axis=0)
     return mapping_to_dataset(stacked, leading_dims=('chain',))
 
-
-def save_dataset(path, dataset, kind):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    dataset.to_netcdf(path)
-    register_output(path, kind, variables=list(dataset.data_vars))
-
-
 def stage_output_dir(stage_output):
     return STEP6_RESULT_DIR / sanitize_label(stage_output['label'])
 
@@ -994,14 +960,13 @@ def collect_stage_losses(stage_output):
 def save_stage_artifacts(stage_output):
     out_dir = stage_output_dir(stage_output)
     out_dir.mkdir(parents=True, exist_ok=True)
-    save_dataset(out_dir / 'medians.nc', list_of_dicts_to_dataset(stage_output['medians']), 'stage_medians')
-    save_dataset(out_dir / 'init_values.nc', list_of_dicts_to_dataset(stage_output['init_values_list']), 'stage_init_values')
-    save_dataset(out_dir / 'guide_params.nc', list_of_dicts_to_dataset(stage_output['guide_params_list']), 'stage_guide_params')
-    save_dataset(
-        out_dir / 'losses.nc',
-        mapping_to_dataset(collect_stage_losses(stage_output), leading_dims=('draw',)),
-        'stage_losses',
-    )
+    list_of_dicts_to_dataset(stage_output['medians']).to_netcdf(out_dir / 'medians.nc')
+    list_of_dicts_to_dataset(stage_output['init_values_list']).to_netcdf(out_dir / 'init_values.nc')
+    list_of_dicts_to_dataset(stage_output['guide_params_list']).to_netcdf(out_dir / 'guide_params.nc')
+    mapping_to_dataset(
+        collect_stage_losses(stage_output),
+        leading_dims=('draw',),
+    ).to_netcdf(out_dir / 'losses.nc')
     write_json(out_dir / 'stage_kwargs.json', stage_output['stage_kwargs_list'])
     write_json(
         out_dir / 'stage_metadata.json',
@@ -1011,42 +976,6 @@ def save_stage_artifacts(stage_output):
             'num_chains': num_chains,
         },
     )
-
-
-def save_manifest():
-    path = HMC_OUTPUT_DIR / 'manifest.json'
-    with path.open('w') as fh:
-        json.dump(to_serializable(RUN_MANIFEST), fh, indent=2, sort_keys=True)
-
-
-def save_adapt_state(adapt_state):
-    payload = {}
-    if hasattr(adapt_state, 'step_size'):
-        step_size = np.asarray(adapt_state.step_size)
-        if step_size.size == 1:
-            payload['step_size'] = float(step_size.reshape(-1)[0])
-        else:
-            payload['step_size'] = step_size.tolist()
-    if hasattr(adapt_state, 'inverse_mass_matrix'):
-        imm = adapt_state.inverse_mass_matrix
-        if isinstance(imm, (tuple, list)):
-            payload['inverse_mass_matrix'] = [np.asarray(x).tolist() for x in imm]
-        else:
-            payload['inverse_mass_matrix'] = np.asarray(imm).tolist()
-    write_json(HMC_OUTPUT_DIR / 'hmc_adapt_state.json', payload)
-
-
-def save_summary(inf_data, path_prefix):
-    var_names = [
-        name for name, arr in inf_data.posterior.data_vars.items()
-        if getattr(arr, 'ndim', 0) <= 3
-    ]
-    summary = az.summary(inf_data, var_names=var_names)
-    csv_path = Path(f'{path_prefix}_summary.csv')
-    txt_path = Path(f'{path_prefix}_summary.txt')
-    summary.to_csv(csv_path)
-    register_output(csv_path, 'summary_csv')
-    write_text(txt_path, summary.to_string())
 
 
 def run_stage(stage_kwargs_or_builder, init_builder, max_iterations, seed):
@@ -1098,7 +1027,6 @@ def plot_stage_losses(stage_output, output_dir):
     fig.tight_layout()
     out_path = output_dir / f"{sanitize_label(stage_output['label'])}_loss.png"
     fig.savefig(out_path, dpi=180, bbox_inches='tight')
-    register_output(out_path, 'stage_loss_figure')
     print(f"Saved stage loss figure: {out_path}")
     plt.close(fig)
 
@@ -1158,7 +1086,6 @@ def plot_stage_results(stage_output, output_dir):
         plt.tight_layout()
         out_path = output_dir / f"{sanitize_label(stage_output['label'])}_chain_{i:02d}.png"
         fig.savefig(out_path, dpi=180, bbox_inches='tight')
-        register_output(out_path, 'stage_result_figure', chain=i)
         print(f"Saved stage result figure: {out_path}")
         plt.close(fig)
 
@@ -1345,12 +1272,10 @@ for i in range(batch_number):
     inf_data_batch = az.from_numpyro(mcmc_stage3)
     batch_path = HMC_OUTPUT_DIR / f'WFI2033_{i}{suffix_hmc}.nc'
     inf_data_batch.to_netcdf(batch_path)
-    register_output(batch_path, 'hmc_batch_inferencedata')
     print(f'Saved HMC batch to: {batch_path}')
     batch_list.append(inf_data_batch)
 
 inf_data_all = batch_list[0] if len(batch_list) == 1 else az.concat(*batch_list, dim='draw')
 final_hmc_path = HMC_OUTPUT_DIR / f'WFI2033_all{suffix_hmc}.nc'
 inf_data_all.to_netcdf(final_hmc_path)
-register_output(final_hmc_path, 'hmc_final_inferencedata')
 print(f'Saved final HMC inf_data to: {final_hmc_path}')
