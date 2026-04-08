@@ -9,24 +9,12 @@ import os
 os.environ.setdefault('HDF5_USE_FILE_LOCKING', 'FALSE')
 os.environ.setdefault('XLA_PYTHON_CLIENT_PREALLOCATE', 'false')
 
-from datetime import datetime
-from pathlib import Path
+from Tian_infra import import_function
+import_function()
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 os.chdir(SCRIPT_DIR)
-import warnings
 warnings.simplefilter('ignore')
-
-import xarray as xr
-from scipy.optimize import least_squares
-
-from herculens_import_main import *
-from lens_images_extension import LensImageExtension
-from herculens.PointSourceModel.point_source_model import PointSourceModel
-from herculens.MassModel import mass_model_base
-from jax_lensing_profiles.MassModel.Profiles.CuspyNFW_ellipse_kappa import CuspyNFW_3D_fn
-from jax_lensing_profiles.MassModel.Profiles.MGE import MGE
-from Tian_infra import Plot, ResumeInit, Mass, Numpyro_function, Cosmo
 
 jax.config.update('jax_enable_x64', True)
 numpyro.enable_x64()
@@ -108,7 +96,7 @@ conj_points = jnp.array([
     [-0.1255456241215261, -0.8965524340129204],
 ])
 
-k_values = K_grid((pixel_grid_shape, pixel_grid_shape)).k
+k_values = PowerSpectrum.K_grid((pixel_grid_shape, pixel_grid_shape)).k
 
 # %% Cell 3
 DESI_PLANK_cov = {
@@ -274,7 +262,7 @@ fixed_sis_g7 = [{
     'center_y': float(G7_MASS_CENTER[1]),
 }]
 
-pixel_grid, xgrid, ygrid, x_axis, y_axis, extent, nx, ny = get_pixel_grid(jnp.asarray(data_subtracted), pix_scale)
+pixel_grid, xgrid, ygrid, x_axis, y_axis, extent, nx, ny = Geometry.get_pixel_grid(jnp.asarray(data_subtracted), pix_scale)
 noise = Noise(nx, ny, exposure_time=exposure_time)
 psf_obj = PSF(psf_type='PIXEL', kernel_point_source=fixed_psf)
 
@@ -595,10 +583,10 @@ def build_stage_sis(stage_kwargs):
         sis_mass += fixed_sis(theta_E, SIS_PRIORS[name]['origin'])
 
     if 'g1' in stage_kwargs['free_sis']:
-        sis_mass += SIS(**SIS_PRIORS['g1'])
+        sis_mass += Mass.SIS(**SIS_PRIORS['g1'])
 
     if 'g2' in stage_kwargs['free_sis']:
-        g2_mass = SIS(**SIS_PRIORS['g2'])
+        g2_mass = Mass.SIS(**SIS_PRIORS['g2'])
         sis_mass += g2_mass
         if stage_kwargs['scale_with_g2']:
             theta_E_g2 = g2_mass[0]['theta_E']
@@ -676,7 +664,7 @@ def maybe_add_conjugate_prior(stage_kwargs, kwargs_lens, kwargs_point_source):
         kwargs_lens,
     )
     conj_points_model = jnp.stack([src_x_ps, src_y_ps], axis=1)
-    conj_distance = reduced_distance_matrix(conj_points_model)
+    conj_distance = Geometry.reduced_distance_matrix(conj_points_model)
     nc = conj_distance.shape[0]
     with numpyro.plate(f'Conjugate points 2 - [{nc}]', nc):
         numpyro.sample('conjugate_points', dist.Exponential(CONJUGATE_POINT_PRIOR['rate']), obs=conj_distance)
@@ -712,13 +700,13 @@ def model_step6(data_subtracted, stage_kwargs):
     else:
         mass_from_light = scaled_mass_from_light(m2l_ratio)
 
-    gnfw_shear = GNFW_w_shear(
+    gnfw_shear = Mass.GNFW_w_shear(
         'Lens mass',
         'halo',
         **stage_kwargs['gnfw_kwargs'],
     )
     kwargs_source = [
-        matern_power_spectrum(
+        PowerSpectrum.matern_power_spectrum(
             k=k_values,
             **SOURCE_GRID_PRIOR,
         )
@@ -853,7 +841,7 @@ def run_stage(stage_kwargs_or_builder, init_builder, max_iterations, seed):
     for i in range(num_chains):
         stage_kwargs_i = stage_kwargs_or_builder(i) if callable(stage_kwargs_or_builder) else stage_kwargs_or_builder
         init_values = init_builder(i)
-        init_fun = init_to_value_or_defer(values=init_values)
+        init_fun = ResumeInit.init_to_value_or_defer(values=init_values)
         guide = autoguide.AutoDiagonalNormal(model_step6, init_loc_fn=init_fun, init_scale=0.01)
         svi = infer.SVI(model_step6, guide, optim, loss)
         result = svi.run(keys[i], max_iterations, data_subtracted, stage_kwargs_i, progress_bar=False, stable_update=True)
@@ -882,7 +870,7 @@ def plot_stage_losses(stage_output, output_dir):
     fig, ax = plt.subplots(figsize=(15, 3.5))
     axins = ax.inset_axes([0.3, 0.5, 0.64, 0.45])
     for losses in stage_output['multi_results'].losses:
-        _ = plot_loss(losses, stage_output['max_iterations'], ax=ax, axins=axins, alpha=0.25)
+        _ = Plot.plot_loss(losses, stage_output['max_iterations'], ax=ax, axins=axins, alpha=0.25)
     fig.tight_layout()
     out_path = output_dir / f"{Plot.sanitize_label(stage_output['label'])}_loss.png"
     fig.savefig(out_path, dpi=180, bbox_inches='tight')
@@ -1054,7 +1042,7 @@ if resume_mode:
         )
     print(f'Resuming HMC from tag {STEP6_RUN_TAG}; existing batches: {existing_indices}')
     unconstrained_stage3_median = None
-    init_fun_hmc = init_to_value_or_defer(values={})
+    init_fun_hmc = ResumeInit.init_to_value_or_defer(values={})
 else:
     multi_svi_stage3_median = ResumeInit.stack_dicts(step3_output['medians'])
 
@@ -1079,7 +1067,9 @@ else:
         for k, v in unconstrained_stage3_median.items()
     }
 
-    init_fun_hmc = init_to_value_or_defer(values=get_value_from_index(multi_svi_stage3_median_vars, 0))
+    init_fun_hmc = ResumeInit.init_to_value_or_defer(
+        values=ResumeInit.get_value_from_index(multi_svi_stage3_median_vars, 0)
+    )
 
 stage3_kernel = NUTS(
     model_step6,
