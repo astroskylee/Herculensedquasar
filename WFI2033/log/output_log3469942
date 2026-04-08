@@ -36,3 +36,5 @@ Scaled SIS validation: max|g3-exp|=2.776e-17, mean|g3-exp|=1.644e-17, max|g7-exp
 Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260408_01/WFI2033_0_ss=2_full_light_multimass_step6_desi_planck.nc
 Scaled SIS validation: max|g3-exp|=2.776e-17, mean|g3-exp|=1.633e-17, max|g7-exp|=0.000e+00, mean|g7-exp|=0.000e+00
 Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260408_01/WFI2033_1_ss=2_full_light_multimass_step6_desi_planck.nc
+Scaled SIS validation: max|g3-exp|=2.776e-17, mean|g3-exp|=1.610e-17, max|g7-exp|=0.000e+00, mean|g7-exp|=0.000e+00
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260408_01/WFI2033_2_ss=2_full_light_multimass_step6_desi_planck.nc

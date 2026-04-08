@@ -1120,7 +1120,7 @@ else:
 stage3_kernel = NUTS(
     model_step6,
     init_strategy=init_fun_hmc,
-    target_accept_prob=0.90,
+    target_accept_prob=0.95,
     max_tree_depth=10,
     dense_mass=[
         ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
