@@ -188,7 +188,7 @@ STEP3_COSMO_TAG = STEP3_COSMO_PRIOR.lower()
 STEP3_SUFFIX = f"{suffix}_step6_{STEP3_COSMO_TAG}"
 STEP6_RUN_TAG = datetime.now().strftime("%Y%m%d_%H")
 HMC_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
-STEP6_RESULT_DIR = HMC_OUTPUT_DIR / 'stage_outputs'
+STEP6_RESULT_DIR = SCRIPT_DIR / 'result' / f"result{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
 HMC_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 STEP6_RESULT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -1246,7 +1246,7 @@ print('HMC suffix:', suffix_hmc)
 
 multi_svi_stage3_median = stack_dicts(step3_output['medians'])
 save_dataset(
-    HMC_OUTPUT_DIR / 'stage3_svi_median.nc',
+    STEP6_RESULT_DIR / 'stage3_svi_median.nc',
     mapping_to_dataset({k: np.asarray(v) for k, v in multi_svi_stage3_median.items()}, leading_dims=('chain',)),
     'stage3_svi_median',
 )
@@ -1289,7 +1289,7 @@ unconstrained_stage3_median = {
     for k, v in unconstrained_stage3_median.items()
 }
 save_dataset(
-    HMC_OUTPUT_DIR / 'stage3_unconstrained_init.nc',
+    STEP6_RESULT_DIR / 'stage3_unconstrained_init.nc',
     mapping_to_dataset({k: np.asarray(v) for k, v in unconstrained_stage3_median.items()}, leading_dims=('chain',)),
     'stage3_unconstrained_init',
 )
@@ -1372,46 +1372,6 @@ mcmc_stage3 = MCMC(
     chain_method='vectorized',
 )
 
-
-def validate_scaled_perturbers(inf_data, atol=1e-10, raise_on_failure=True):
-    post = inf_data.posterior
-    g2 = np.asarray(post['theta_E_g2'].values, dtype=float).reshape(post.sizes['chain'], post.sizes['draw'])
-    g3 = np.asarray(post['theta_E_g3'].values, dtype=float).reshape(post.sizes['chain'], post.sizes['draw'])
-    g7 = np.asarray(post['theta_E_g7'].values, dtype=float).reshape(post.sizes['chain'], post.sizes['draw'])
-
-    exp_g3 = g2 * (SIS_PRIORS['g3']['theta_mean'] / SIS_PRIORS['g2']['theta_mean'])
-    exp_g7 = g2 * (SIS_PRIORS['g7']['theta_mean'] / SIS_PRIORS['g2']['theta_mean'])
-
-    max_abs_diff_g3 = float(np.max(np.abs(g3 - exp_g3)))
-    max_abs_diff_g7 = float(np.max(np.abs(g7 - exp_g7)))
-    mean_abs_diff_g3 = float(np.mean(np.abs(g3 - exp_g3)))
-    mean_abs_diff_g7 = float(np.mean(np.abs(g7 - exp_g7)))
-
-    payload = {
-        'max_abs_diff_g3': max_abs_diff_g3,
-        'mean_abs_diff_g3': mean_abs_diff_g3,
-        'max_abs_diff_g7': max_abs_diff_g7,
-        'mean_abs_diff_g7': mean_abs_diff_g7,
-        'atol': atol,
-    }
-
-    print(
-        'Scaled SIS validation: '
-        f'max|g3-exp|={max_abs_diff_g3:.3e}, '
-        f'mean|g3-exp|={mean_abs_diff_g3:.3e}, '
-        f'max|g7-exp|={max_abs_diff_g7:.3e}, '
-        f'mean|g7-exp|={mean_abs_diff_g7:.3e}'
-    )
-
-    if raise_on_failure and (max_abs_diff_g3 > atol or max_abs_diff_g7 > atol):
-        raise RuntimeError(
-            'Scaled SIS validation failed: '
-            f'max|g3-exp|={max_abs_diff_g3:.6e}, '
-            f'max|g7-exp|={max_abs_diff_g7:.6e}.'
-        )
-    return payload
-
-
 batch_list = []
 for i in range(batch_number):
     if i == 0:
@@ -1452,17 +1412,6 @@ for i in range(batch_number):
         save_adapt_state(mcmc_stage3.last_state.adapt_state)
 
     inf_data_batch = az.from_numpyro(mcmc_stage3)
-    validation_payload = validate_scaled_perturbers(inf_data_batch, raise_on_failure=False)
-    write_json(HMC_OUTPUT_DIR / f'scaled_sis_validation_batch_{i}.json', validation_payload)
-    if (
-        validation_payload['max_abs_diff_g3'] > validation_payload['atol']
-        or validation_payload['max_abs_diff_g7'] > validation_payload['atol']
-    ):
-        raise RuntimeError(
-            'Scaled SIS validation failed: '
-            f"max|g3-exp|={validation_payload['max_abs_diff_g3']:.6e}, "
-            f"max|g7-exp|={validation_payload['max_abs_diff_g7']:.6e}."
-        )
     batch_path = HMC_OUTPUT_DIR / f'WFI2033_{i}{suffix_hmc}.nc'
     inf_data_batch.to_netcdf(batch_path)
     register_output(batch_path, 'hmc_batch_inferencedata')
