@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-# Generated from star_dm_model.ipynb and adapted for stage3 HMC.
+# Generated from Step_6_stardm_model.ipynb and adapted for Step 6 stage3 HMC.
 
 
 # %% Cell 1
@@ -11,6 +11,8 @@ os.environ.setdefault('XLA_PYTHON_CLIENT_PREALLOCATE', 'false')
 
 from datetime import datetime
 from pathlib import Path
+import json
+import subprocess
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 os.chdir(SCRIPT_DIR)
@@ -55,8 +57,9 @@ PRODUCTS_DIR = RESULT_DIR / 'data_products'
 DATA_DIR = Path('../../Data/WFI2033')
 RAW_DATA_PATH = DATA_DIR / 'jw01198-o004_t004_nircam_clear-f115w_i2d.fits'
 DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light{suffix}.fits'
-HMC_ALL_PATH = RUN_OUTPUT_DIR / f'WFI2033_all{suffix}.nc'
+HMC_MEDIAN_PATH = Path(f'./result/result_ss=2_full_light_multimass_20260401_11/HMC_median_draw{suffix}.nc')
 FIXED_FIRST_THREE_PATH = RUN_OUTPUT_DIR / f'fixed_first_three_gaussians{suffix}.npz'
+MASK_OUT_PATH = SCRIPT_DIR / 'data' / 'mask_out_center_r16.fits'
 
 with fits.open(RAW_DATA_PATH, memmap=True) as hdul_raw:
     raw_header = hdul_raw['SCI'].header if 'SCI' in hdul_raw else hdul_raw[0].header
@@ -66,23 +69,15 @@ pix_scale = float(np.sqrt(raw_header['PIXAR_A2']))
 data = np.array(fits.getdata(PRODUCTS_DIR / f'data_bkg_sub{suffix}.fits'), dtype=float)
 data_subtracted = np.array(fits.getdata(DATA_SUB_PATH), dtype=float)
 rms_file = np.array(fits.getdata(PRODUCTS_DIR / f'rms_with_psf_extra{suffix}.fits'), dtype=float)
-mask_out = np.array(fits.getdata(DATA_DIR / 'mask_out_center.fits'), dtype=bool)
+mask_out = np.array(fits.getdata(MASK_OUT_PATH), dtype=bool)
 fixed_first_three = np.load(FIXED_FIRST_THREE_PATH)
-inf_data_step5 = az.from_netcdf(HMC_ALL_PATH)
-HMC_posterior = inf_data_step5.posterior
-HMC_last = HMC_posterior.isel(draw=-1)
-HMC_reference = HMC_last.median(dim='chain')
-
-ny, nx = mask_out.shape
-xc, yc = nx / 2, ny / 2
-r = 16
-Y, X = np.indices((ny, nx))
-mask_out = np.logical_or(mask_out, (X - xc) ** 2 + (Y - yc) ** 2 <= r ** 2)
+HMC_median = xr.open_dataset(HMC_MEDIAN_PATH)
+HMC_reference = HMC_median.median(dim='chain')
 
 pixel_grid_shape = 74
 source_grid_scale = 0.8
 ss_factor = 2
-num_chains = int(HMC_last.sizes['chain'])
+num_chains = int(HMC_median.sizes['chain'])
 
 POINT_SOURCE_PRIOR = {
     'pos_sigma': 0.05,
@@ -192,6 +187,10 @@ STEP3_COSMO_PRIOR = 'DESI_PLANCK'  # or 'PantheonSH0ES'
 STEP3_COSMO_TAG = STEP3_COSMO_PRIOR.lower()
 STEP3_SUFFIX = f"{suffix}_step6_{STEP3_COSMO_TAG}"
 STEP6_RUN_TAG = datetime.now().strftime("%Y%m%d_%H")
+HMC_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
+STEP6_RESULT_DIR = HMC_OUTPUT_DIR / 'stage_outputs'
+HMC_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+STEP6_RESULT_DIR.mkdir(parents=True, exist_ok=True)
 
 Z_LENS = 0.6575
 Z_SOURCE = 1.662
@@ -263,6 +262,7 @@ fixed_point_source = [{
     'amp': np.power(10.0, np.array(HMC_reference['log10_amp_ps'].values, dtype=float)),
 }]
 
+# Step 6 uses a single fixed PSF: the chain-median corrected PSF median from Step 5.
 fixed_psf = np.array(HMC_reference['psf_kernel_corrected'].values, dtype=float)
 fixed_psf = np.clip(fixed_psf, 0.0, None)
 fixed_psf = fixed_psf / fixed_psf.sum()
@@ -271,7 +271,7 @@ epl_center = np.array(HMC_reference['center_1'].values, dtype=float).reshape(2,)
 
 
 def chain_array(name, i):
-    return HMC_last[name].isel(chain=i).values
+    return HMC_median[name].isel(chain=i).values
 
 
 fixed_sis_g1 = [{
@@ -371,8 +371,6 @@ def scale_theta_E_from_g2(theta_E_g2, target_prior):
 FIXED_SIS_THETA_E = {
     'g1': float(np.asarray(HMC_reference['theta_E_g1'].values).reshape(-1)[0]),
     'g2': float(np.asarray(HMC_reference['theta_E_g2'].values).reshape(-1)[0]),
-    'g3': 0.088,
-    'g7': 0.388,
 }
 
 
@@ -466,7 +464,7 @@ for i in range(num_chains):
 STEP1_BASE_KWARGS = {
     'label': 'step1',
     'gnfw_kwargs': {
-        'gamma_in_up': 1.4,
+        'gamma_in_up': 2,
         'gamma_in_low': 0.6,
         'Rs_value': 5.0,
         'sph': False,
@@ -475,7 +473,7 @@ STEP1_BASE_KWARGS = {
     },
     'fixed_sis_theta_E': FIXED_SIS_THETA_E,
     'free_sis': (),
-    'scale_with_g2': False,
+    'scale_with_g2': True,
     'free_point_source': False,
     'enable_psf_corr': False,
     'use_conjugate_prior': False,
@@ -499,7 +497,7 @@ def build_step1_stage_kwargs(i):
 STEP2_KWARGS = {
     'label': 'step2',
     'gnfw_kwargs': {
-        'gamma_in_up': 1.4,
+        'gamma_in_up': 2,
         'gamma_in_low': 0.6,
         'Rs_low': 2,
         'Rs_high': 20.0,
@@ -511,7 +509,7 @@ STEP2_KWARGS = {
     'free_sis': ('g1', 'g2'),
     'scale_with_g2': True,
     'free_point_source': True,
-    'enable_psf_corr': True,
+    'enable_psf_corr': False,
     'use_conjugate_prior': True,
     'compute_fermat_diffs': True,
     'use_ml_gradient': False,
@@ -629,7 +627,21 @@ def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
 
 def build_stage_sis(stage_kwargs):
     sis_mass = []
-    for name, theta_E in stage_kwargs['fixed_sis_theta_E'].items():
+    fixed_sis_theta_E = dict(stage_kwargs['fixed_sis_theta_E'])
+
+    if 'g1' in fixed_sis_theta_E:
+        sis_mass += fixed_sis(fixed_sis_theta_E.pop('g1'), G1_MASS_CENTER)
+
+    if 'g2' in fixed_sis_theta_E:
+        theta_E_g2 = jnp.asarray(fixed_sis_theta_E.pop('g2'), dtype=jnp.float64)
+        sis_mass += fixed_sis(theta_E_g2, G2_MASS_CENTER)
+        if stage_kwargs['scale_with_g2']:
+            theta_E_g3 = numpyro.deterministic('theta_E_g3', scale_theta_E_from_g2(theta_E_g2, SIS_PRIORS['g3']))
+            theta_E_g7 = numpyro.deterministic('theta_E_g7', scale_theta_E_from_g2(theta_E_g2, SIS_PRIORS['g7']))
+            sis_mass += fixed_sis(theta_E_g3, G3_MASS_CENTER)
+            sis_mass += fixed_sis(theta_E_g7, G7_MASS_CENTER)
+
+    for name, theta_E in fixed_sis_theta_E.items():
         sis_mass += fixed_sis(theta_E, SIS_PRIORS[name]['origin'])
 
     if 'g1' in stage_kwargs['free_sis']:
@@ -685,20 +697,9 @@ def build_stage_point_source(stage_kwargs):
     }]
 
 
-def build_stage_psf(stage_kwargs):
-    psf_base = jnp.asarray(fixed_psf)
-    corr_field = jnp.ones_like(psf_base)
-    psf_kernel = psf_base
-
-    if stage_kwargs['enable_psf_corr']:
-        log_psf_corr_center = numpyro.sample(
-            'log_psf_corr_center',
-            dist.Normal(0.0, PSF_CORR_PRIOR['sigma_log']).expand(psf_base.shape),
-        )
-        corr_field = build_psf_corr_factor_field(log_psf_corr_center, psf_base.shape)
-        psf_kernel = build_corrected_psf_kernel(psf_base, log_psf_corr_center)
-
-    numpyro.deterministic('psf_corr_factor_field', corr_field)
+def build_stage_psf():
+    psf_kernel = jnp.asarray(fixed_psf)
+    numpyro.deterministic('psf_corr_factor_field', jnp.ones_like(psf_kernel))
     numpyro.deterministic('psf_kernel_corrected', psf_kernel)
     return psf_kernel
 
@@ -777,7 +778,7 @@ def model_step6(data_subtracted, stage_kwargs):
         if stage_kwargs.get('use_time_delay_likelihood', False):
             add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs)
 
-    psf_kernel = build_stage_psf(stage_kwargs)
+    psf_kernel = build_stage_psf()
 
     model_image = lens_image_step6.model(
         kwargs_lens=kwargs_lens,
@@ -787,7 +788,6 @@ def model_step6(data_subtracted, stage_kwargs):
         source_add=True,
         lens_light_add=False,
         point_source_add=True,
-        psf_kernel=psf_kernel,
     )
     numpyro.deterministic('model_image', model_image)
 
@@ -836,6 +836,33 @@ def build_source_init_values(i):
     }
 
 
+STEP1_LATENT_KEYS = (
+    'm2l_ratio',
+    'kappa_s_halo',
+    'gammain_halo',
+    'e_halo',
+    'n_source_grid',
+    'sigma_source_grid',
+    'rho_source_grid',
+    'pixels_wn_source_grid',
+)
+
+STEP2_LATENT_KEYS = STEP1_LATENT_KEYS + (
+    'Rs_halo',
+    'center_halo',
+    'gamma_sheer_halo',
+    'theta_E_g1',
+    'theta_E_g2',
+    'ra_ps',
+    'dec_ps',
+    'log10_amp_ps',
+)
+
+
+def select_init_values(params, allowed_keys):
+    return {k: params[k] for k in allowed_keys if k in params}
+
+
 def build_step1_init_values(i):
     return build_source_init_values(i) | STEP6_MASS_INITS[i]
 
@@ -844,12 +871,12 @@ def build_step2_extra_init(i):
     return {
         'Rs_halo': jnp.asarray(5.0, dtype=jnp.float64),
         'center_halo': jnp.asarray(chain_array('center_1', i), dtype=jnp.float64).reshape(2,),
+        'gamma_sheer_halo': jnp.asarray(chain_array('gamma_sheer_1', i), dtype=jnp.float64).reshape(2,),
         'theta_E_g1': jnp.asarray(chain_array('theta_E_g1', i), dtype=jnp.float64),
         'theta_E_g2': jnp.asarray(chain_array('theta_E_g2', i), dtype=jnp.float64),
         'ra_ps': jnp.asarray(chain_array('ra_ps', i), dtype=jnp.float64),
         'dec_ps': jnp.asarray(chain_array('dec_ps', i), dtype=jnp.float64),
         'log10_amp_ps': jnp.asarray(chain_array('log10_amp_ps', i), dtype=jnp.float64),
-        'log_psf_corr_center': jnp.asarray(chain_array('log_psf_corr_center', i), dtype=jnp.float64),
     }
 
 
@@ -868,6 +895,160 @@ def sanitize_label(label):
     )
 
 
+def to_serializable(obj):
+    if isinstance(obj, dict):
+        return {str(k): to_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [to_serializable(v) for v in obj]
+    if hasattr(obj, '_asdict'):
+        return {str(k): to_serializable(v) for k, v in obj._asdict().items()}
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.floating, np.integer, np.bool_)):
+        return obj.item()
+    if isinstance(obj, jax.Array):
+        return np.asarray(obj).tolist()
+    return obj
+
+
+RUN_MANIFEST = {
+    'script': str(Path(__file__).resolve()),
+    'step3_suffix': STEP3_SUFFIX,
+    'step6_run_tag': STEP6_RUN_TAG,
+    'hmc_output_dir': str(HMC_OUTPUT_DIR),
+    'files': [],
+}
+
+
+def register_output(path, kind, **metadata):
+    RUN_MANIFEST['files'].append({
+        'path': str(Path(path)),
+        'kind': kind,
+        **to_serializable(metadata),
+    })
+
+
+def write_json(path, payload):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('w') as fh:
+        json.dump(to_serializable(payload), fh, indent=2, sort_keys=True)
+    register_output(path, 'json')
+
+
+def write_text(path, content):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(str(content))
+    register_output(path, 'text')
+
+
+def infer_dims(name, array, leading_dims=()):
+    arr = np.asarray(array)
+    trailing = arr.ndim - len(leading_dims)
+    if trailing < 0:
+        raise ValueError(f'Array for {name} has ndim={arr.ndim} but leading_dims={leading_dims}')
+    return tuple(leading_dims) + tuple(f'{name}_dim_{i}' for i in range(trailing))
+
+
+def mapping_to_dataset(mapping, leading_dims=()):
+    data_vars = {}
+    coords = {}
+    if mapping:
+        first_arr = np.asarray(next(iter(mapping.values())))
+        for i, dim_name in enumerate(leading_dims):
+            coords[dim_name] = np.arange(first_arr.shape[i])
+    for name, values in mapping.items():
+        arr = np.asarray(values)
+        data_vars[name] = (infer_dims(name, arr, leading_dims), arr)
+    return xr.Dataset(data_vars=data_vars, coords=coords)
+
+
+def list_of_dicts_to_dataset(dict_list):
+    stacked = {}
+    for key in dict_list[0]:
+        stacked[key] = np.stack([np.asarray(item[key]) for item in dict_list], axis=0)
+    return mapping_to_dataset(stacked, leading_dims=('chain',))
+
+
+def save_dataset(path, dataset, kind):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    dataset.to_netcdf(path)
+    register_output(path, kind, variables=list(dataset.data_vars))
+
+
+def stage_output_dir(stage_output):
+    return STEP6_RESULT_DIR / sanitize_label(stage_output['label'])
+
+
+def collect_stage_losses(stage_output):
+    losses = {}
+    for i, result in enumerate(stage_output['results']):
+        losses[f'chain_{i}'] = np.asarray(result.losses, dtype=float)
+    return losses
+
+
+def save_stage_artifacts(stage_output):
+    out_dir = stage_output_dir(stage_output)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    save_dataset(out_dir / 'medians.nc', list_of_dicts_to_dataset(stage_output['medians']), 'stage_medians')
+    save_dataset(out_dir / 'init_values.nc', list_of_dicts_to_dataset(stage_output['init_values_list']), 'stage_init_values')
+    save_dataset(out_dir / 'guide_params.nc', list_of_dicts_to_dataset(stage_output['guide_params_list']), 'stage_guide_params')
+    save_dataset(
+        out_dir / 'losses.nc',
+        mapping_to_dataset(collect_stage_losses(stage_output), leading_dims=('draw',)),
+        'stage_losses',
+    )
+    write_json(out_dir / 'stage_kwargs.json', stage_output['stage_kwargs_list'])
+    write_json(
+        out_dir / 'stage_metadata.json',
+        {
+            'label': stage_output['label'],
+            'max_iterations': stage_output['max_iterations'],
+            'num_chains': num_chains,
+        },
+    )
+
+
+def save_manifest():
+    path = HMC_OUTPUT_DIR / 'manifest.json'
+    with path.open('w') as fh:
+        json.dump(to_serializable(RUN_MANIFEST), fh, indent=2, sort_keys=True)
+
+
+def save_adapt_state(adapt_state):
+    payload = {}
+    if hasattr(adapt_state, 'step_size'):
+        step_size = np.asarray(adapt_state.step_size)
+        if step_size.size == 1:
+            payload['step_size'] = float(step_size.reshape(-1)[0])
+        else:
+            payload['step_size'] = step_size.tolist()
+    if hasattr(adapt_state, 'inverse_mass_matrix'):
+        imm = adapt_state.inverse_mass_matrix
+        if isinstance(imm, (tuple, list)):
+            payload['inverse_mass_matrix'] = [np.asarray(x).tolist() for x in imm]
+        else:
+            payload['inverse_mass_matrix'] = np.asarray(imm).tolist()
+    write_json(HMC_OUTPUT_DIR / 'hmc_adapt_state.json', payload)
+
+
+def save_summary(inf_data, path_prefix):
+    var_names = [
+        name for name, arr in inf_data.posterior.data_vars.items()
+        if getattr(arr, 'ndim', 0) <= 3
+    ]
+    summary = az.summary(inf_data, var_names=var_names)
+    csv_path = Path(f'{path_prefix}_summary.csv')
+    txt_path = Path(f'{path_prefix}_summary.txt')
+    summary.to_csv(csv_path)
+    register_output(csv_path, 'summary_csv')
+    write_text(txt_path, summary.to_string())
+
+
 def run_stage(stage_kwargs_or_builder, init_builder, max_iterations, seed):
     scheduler = optax.exponential_decay(init_value=5e-3, transition_steps=300, decay_rate=0.99)
     optim = optax.adabelief(learning_rate=scheduler)
@@ -878,6 +1059,8 @@ def run_stage(stage_kwargs_or_builder, init_builder, max_iterations, seed):
     results = []
     medians = []
     stage_kwargs_list = []
+    init_values_list = []
+    guide_params_list = []
 
     for i in range(num_chains):
         stage_kwargs_i = stage_kwargs_or_builder(i) if callable(stage_kwargs_or_builder) else stage_kwargs_or_builder
@@ -889,6 +1072,8 @@ def run_stage(stage_kwargs_or_builder, init_builder, max_iterations, seed):
         results.append(result)
         medians.append(guide.median(result.params))
         stage_kwargs_list.append(stage_kwargs_i)
+        init_values_list.append(init_values)
+        guide_params_list.append(result.params)
 
     multi_results = jax.tree.map(_stack_or_none, *results)
     return {
@@ -897,6 +1082,8 @@ def run_stage(stage_kwargs_or_builder, init_builder, max_iterations, seed):
         'multi_results': multi_results,
         'medians': medians,
         'stage_kwargs_list': stage_kwargs_list,
+        'init_values_list': init_values_list,
+        'guide_params_list': guide_params_list,
         'max_iterations': max_iterations,
     }
 
@@ -911,6 +1098,7 @@ def plot_stage_losses(stage_output, output_dir):
     fig.tight_layout()
     out_path = output_dir / f"{sanitize_label(stage_output['label'])}_loss.png"
     fig.savefig(out_path, dpi=180, bbox_inches='tight')
+    register_output(out_path, 'stage_loss_figure')
     print(f"Saved stage loss figure: {out_path}")
     plt.close(fig)
 
@@ -970,12 +1158,11 @@ def plot_stage_results(stage_output, output_dir):
         plt.tight_layout()
         out_path = output_dir / f"{sanitize_label(stage_output['label'])}_chain_{i:02d}.png"
         fig.savefig(out_path, dpi=180, bbox_inches='tight')
+        register_output(out_path, 'stage_result_figure', chain=i)
         print(f"Saved stage result figure: {out_path}")
         plt.close(fig)
 
 # %% Cell 8
-STEP6_RESULT_DIR = Path(f'./result/result{STEP3_SUFFIX}_{STEP6_RUN_TAG}')
-
 step1_output = run_stage(
     build_step1_stage_kwargs,
     init_builder=build_step1_init_values,
@@ -984,11 +1171,13 @@ step1_output = run_stage(
 )
 plot_stage_losses(step1_output, STEP6_RESULT_DIR)
 plot_stage_results(step1_output, STEP6_RESULT_DIR)
+save_stage_artifacts(step1_output)
+save_manifest()
 
 
 # %% Cell 9
 def build_step2_init_values(i):
-    return dict(step1_output['medians'][i]) | build_step2_extra_init(i)
+    return select_init_values(step1_output['medians'][i], STEP1_LATENT_KEYS) | build_step2_extra_init(i)
 
 
 step2_output = run_stage(
@@ -999,6 +1188,8 @@ step2_output = run_stage(
 )
 plot_stage_losses(step2_output, STEP6_RESULT_DIR)
 plot_stage_results(step2_output, STEP6_RESULT_DIR)
+save_stage_artifacts(step2_output)
+save_manifest()
 
 
 # %% Cell 10
@@ -1008,14 +1199,19 @@ STEP3_KWARGS = {
     'use_time_delay_likelihood': True,
     'cosmo_prior_name': STEP3_COSMO_PRIOR,
     'use_ml_gradient': True,
-    'm2l_ratio_slope_low': -0.5,
-    'm2l_ratio_slope_high': 0.5,
+    'm2l_ratio_slope_low': -0.6,
+    'm2l_ratio_slope_high': 0.6,
+}
+
+STEP3_HMC_KWARGS = {
+    **STEP3_KWARGS,
+    'use_conjugate_prior': False,
 }
 
 
 def build_step3_init_values(i):
     cosmo_prior = COSMO_PRIORS[STEP3_KWARGS['cosmo_prior_name']]
-    return dict(step2_output['medians'][i]) | {
+    return select_init_values(step2_output['medians'][i], STEP2_LATENT_KEYS) | {
         'cosmo_vec': jnp.asarray(cosmo_prior['mean_vec'], dtype=jnp.float64),
         'kappa_ext': jnp.asarray(KAPPA_EXT_PRIOR['mean'], dtype=jnp.float64),
         'm2l_ratio_slope': jnp.asarray(0.0, dtype=jnp.float64),
@@ -1030,44 +1226,30 @@ step3_output = run_stage(
 )
 plot_stage_losses(step3_output, STEP6_RESULT_DIR)
 plot_stage_results(step3_output, STEP6_RESULT_DIR)
+save_stage_artifacts(step3_output)
+save_manifest()
 
 
 
 # %% Stage 3 HMC
 from numpyro.infer import NUTS, MCMC
-from custom_gibbs import MultiHMCGibbs
-
-
 def stack_dicts(dict_list):
     return jax.tree.map(lambda *xs: jnp.stack(xs), *dict_list)
+
 
 
 # Keep the input suffix for reading Step-5 products unchanged.
 # Use a separate HMC suffix for Step-6 stage3 outputs.
 suffix_hmc = STEP3_SUFFIX
-HMC_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix_hmc}_{STEP6_RUN_TAG}"
-HMC_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
 print('HMC output dir:', HMC_OUTPUT_DIR)
 print('HMC suffix:', suffix_hmc)
 
 multi_svi_stage3_median = stack_dicts(step3_output['medians'])
-
-unconstrained_stage3_median = jax.vmap(
-    lambda p: infer.util.unconstrain_fn(
-        model_step6,
-        (data_subtracted, STEP3_KWARGS),
-        {},
-        p,
-    )
-)(multi_svi_stage3_median)
-
-unconstrained_stage3_median = {
-    k: jnp.asarray(v, dtype=jnp.float64)
-    for k, v in unconstrained_stage3_median.items()
-}
-
-init_fun_hmc = init_to_value_or_defer(values=step3_output['medians'][0])
+save_dataset(
+    HMC_OUTPUT_DIR / 'stage3_svi_median.nc',
+    mapping_to_dataset({k: np.asarray(v) for k, v in multi_svi_stage3_median.items()}, leading_dims=('chain',)),
+    'stage3_svi_median',
+)
 
 vars_pixel = ['pixels_wn_source_grid']
 vars_power = ['n_source_grid', 'rho_source_grid', 'sigma_source_grid']
@@ -1085,48 +1267,57 @@ vars_mass = [
 ]
 vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps']
 vars_cosmo = ['cosmo_vec', 'kappa_ext']
-vars_psf_corr = ['log_psf_corr_center']
 
-inner_kernels = [
-    NUTS(
-        model_step6,
-        init_strategy=init_fun_hmc,
-        target_accept_prob=0.95,
-        max_tree_depth=10,
-        dense_mass=[
-            ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
-            (
-                'm2l_ratio',
-                'm2l_ratio_slope',
-                'kappa_s_halo',
-                'gammain_halo',
-                'e_halo',
-                'Rs_halo',
-                'center_halo',
-                'gamma_sheer_halo',
-                'theta_E_g1',
-                'theta_E_g2',
-                'cosmo_vec',
-                'kappa_ext',
-            ),
-            (   'ra_ps',
-                'dec_ps',
-                'log10_amp_ps',)
-        ],
-    ),
-    NUTS(
-        model_step6,
-        init_strategy=init_fun_hmc,
-        target_accept_prob=0.9,
-        max_tree_depth=10,
-    ),
-]
+# Match Step-5 HMC init logic: only pass true latent/sample sites into HMC init.
+multi_svi_stage3_median_vars = {
+    k: multi_svi_stage3_median[k]
+    for k in vars_pixel + vars_power + vars_mass + vars_point_source + vars_cosmo
+    if k in multi_svi_stage3_median
+}
 
-outer_kernel = MultiHMCGibbs(
-    inner_kernels,
-    gibbs_sites_list=[
-        vars_pixel + vars_power + vars_mass + vars_point_source + vars_cosmo,
-        vars_psf_corr,
+unconstrained_stage3_median = jax.vmap(
+    lambda p: infer.util.unconstrain_fn(
+        model_step6,
+        (data_subtracted, STEP3_HMC_KWARGS),
+        {},
+        p,
+    )
+)(multi_svi_stage3_median_vars)
+
+unconstrained_stage3_median = {
+    k: jnp.asarray(v, dtype=jnp.float64)
+    for k, v in unconstrained_stage3_median.items()
+}
+save_dataset(
+    HMC_OUTPUT_DIR / 'stage3_unconstrained_init.nc',
+    mapping_to_dataset({k: np.asarray(v) for k, v in unconstrained_stage3_median.items()}, leading_dims=('chain',)),
+    'stage3_unconstrained_init',
+)
+
+init_fun_hmc = init_to_value_or_defer(values=get_value_from_index(multi_svi_stage3_median_vars, 0))
+
+stage3_kernel = NUTS(
+    model_step6,
+    init_strategy=init_fun_hmc,
+    target_accept_prob=0.90,
+    max_tree_depth=10,
+    dense_mass=[
+        ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
+        (
+            'm2l_ratio',
+            'm2l_ratio_slope',
+            'kappa_s_halo',
+            'gammain_halo',
+            'e_halo',
+            'Rs_halo',
+            'center_halo',
+            'gamma_sheer_halo',
+            'theta_E_g1',
+            'theta_E_g2',
+            'cosmo_vec',
+            'kappa_ext',
+        ),
+        ('ra_ps', 'dec_ps', 'log10_amp_ps'),
     ],
 )
 
@@ -1134,10 +1325,46 @@ num_warmup = 1500
 num_samples = 1000
 batch_number = 4
 
+write_json(
+    HMC_OUTPUT_DIR / 'run_config.json',
+    {
+        'suffix': suffix,
+        'run_tag': run_tag,
+        'step3_cosmo_prior': STEP3_COSMO_PRIOR,
+        'step3_suffix': STEP3_SUFFIX,
+        'step6_run_tag': STEP6_RUN_TAG,
+        'num_chains': num_chains,
+        'num_warmup': num_warmup,
+        'num_samples': num_samples,
+        'batch_number': batch_number,
+        'hmc_output_dir': str(HMC_OUTPUT_DIR),
+        'step6_result_dir': str(STEP6_RESULT_DIR),
+    },
+)
+try:
+    git_commit = subprocess.check_output(
+        ['git', 'rev-parse', 'HEAD'],
+        cwd=SCRIPT_DIR,
+        text=True,
+    ).strip()
+except Exception:
+    git_commit = None
+write_json(
+    HMC_OUTPUT_DIR / 'environment.json',
+    {
+        'python': os.sys.version,
+        'jax_version': getattr(jax, '__version__', None),
+        'numpyro_version': getattr(numpyro, '__version__', None),
+        'xarray_version': getattr(xr, '__version__', None),
+        'git_commit': git_commit,
+    },
+)
+save_manifest()
+
 rng_key_hmc = jax.random.PRNGKey(5252)
 
 mcmc_stage3 = MCMC(
-    outer_kernel,
+    stage3_kernel,
     num_warmup=num_warmup,
     num_samples=num_samples,
     num_chains=num_chains,
@@ -1145,13 +1372,53 @@ mcmc_stage3 = MCMC(
     chain_method='vectorized',
 )
 
+
+def validate_scaled_perturbers(inf_data, atol=1e-10, raise_on_failure=True):
+    post = inf_data.posterior
+    g2 = np.asarray(post['theta_E_g2'].values, dtype=float).reshape(post.sizes['chain'], post.sizes['draw'])
+    g3 = np.asarray(post['theta_E_g3'].values, dtype=float).reshape(post.sizes['chain'], post.sizes['draw'])
+    g7 = np.asarray(post['theta_E_g7'].values, dtype=float).reshape(post.sizes['chain'], post.sizes['draw'])
+
+    exp_g3 = g2 * (SIS_PRIORS['g3']['theta_mean'] / SIS_PRIORS['g2']['theta_mean'])
+    exp_g7 = g2 * (SIS_PRIORS['g7']['theta_mean'] / SIS_PRIORS['g2']['theta_mean'])
+
+    max_abs_diff_g3 = float(np.max(np.abs(g3 - exp_g3)))
+    max_abs_diff_g7 = float(np.max(np.abs(g7 - exp_g7)))
+    mean_abs_diff_g3 = float(np.mean(np.abs(g3 - exp_g3)))
+    mean_abs_diff_g7 = float(np.mean(np.abs(g7 - exp_g7)))
+
+    payload = {
+        'max_abs_diff_g3': max_abs_diff_g3,
+        'mean_abs_diff_g3': mean_abs_diff_g3,
+        'max_abs_diff_g7': max_abs_diff_g7,
+        'mean_abs_diff_g7': mean_abs_diff_g7,
+        'atol': atol,
+    }
+
+    print(
+        'Scaled SIS validation: '
+        f'max|g3-exp|={max_abs_diff_g3:.3e}, '
+        f'mean|g3-exp|={mean_abs_diff_g3:.3e}, '
+        f'max|g7-exp|={max_abs_diff_g7:.3e}, '
+        f'mean|g7-exp|={mean_abs_diff_g7:.3e}'
+    )
+
+    if raise_on_failure and (max_abs_diff_g3 > atol or max_abs_diff_g7 > atol):
+        raise RuntimeError(
+            'Scaled SIS validation failed: '
+            f'max|g3-exp|={max_abs_diff_g3:.6e}, '
+            f'max|g7-exp|={max_abs_diff_g7:.6e}.'
+        )
+    return payload
+
+
 batch_list = []
 for i in range(batch_number):
     if i == 0:
         mcmc_stage3.run(
             rng_key_hmc,
             data_subtracted,
-            STEP3_KWARGS,
+            STEP3_HMC_KWARGS,
             init_params=unconstrained_stage3_median,
         )
     else:
@@ -1159,18 +1426,63 @@ for i in range(batch_number):
         mcmc_stage3.run(
             mcmc_stage3.post_warmup_state.rng_key,
             data_subtracted,
-            STEP3_KWARGS,
+            STEP3_HMC_KWARGS,
         )
 
     mcmc_stage3._states = jax.device_get(mcmc_stage3._states)
     mcmc_stage3._states_flat = jax.device_get(mcmc_stage3._states_flat)
+    raw_samples = mcmc_stage3.get_samples(group_by_chain=True)
+    raw_samples_ds = mapping_to_dataset(
+        {k: np.asarray(v) for k, v in raw_samples.items()},
+        leading_dims=('chain', 'draw'),
+    )
+    raw_samples_path = HMC_OUTPUT_DIR / f'raw_samples_batch_{i}.nc'
+    save_dataset(raw_samples_path, raw_samples_ds, 'hmc_raw_samples')
+
+    extra_fields = mcmc_stage3.get_extra_fields(group_by_chain=True)
+    if extra_fields:
+        extra_fields_ds = mapping_to_dataset(
+            {k: np.asarray(v) for k, v in extra_fields.items()},
+            leading_dims=('chain', 'draw'),
+        )
+        extra_fields_path = HMC_OUTPUT_DIR / f'extra_fields_batch_{i}.nc'
+        save_dataset(extra_fields_path, extra_fields_ds, 'hmc_extra_fields')
+
+    if getattr(mcmc_stage3, 'last_state', None) is not None and hasattr(mcmc_stage3.last_state, 'adapt_state'):
+        save_adapt_state(mcmc_stage3.last_state.adapt_state)
+
     inf_data_batch = az.from_numpyro(mcmc_stage3)
+    validation_payload = validate_scaled_perturbers(inf_data_batch, raise_on_failure=False)
+    write_json(HMC_OUTPUT_DIR / f'scaled_sis_validation_batch_{i}.json', validation_payload)
+    if (
+        validation_payload['max_abs_diff_g3'] > validation_payload['atol']
+        or validation_payload['max_abs_diff_g7'] > validation_payload['atol']
+    ):
+        raise RuntimeError(
+            'Scaled SIS validation failed: '
+            f"max|g3-exp|={validation_payload['max_abs_diff_g3']:.6e}, "
+            f"max|g7-exp|={validation_payload['max_abs_diff_g7']:.6e}."
+        )
     batch_path = HMC_OUTPUT_DIR / f'WFI2033_{i}{suffix_hmc}.nc'
     inf_data_batch.to_netcdf(batch_path)
+    register_output(batch_path, 'hmc_batch_inferencedata')
+    save_summary(inf_data_batch, HMC_OUTPUT_DIR / f'batch_{i}')
+    batch_medians = inf_data_batch.posterior.median(dim='draw')
+    batch_medians_path = HMC_OUTPUT_DIR / f'batch_{i}_chain_medians.nc'
+    batch_medians.to_netcdf(batch_medians_path)
+    register_output(batch_medians_path, 'hmc_batch_chain_medians')
+    save_manifest()
     print(f'Saved HMC batch to: {batch_path}')
     batch_list.append(inf_data_batch)
 
-inf_data_all = az.concat(*batch_list, dim='draw')
+inf_data_all = batch_list[0] if len(batch_list) == 1 else az.concat(*batch_list, dim='draw')
 final_hmc_path = HMC_OUTPUT_DIR / f'WFI2033_all{suffix_hmc}.nc'
 inf_data_all.to_netcdf(final_hmc_path)
+register_output(final_hmc_path, 'hmc_final_inferencedata')
+save_summary(inf_data_all, HMC_OUTPUT_DIR / 'all_batches')
+all_medians = inf_data_all.posterior.median(dim=('chain', 'draw'))
+all_medians_path = HMC_OUTPUT_DIR / f'WFI2033_all{suffix_hmc}_median.nc'
+all_medians.to_netcdf(all_medians_path)
+register_output(all_medians_path, 'hmc_all_median')
+save_manifest()
 print(f'Saved final HMC inf_data to: {final_hmc_path}')

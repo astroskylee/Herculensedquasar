@@ -57,7 +57,7 @@ PRODUCTS_DIR = RESULT_DIR / 'data_products'
 DATA_DIR = Path('../../Data/WFI2033')
 RAW_DATA_PATH = DATA_DIR / 'jw01198-o004_t004_nircam_clear-f115w_i2d.fits'
 DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light{suffix}.fits'
-HMC_MEDIAN_PATH = SCRIPT_DIR.parent / f'HMC_median_draw{suffix}.nc'
+HMC_MEDIAN_PATH = Path(f'./result/result_ss=2_full_light_multimass_20260401_11/HMC_median_draw{suffix}.nc')
 FIXED_FIRST_THREE_PATH = RUN_OUTPUT_DIR / f'fixed_first_three_gaussians{suffix}.npz'
 MASK_OUT_PATH = SCRIPT_DIR / 'data' / 'mask_out_center_r16.fits'
 
@@ -464,7 +464,7 @@ for i in range(num_chains):
 STEP1_BASE_KWARGS = {
     'label': 'step1',
     'gnfw_kwargs': {
-        'gamma_in_up': 1.4,
+        'gamma_in_up': 2,
         'gamma_in_low': 0.6,
         'Rs_value': 5.0,
         'sph': False,
@@ -497,7 +497,7 @@ def build_step1_stage_kwargs(i):
 STEP2_KWARGS = {
     'label': 'step2',
     'gnfw_kwargs': {
-        'gamma_in_up': 1.4,
+        'gamma_in_up': 2,
         'gamma_in_low': 0.6,
         'Rs_low': 2,
         'Rs_high': 20.0,
@@ -1199,8 +1199,8 @@ STEP3_KWARGS = {
     'use_time_delay_likelihood': True,
     'cosmo_prior_name': STEP3_COSMO_PRIOR,
     'use_ml_gradient': True,
-    'm2l_ratio_slope_low': -0.5,
-    'm2l_ratio_slope_high': 0.5,
+    'm2l_ratio_slope_low': -0.6,
+    'm2l_ratio_slope_high': 0.6,
 }
 
 STEP3_HMC_KWARGS = {
@@ -1299,7 +1299,7 @@ init_fun_hmc = init_to_value_or_defer(values=get_value_from_index(multi_svi_stag
 stage3_kernel = NUTS(
     model_step6,
     init_strategy=init_fun_hmc,
-    target_accept_prob=0.95,
+    target_accept_prob=0.90,
     max_tree_depth=10,
     dense_mass=[
         ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
