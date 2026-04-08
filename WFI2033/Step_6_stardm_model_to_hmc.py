@@ -1073,17 +1073,18 @@ vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps']
 vars_cosmo = ['cosmo_vec', 'kappa_ext']
 
 resume_state_path = HMC_OUTPUT_DIR / 'resume_state.pkl'
+warmup_state_path = HMC_OUTPUT_DIR / 'resume_state_after_warmup.pkl'
 existing_indices = ResumeInit.existing_batch_indices(HMC_OUTPUT_DIR, suffix_hmc)
 start_batch = 0 if not existing_indices else max(existing_indices) + 1
 
 if resume_mode:
-    if not resume_state_path.exists():
+    if not resume_state_path.exists() and not warmup_state_path.exists():
         raise FileNotFoundError(
-            f'Resume requested for run tag {STEP6_RUN_TAG}, but missing checkpoint: {resume_state_path}'
+            f'Resume requested for run tag {STEP6_RUN_TAG}, but missing checkpoints: {resume_state_path} and {warmup_state_path}'
         )
-    if not existing_indices:
+    if not existing_indices and not warmup_state_path.exists():
         raise FileNotFoundError(
-            f'Resume requested for run tag {STEP6_RUN_TAG}, but no existing batch files were found in {HMC_OUTPUT_DIR}'
+            f'Resume requested for run tag {STEP6_RUN_TAG}, but no existing batch files or warmup checkpoint were found in {HMC_OUTPUT_DIR}'
         )
     print(f'Resuming HMC from tag {STEP6_RUN_TAG}; existing batches: {existing_indices}')
     unconstrained_stage3_median = None
@@ -1160,7 +1161,10 @@ batch_list = []
 for local_i in range(batch_number):
     i = start_batch + local_i
     if local_i == 0 and resume_mode:
-        resume_state = ResumeInit.load_resume_state(resume_state_path)
+        if start_batch == 0 and warmup_state_path.exists():
+            resume_state = ResumeInit.load_resume_state(warmup_state_path)
+        else:
+            resume_state = ResumeInit.load_resume_state(resume_state_path)
         mcmc_stage3.post_warmup_state = resume_state
         mcmc_stage3.run(
             resume_state.rng_key,
@@ -1169,11 +1173,17 @@ for local_i in range(batch_number):
             init_params=resume_state.z,
         )
     elif i == 0:
-        mcmc_stage3.run(
+        mcmc_stage3.warmup(
             rng_key_hmc,
             data_subtracted,
             STEP3_HMC_KWARGS,
             init_params=unconstrained_stage3_median,
+        )
+        ResumeInit.save_resume_state(warmup_state_path, mcmc_stage3.post_warmup_state)
+        mcmc_stage3.run(
+            mcmc_stage3.post_warmup_state.rng_key,
+            data_subtracted,
+            STEP3_HMC_KWARGS,
         )
     else:
         mcmc_stage3.post_warmup_state = mcmc_stage3.last_state
@@ -1187,7 +1197,9 @@ for local_i in range(batch_number):
     mcmc_stage3._states_flat = jax.device_get(mcmc_stage3._states_flat)
     inf_data_batch = az.from_numpyro(mcmc_stage3)
     batch_path = HMC_OUTPUT_DIR / f'WFI2033_{i}{suffix_hmc}.nc'
+    batch_state_path = HMC_OUTPUT_DIR / f'WFI2033_{i}{suffix_hmc}.state.pkl'
     inf_data_batch.to_netcdf(batch_path)
+    ResumeInit.save_resume_state(batch_state_path, mcmc_stage3.last_state)
     ResumeInit.save_resume_state(resume_state_path, mcmc_stage3.last_state)
     print(f'Saved HMC batch to: {batch_path}')
     batch_list.append(inf_data_batch)
