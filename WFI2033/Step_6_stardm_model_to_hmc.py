@@ -871,90 +871,6 @@ def sanitize_label(label):
     )
 
 
-def to_serializable(obj):
-    if isinstance(obj, dict):
-        return {str(k): to_serializable(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
-        return [to_serializable(v) for v in obj]
-    if hasattr(obj, '_asdict'):
-        return {str(k): to_serializable(v) for k, v in obj._asdict().items()}
-    if isinstance(obj, Path):
-        return str(obj)
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, (np.floating, np.integer, np.bool_)):
-        return obj.item()
-    if isinstance(obj, jax.Array):
-        return np.asarray(obj).tolist()
-    return obj
-
-
-def write_json(path, payload):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open('w') as fh:
-        json.dump(to_serializable(payload), fh, indent=2, sort_keys=True)
-
-
-def infer_dims(name, array, leading_dims=()):
-    arr = np.asarray(array)
-    trailing = arr.ndim - len(leading_dims)
-    if trailing < 0:
-        raise ValueError(f'Array for {name} has ndim={arr.ndim} but leading_dims={leading_dims}')
-    return tuple(leading_dims) + tuple(f'{name}_dim_{i}' for i in range(trailing))
-
-
-def mapping_to_dataset(mapping, leading_dims=()):
-    data_vars = {}
-    coords = {}
-    if mapping:
-        first_arr = np.asarray(next(iter(mapping.values())))
-        for i, dim_name in enumerate(leading_dims):
-            coords[dim_name] = np.arange(first_arr.shape[i])
-    for name, values in mapping.items():
-        arr = np.asarray(values)
-        data_vars[name] = (infer_dims(name, arr, leading_dims), arr)
-    return xr.Dataset(data_vars=data_vars, coords=coords)
-
-
-def list_of_dicts_to_dataset(dict_list):
-    stacked = {}
-    for key in dict_list[0]:
-        stacked[key] = np.stack([np.asarray(item[key]) for item in dict_list], axis=0)
-    return mapping_to_dataset(stacked, leading_dims=('chain',))
-
-def stage_output_dir(stage_output):
-    return STEP6_RESULT_DIR / sanitize_label(stage_output['label'])
-
-
-def collect_stage_losses(stage_output):
-    losses = {}
-    for i, result in enumerate(stage_output['results']):
-        losses[f'chain_{i}'] = np.asarray(result.losses, dtype=float)
-    return losses
-
-
-def save_stage_artifacts(stage_output):
-    out_dir = stage_output_dir(stage_output)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    list_of_dicts_to_dataset(stage_output['medians']).to_netcdf(out_dir / 'medians.nc')
-    list_of_dicts_to_dataset(stage_output['init_values_list']).to_netcdf(out_dir / 'init_values.nc')
-    list_of_dicts_to_dataset(stage_output['guide_params_list']).to_netcdf(out_dir / 'guide_params.nc')
-    mapping_to_dataset(
-        collect_stage_losses(stage_output),
-        leading_dims=('draw',),
-    ).to_netcdf(out_dir / 'losses.nc')
-    write_json(out_dir / 'stage_kwargs.json', stage_output['stage_kwargs_list'])
-    write_json(
-        out_dir / 'stage_metadata.json',
-        {
-            'label': stage_output['label'],
-            'max_iterations': stage_output['max_iterations'],
-            'num_chains': num_chains,
-        },
-    )
-
-
 def run_stage(stage_kwargs_or_builder, init_builder, max_iterations, seed):
     scheduler = optax.exponential_decay(init_value=5e-3, transition_steps=300, decay_rate=0.99)
     optim = optax.adabelief(learning_rate=scheduler)
@@ -1070,7 +986,6 @@ step1_output = run_stage(
 )
 plot_stage_losses(step1_output, STEP6_RESULT_DIR)
 plot_stage_results(step1_output, STEP6_RESULT_DIR)
-save_stage_artifacts(step1_output)
 
 
 # %% Cell 9
@@ -1086,7 +1001,6 @@ step2_output = run_stage(
 )
 plot_stage_losses(step2_output, STEP6_RESULT_DIR)
 plot_stage_results(step2_output, STEP6_RESULT_DIR)
-save_stage_artifacts(step2_output)
 
 
 # %% Cell 10
@@ -1123,7 +1037,6 @@ step3_output = run_stage(
 )
 plot_stage_losses(step3_output, STEP6_RESULT_DIR)
 plot_stage_results(step3_output, STEP6_RESULT_DIR)
-save_stage_artifacts(step3_output)
 
 
 
