@@ -1048,6 +1048,7 @@ else:
 
 # %% Stage 3 HMC
 from numpyro.infer import NUTS, MCMC
+from custom_gibbs import MultiHMCGibbs
 
 # Keep the input suffix for reading Step-5 products unchanged.
 # Use a separate HMC suffix for Step-6 stage3 outputs.
@@ -1117,28 +1118,46 @@ else:
         values=ResumeInit.get_value_from_index(multi_svi_stage3_median_vars, 0)
     )
 
-stage3_kernel = NUTS(
-    model_step6,
-    init_strategy=init_fun_hmc,
-    target_accept_prob=0.95,
-    max_tree_depth=10,
-    dense_mass=[
-        ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
-        (
-            'm2l_ratio',
-            'm2l_ratio_slope',
-            'kappa_s_halo',
-            'gammain_halo',
-            'e_halo',
-            'Rs_halo',
-            'center_halo',
-            'gamma_sheer_halo',
-            'theta_E_g1',
-            'theta_E_g2',
-            'cosmo_vec',
-            'kappa_ext',
-        ),
-        ('ra_ps', 'dec_ps', 'log10_amp_ps'),
+inner_kernels = [
+    NUTS(
+        model_step6,
+        init_strategy=init_fun_hmc,
+        target_accept_prob=0.95,
+        max_tree_depth=10,
+        dense_mass=[
+            (
+                'm2l_ratio',
+                'm2l_ratio_slope',
+                'kappa_s_halo',
+                'gammain_halo',
+                'e_halo',
+                'Rs_halo',
+                'center_halo',
+                'gamma_sheer_halo',
+                'theta_E_g1',
+                'theta_E_g2',
+                'cosmo_vec',
+                'kappa_ext',
+            ),
+        ],
+    ),
+    NUTS(
+        model_step6,
+        init_strategy=init_fun_hmc,
+        target_accept_prob=0.95,
+        max_tree_depth=10,
+        dense_mass=[
+            ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
+            ('ra_ps', 'dec_ps', 'log10_amp_ps'),
+        ],
+    ),
+]
+
+stage3_kernel = MultiHMCGibbs(
+    inner_kernels,
+    gibbs_sites_list=[
+        vars_mass + vars_cosmo,
+        vars_pixel + vars_power + vars_point_source,
     ],
 )
 
