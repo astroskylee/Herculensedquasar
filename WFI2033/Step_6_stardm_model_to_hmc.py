@@ -1172,7 +1172,6 @@ step1_output = run_stage(
 plot_stage_losses(step1_output, STEP6_RESULT_DIR)
 plot_stage_results(step1_output, STEP6_RESULT_DIR)
 save_stage_artifacts(step1_output)
-save_manifest()
 
 
 # %% Cell 9
@@ -1189,7 +1188,6 @@ step2_output = run_stage(
 plot_stage_losses(step2_output, STEP6_RESULT_DIR)
 plot_stage_results(step2_output, STEP6_RESULT_DIR)
 save_stage_artifacts(step2_output)
-save_manifest()
 
 
 # %% Cell 10
@@ -1227,7 +1225,6 @@ step3_output = run_stage(
 plot_stage_losses(step3_output, STEP6_RESULT_DIR)
 plot_stage_results(step3_output, STEP6_RESULT_DIR)
 save_stage_artifacts(step3_output)
-save_manifest()
 
 
 
@@ -1245,11 +1242,6 @@ print('HMC output dir:', HMC_OUTPUT_DIR)
 print('HMC suffix:', suffix_hmc)
 
 multi_svi_stage3_median = stack_dicts(step3_output['medians'])
-save_dataset(
-    STEP6_RESULT_DIR / 'stage3_svi_median.nc',
-    mapping_to_dataset({k: np.asarray(v) for k, v in multi_svi_stage3_median.items()}, leading_dims=('chain',)),
-    'stage3_svi_median',
-)
 
 vars_pixel = ['pixels_wn_source_grid']
 vars_power = ['n_source_grid', 'rho_source_grid', 'sigma_source_grid']
@@ -1288,11 +1280,6 @@ unconstrained_stage3_median = {
     k: jnp.asarray(v, dtype=jnp.float64)
     for k, v in unconstrained_stage3_median.items()
 }
-save_dataset(
-    STEP6_RESULT_DIR / 'stage3_unconstrained_init.nc',
-    mapping_to_dataset({k: np.asarray(v) for k, v in unconstrained_stage3_median.items()}, leading_dims=('chain',)),
-    'stage3_unconstrained_init',
-)
 
 init_fun_hmc = init_to_value_or_defer(values=get_value_from_index(multi_svi_stage3_median_vars, 0))
 
@@ -1325,42 +1312,6 @@ num_warmup = 1500
 num_samples = 1000
 batch_number = 4
 
-write_json(
-    HMC_OUTPUT_DIR / 'run_config.json',
-    {
-        'suffix': suffix,
-        'run_tag': run_tag,
-        'step3_cosmo_prior': STEP3_COSMO_PRIOR,
-        'step3_suffix': STEP3_SUFFIX,
-        'step6_run_tag': STEP6_RUN_TAG,
-        'num_chains': num_chains,
-        'num_warmup': num_warmup,
-        'num_samples': num_samples,
-        'batch_number': batch_number,
-        'hmc_output_dir': str(HMC_OUTPUT_DIR),
-        'step6_result_dir': str(STEP6_RESULT_DIR),
-    },
-)
-try:
-    git_commit = subprocess.check_output(
-        ['git', 'rev-parse', 'HEAD'],
-        cwd=SCRIPT_DIR,
-        text=True,
-    ).strip()
-except Exception:
-    git_commit = None
-write_json(
-    HMC_OUTPUT_DIR / 'environment.json',
-    {
-        'python': os.sys.version,
-        'jax_version': getattr(jax, '__version__', None),
-        'numpyro_version': getattr(numpyro, '__version__', None),
-        'xarray_version': getattr(xr, '__version__', None),
-        'git_commit': git_commit,
-    },
-)
-save_manifest()
-
 rng_key_hmc = jax.random.PRNGKey(5252)
 
 mcmc_stage3 = MCMC(
@@ -1391,36 +1342,10 @@ for i in range(batch_number):
 
     mcmc_stage3._states = jax.device_get(mcmc_stage3._states)
     mcmc_stage3._states_flat = jax.device_get(mcmc_stage3._states_flat)
-    raw_samples = mcmc_stage3.get_samples(group_by_chain=True)
-    raw_samples_ds = mapping_to_dataset(
-        {k: np.asarray(v) for k, v in raw_samples.items()},
-        leading_dims=('chain', 'draw'),
-    )
-    raw_samples_path = HMC_OUTPUT_DIR / f'raw_samples_batch_{i}.nc'
-    save_dataset(raw_samples_path, raw_samples_ds, 'hmc_raw_samples')
-
-    extra_fields = mcmc_stage3.get_extra_fields(group_by_chain=True)
-    if extra_fields:
-        extra_fields_ds = mapping_to_dataset(
-            {k: np.asarray(v) for k, v in extra_fields.items()},
-            leading_dims=('chain', 'draw'),
-        )
-        extra_fields_path = HMC_OUTPUT_DIR / f'extra_fields_batch_{i}.nc'
-        save_dataset(extra_fields_path, extra_fields_ds, 'hmc_extra_fields')
-
-    if getattr(mcmc_stage3, 'last_state', None) is not None and hasattr(mcmc_stage3.last_state, 'adapt_state'):
-        save_adapt_state(mcmc_stage3.last_state.adapt_state)
-
     inf_data_batch = az.from_numpyro(mcmc_stage3)
     batch_path = HMC_OUTPUT_DIR / f'WFI2033_{i}{suffix_hmc}.nc'
     inf_data_batch.to_netcdf(batch_path)
     register_output(batch_path, 'hmc_batch_inferencedata')
-    save_summary(inf_data_batch, HMC_OUTPUT_DIR / f'batch_{i}')
-    batch_medians = inf_data_batch.posterior.median(dim='draw')
-    batch_medians_path = HMC_OUTPUT_DIR / f'batch_{i}_chain_medians.nc'
-    batch_medians.to_netcdf(batch_medians_path)
-    register_output(batch_medians_path, 'hmc_batch_chain_medians')
-    save_manifest()
     print(f'Saved HMC batch to: {batch_path}')
     batch_list.append(inf_data_batch)
 
@@ -1428,10 +1353,4 @@ inf_data_all = batch_list[0] if len(batch_list) == 1 else az.concat(*batch_list,
 final_hmc_path = HMC_OUTPUT_DIR / f'WFI2033_all{suffix_hmc}.nc'
 inf_data_all.to_netcdf(final_hmc_path)
 register_output(final_hmc_path, 'hmc_final_inferencedata')
-save_summary(inf_data_all, HMC_OUTPUT_DIR / 'all_batches')
-all_medians = inf_data_all.posterior.median(dim=('chain', 'draw'))
-all_medians_path = HMC_OUTPUT_DIR / f'WFI2033_all{suffix_hmc}_median.nc'
-all_medians.to_netcdf(all_medians_path)
-register_output(all_medians_path, 'hmc_all_median')
-save_manifest()
 print(f'Saved final HMC inf_data to: {final_hmc_path}')
