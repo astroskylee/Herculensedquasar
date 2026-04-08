@@ -17,7 +17,6 @@ import numpy as np
 import numpyro
 import numpyro.infer as infer
 import numpyro.infer.autoguide as autoguide
-import optax
 import xarray as xr
 from astropy.io import fits
 from corner import corner
@@ -526,7 +525,6 @@ def import_function(namespace=None):
         'dist': dist,
         'infer': infer,
         'autoguide': autoguide,
-        'optax': optax,
         'condition': condition,
         'az': az,
         'plt': plt,
