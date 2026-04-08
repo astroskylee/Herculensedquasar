@@ -12,6 +12,7 @@ os.environ.setdefault('XLA_PYTHON_CLIENT_PREALLOCATE', 'false')
 from datetime import datetime
 from pathlib import Path
 import json
+import pickle
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 os.chdir(SCRIPT_DIR)
@@ -165,7 +166,8 @@ COSMO_PRIORS = {
 STEP3_COSMO_PRIOR = 'DESI_PLANCK'  # or 'PantheonSH0ES'
 STEP3_COSMO_TAG = STEP3_COSMO_PRIOR.lower()
 STEP3_SUFFIX = f"{suffix}_step6_{STEP3_COSMO_TAG}"
-STEP6_RUN_TAG = datetime.now().strftime("%Y%m%d_%H")
+RESUME_RUN_TAG = None  # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
+STEP6_RUN_TAG = RESUME_RUN_TAG or datetime.now().strftime("%Y%m%d_%H")
 HMC_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
 STEP6_RESULT_DIR = SCRIPT_DIR / 'result' / f"result{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
 HMC_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -978,29 +980,22 @@ def plot_stage_results(stage_output, output_dir):
         plt.close(fig)
 
 # %% Cell 8
-step1_output = run_stage(
-    build_step1_stage_kwargs,
-    init_builder=build_step1_init_values,
-    max_iterations=20000,
-    seed=1234,
-)
-plot_stage_losses(step1_output, STEP6_RESULT_DIR)
-plot_stage_results(step1_output, STEP6_RESULT_DIR)
+resume_mode = RESUME_RUN_TAG is not None
+
+if not resume_mode:
+    step1_output = run_stage(
+        build_step1_stage_kwargs,
+        init_builder=build_step1_init_values,
+        max_iterations=20000,
+        seed=1234,
+    )
+    plot_stage_losses(step1_output, STEP6_RESULT_DIR)
+    plot_stage_results(step1_output, STEP6_RESULT_DIR)
 
 
 # %% Cell 9
 def build_step2_init_values(i):
     return select_init_values(step1_output['medians'][i], STEP1_LATENT_KEYS) | build_step2_extra_init(i)
-
-
-step2_output = run_stage(
-    STEP2_KWARGS,
-    init_builder=build_step2_init_values,
-    max_iterations=20000,
-    seed=2234,
-)
-plot_stage_losses(step2_output, STEP6_RESULT_DIR)
-plot_stage_results(step2_output, STEP6_RESULT_DIR)
 
 
 # %% Cell 10
@@ -1029,14 +1024,28 @@ def build_step3_init_values(i):
     }
 
 
-step3_output = run_stage(
-    STEP3_KWARGS,
-    init_builder=build_step3_init_values,
-    max_iterations=20000,
-    seed=3234,
-)
-plot_stage_losses(step3_output, STEP6_RESULT_DIR)
-plot_stage_results(step3_output, STEP6_RESULT_DIR)
+if not resume_mode:
+    step2_output = run_stage(
+        STEP2_KWARGS,
+        init_builder=build_step2_init_values,
+        max_iterations=20000,
+        seed=2234,
+    )
+    plot_stage_losses(step2_output, STEP6_RESULT_DIR)
+    plot_stage_results(step2_output, STEP6_RESULT_DIR)
+
+    step3_output = run_stage(
+        STEP3_KWARGS,
+        init_builder=build_step3_init_values,
+        max_iterations=20000,
+        seed=3234,
+    )
+    plot_stage_losses(step3_output, STEP6_RESULT_DIR)
+    plot_stage_results(step3_output, STEP6_RESULT_DIR)
+else:
+    step1_output = None
+    step2_output = None
+    step3_output = None
 
 
 
@@ -1052,8 +1061,6 @@ def stack_dicts(dict_list):
 suffix_hmc = STEP3_SUFFIX
 print('HMC output dir:', HMC_OUTPUT_DIR)
 print('HMC suffix:', suffix_hmc)
-
-multi_svi_stage3_median = stack_dicts(step3_output['medians'])
 
 vars_pixel = ['pixels_wn_source_grid']
 vars_power = ['n_source_grid', 'rho_source_grid', 'sigma_source_grid']
@@ -1072,28 +1079,69 @@ vars_mass = [
 vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps']
 vars_cosmo = ['cosmo_vec', 'kappa_ext']
 
-# Match Step-5 HMC init logic: only pass true latent/sample sites into HMC init.
-multi_svi_stage3_median_vars = {
-    k: multi_svi_stage3_median[k]
-    for k in vars_pixel + vars_power + vars_mass + vars_point_source + vars_cosmo
-    if k in multi_svi_stage3_median
-}
+def existing_batch_indices(output_dir, suffix_hmc):
+    prefix = 'WFI2033_'
+    indices = []
+    for path in output_dir.glob(f'WFI2033_[0-9]*{suffix_hmc}.nc'):
+        name = path.name
+        idx_str = name[len(prefix):name.index(suffix_hmc)]
+        indices.append(int(idx_str))
+    return sorted(indices)
 
-unconstrained_stage3_median = jax.vmap(
-    lambda p: infer.util.unconstrain_fn(
-        model_step6,
-        (data_subtracted, STEP3_HMC_KWARGS),
-        {},
-        p,
-    )
-)(multi_svi_stage3_median_vars)
 
-unconstrained_stage3_median = {
-    k: jnp.asarray(v, dtype=jnp.float64)
-    for k, v in unconstrained_stage3_median.items()
-}
+def save_resume_state(path, state):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('wb') as fh:
+        pickle.dump(jax.device_get(state), fh, protocol=pickle.HIGHEST_PROTOCOL)
 
-init_fun_hmc = init_to_value_or_defer(values=get_value_from_index(multi_svi_stage3_median_vars, 0))
+
+def load_resume_state(path):
+    with Path(path).open('rb') as fh:
+        return pickle.load(fh)
+
+
+resume_state_path = HMC_OUTPUT_DIR / 'resume_state.pkl'
+existing_indices = existing_batch_indices(HMC_OUTPUT_DIR, suffix_hmc)
+start_batch = 0 if not existing_indices else max(existing_indices) + 1
+
+if resume_mode:
+    if not resume_state_path.exists():
+        raise FileNotFoundError(
+            f'Resume requested for run tag {STEP6_RUN_TAG}, but missing checkpoint: {resume_state_path}'
+        )
+    if not existing_indices:
+        raise FileNotFoundError(
+            f'Resume requested for run tag {STEP6_RUN_TAG}, but no existing batch files were found in {HMC_OUTPUT_DIR}'
+        )
+    print(f'Resuming HMC from tag {STEP6_RUN_TAG}; existing batches: {existing_indices}')
+    unconstrained_stage3_median = None
+    init_fun_hmc = init_to_value_or_defer(values={})
+else:
+    multi_svi_stage3_median = stack_dicts(step3_output['medians'])
+
+    # Match Step-5 HMC init logic: only pass true latent/sample sites into HMC init.
+    multi_svi_stage3_median_vars = {
+        k: multi_svi_stage3_median[k]
+        for k in vars_pixel + vars_power + vars_mass + vars_point_source + vars_cosmo
+        if k in multi_svi_stage3_median
+    }
+
+    unconstrained_stage3_median = jax.vmap(
+        lambda p: infer.util.unconstrain_fn(
+            model_step6,
+            (data_subtracted, STEP3_HMC_KWARGS),
+            {},
+            p,
+        )
+    )(multi_svi_stage3_median_vars)
+
+    unconstrained_stage3_median = {
+        k: jnp.asarray(v, dtype=jnp.float64)
+        for k, v in unconstrained_stage3_median.items()
+    }
+
+    init_fun_hmc = init_to_value_or_defer(values=get_value_from_index(multi_svi_stage3_median_vars, 0))
 
 stage3_kernel = NUTS(
     model_step6,
@@ -1122,7 +1170,7 @@ stage3_kernel = NUTS(
 
 num_warmup = 1500
 num_samples = 1000
-batch_number = 4
+batch_number = 4  # additional batches to run in this invocation
 
 rng_key_hmc = jax.random.PRNGKey(5252)
 
@@ -1136,8 +1184,18 @@ mcmc_stage3 = MCMC(
 )
 
 batch_list = []
-for i in range(batch_number):
-    if i == 0:
+for local_i in range(batch_number):
+    i = start_batch + local_i
+    if local_i == 0 and resume_mode:
+        resume_state = load_resume_state(resume_state_path)
+        mcmc_stage3.post_warmup_state = resume_state
+        mcmc_stage3.run(
+            resume_state.rng_key,
+            data_subtracted,
+            STEP3_HMC_KWARGS,
+            init_params=resume_state.z,
+        )
+    elif i == 0:
         mcmc_stage3.run(
             rng_key_hmc,
             data_subtracted,
@@ -1157,10 +1215,16 @@ for i in range(batch_number):
     inf_data_batch = az.from_numpyro(mcmc_stage3)
     batch_path = HMC_OUTPUT_DIR / f'WFI2033_{i}{suffix_hmc}.nc'
     inf_data_batch.to_netcdf(batch_path)
+    save_resume_state(resume_state_path, mcmc_stage3.last_state)
     print(f'Saved HMC batch to: {batch_path}')
     batch_list.append(inf_data_batch)
 
-inf_data_all = batch_list[0] if len(batch_list) == 1 else az.concat(*batch_list, dim='draw')
+all_batch_paths = [
+    HMC_OUTPUT_DIR / f'WFI2033_{idx}{suffix_hmc}.nc'
+    for idx in existing_batch_indices(HMC_OUTPUT_DIR, suffix_hmc)
+]
+all_batches = [az.from_netcdf(path) for path in all_batch_paths]
+inf_data_all = all_batches[0] if len(all_batches) == 1 else az.concat(*all_batches, dim='draw')
 final_hmc_path = HMC_OUTPUT_DIR / f'WFI2033_all{suffix_hmc}.nc'
 inf_data_all.to_netcdf(final_hmc_path)
 print(f'Saved final HMC inf_data to: {final_hmc_path}')
