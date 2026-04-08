@@ -747,9 +747,50 @@ def model_step6(data_subtracted, stage_kwargs):
 
 
 def evaluate_step6(params, stage_kwargs):
+    def render_components(data_subtracted, stage_kwargs):
+        m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 3.0))
+        if stage_kwargs.get('use_ml_gradient', False):
+            m2l_ratio_slope = numpyro.sample(
+                'm2l_ratio_slope',
+                dist.Uniform(
+                    stage_kwargs['m2l_ratio_slope_low'],
+                    stage_kwargs['m2l_ratio_slope_high'],
+                ),
+            )
+            mass_from_light = gradient_mass_from_light(m2l_ratio, m2l_ratio_slope)
+        else:
+            mass_from_light = scaled_mass_from_light(m2l_ratio)
+
+        gnfw_shear = Mass.GNFW_w_shear(
+            'Lens mass',
+            'halo',
+            **stage_kwargs['gnfw_kwargs'],
+        )
+        kwargs_source = [
+            PowerSpectrum.matern_power_spectrum(
+                k=k_values,
+                **SOURCE_GRID_PRIOR,
+            )
+        ]
+        kwargs_lens = mass_from_light + gnfw_shear + build_stage_sis(stage_kwargs)
+        kwargs_point_source = build_stage_point_source(stage_kwargs)
+        return kwargs_lens, kwargs_source, kwargs_point_source
+
     seeded = numpyro.handlers.seed(model_step6, jax.random.PRNGKey(0))
     substituted = numpyro.handlers.substitute(seeded, data=params)
     trace = numpyro.handlers.trace(substituted).get_trace(data_subtracted, stage_kwargs)
+    render_seeded = numpyro.handlers.seed(render_components, jax.random.PRNGKey(0))
+    render_substituted = numpyro.handlers.substitute(render_seeded, data=params)
+    kwargs_lens, kwargs_source, kwargs_point_source = render_substituted(data_subtracted, stage_kwargs)
+    lensed_source_only = lens_image_step6.model(
+        kwargs_lens=kwargs_lens,
+        kwargs_source=kwargs_source,
+        kwargs_lens_light=[],
+        kwargs_point_source=kwargs_point_source,
+        source_add=True,
+        lens_light_add=False,
+        point_source_add=False,
+    )
     fermat_diffs = None
     if stage_kwargs['compute_fermat_diffs']:
         fermat_diffs = {
@@ -772,6 +813,7 @@ def evaluate_step6(params, stage_kwargs):
                 fermat_diffs[key] = float(np.asarray(trace[key]['value']))
     return (
         np.array(trace['model_image']['value']),
+        np.array(lensed_source_only),
         np.array(trace['pixels_source_grid']['value']),
         np.array(trace['psf_kernel_corrected']['value']),
         fermat_diffs,
@@ -883,7 +925,7 @@ def plot_stage_results(stage_output, output_dir):
     output_dir.mkdir(parents=True, exist_ok=True)
     for i, params in enumerate(stage_output['medians']):
         stage_kwargs_i = stage_output['stage_kwargs_list'][i]
-        model_image, source_pixels, psf_kernel, fermat_diffs = evaluate_step6(params, stage_kwargs_i)
+        model_image, lensed_source_only, source_pixels, psf_kernel, fermat_diffs = evaluate_step6(params, stage_kwargs_i)
         residual = (data_subtracted - model_image) / rms_file
 
         title = (
@@ -909,7 +951,7 @@ def plot_stage_results(stage_output, output_dir):
                     f" | Δt34 = {fermat_diffs['dt_34_days']:.2f} d"
                 )
 
-        fig, ax = plt.subplots(1, 4, figsize=(18, 4.5))
+        fig, ax = plt.subplots(1, 5, figsize=(22.5, 4.5))
         fig.suptitle(title, y=1.02)
 
         ax[0].imshow(np.ma.array(data_subtracted, mask=~mask_out), origin='lower', extent=extent, cmap='twilight', norm='log')
@@ -918,12 +960,15 @@ def plot_stage_results(stage_output, output_dir):
         ax[1].imshow(np.ma.array(model_image, mask=~mask_out), origin='lower', extent=extent, cmap='twilight', norm='log')
         ax[1].set_title('model')
 
-        im = ax[2].imshow(np.ma.array(residual, mask=~mask_out), origin='lower', extent=extent, cmap='bwr', vmin=-3, vmax=3)
-        ax[2].set_title('residual / rms')
-        plt.colorbar(im, ax=ax[2], fraction=0.046, pad=0.04)
+        ax[2].imshow(np.ma.array(lensed_source_only, mask=~mask_out), origin='lower', extent=extent, cmap='twilight', norm='log')
+        ax[2].set_title('lensed source only')
 
-        ax[3].imshow(source_pixels, origin='lower', cmap='twilight')
-        ax[3].set_title('source')
+        im = ax[3].imshow(np.ma.array(residual, mask=~mask_out), origin='lower', extent=extent, cmap='bwr', vmin=-3, vmax=3)
+        ax[3].set_title('residual / rms')
+        plt.colorbar(im, ax=ax[3], fraction=0.046, pad=0.04)
+
+        ax[4].imshow(source_pixels, origin='lower', cmap='twilight')
+        ax[4].set_title('source')
 
         plt.tight_layout()
         out_path = output_dir / f"{Plot.sanitize_label(stage_output['label'])}_chain_{i:02d}.png"
