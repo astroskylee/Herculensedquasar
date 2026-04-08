@@ -89,11 +89,6 @@ CONJUGATE_POINT_PRIOR = {
     'rate': 1000.0,
 }
 
-PSF_CORR_PRIOR = {
-    'sigma_log': 1.0,
-    'log_clip': 5.0,
-}
-
 SOURCE_GRID_PRIOR = {
     'plate_name': 'Source grid',
     'param_name': 'source_grid',
@@ -115,21 +110,6 @@ conj_points = jnp.array([
 ])
 
 k_values = K_grid((pixel_grid_shape, pixel_grid_shape)).k
-
-
-def build_psf_corr_factor_field(log_psf_corr_center, psf_shape, log_clip=PSF_CORR_PRIOR['log_clip']):
-    ny, nx = psf_shape
-    log_field = jnp.asarray(log_psf_corr_center)
-    if log_field.shape != (ny, nx):
-        raise ValueError(f'log_psf_corr_center shape {log_field.shape} does not match psf shape {(ny, nx)}')
-    return jnp.exp(jnp.clip(log_field, -log_clip, log_clip))
-
-
-def build_corrected_psf_kernel(psf_base, log_psf_corr_center, eps=1e-12):
-    corr_field = build_psf_corr_factor_field(log_psf_corr_center, jnp.asarray(psf_base).shape)
-    psf_eff = jnp.asarray(psf_base) * corr_field
-    psf_eff = jnp.maximum(psf_eff, eps)
-    return psf_eff / (jnp.sum(psf_eff) + eps)
 
 # %% Cell 3
 DESI_PLANK_cov = {
@@ -474,7 +454,6 @@ STEP1_BASE_KWARGS = {
     'free_sis': (),
     'scale_with_g2': True,
     'free_point_source': False,
-    'enable_psf_corr': False,
     'use_conjugate_prior': False,
     'compute_fermat_diffs': False,
     'use_ml_gradient': False,
@@ -508,7 +487,6 @@ STEP2_KWARGS = {
     'free_sis': ('g1', 'g2'),
     'scale_with_g2': True,
     'free_point_source': True,
-    'enable_psf_corr': False,
     'use_conjugate_prior': True,
     'compute_fermat_diffs': True,
     'use_ml_gradient': False,
@@ -698,7 +676,6 @@ def build_stage_point_source(stage_kwargs):
 
 def build_stage_psf():
     psf_kernel = jnp.asarray(fixed_psf)
-    numpyro.deterministic('psf_corr_factor_field', jnp.ones_like(psf_kernel))
     numpyro.deterministic('psf_kernel_corrected', psf_kernel)
     return psf_kernel
 
@@ -1062,8 +1039,7 @@ def plot_stage_results(stage_output, output_dir):
                     f" | Δt34 = {fermat_diffs['dt_34_days']:.2f} d"
                 )
 
-        ncols = 5 if stage_kwargs_i['enable_psf_corr'] else 4
-        fig, ax = plt.subplots(1, ncols, figsize=(4.5 * ncols, 4.5))
+        fig, ax = plt.subplots(1, 4, figsize=(18, 4.5))
         fig.suptitle(title, y=1.02)
 
         ax[0].imshow(np.ma.array(data_subtracted, mask=~mask_out), origin='lower', extent=extent, cmap='twilight', norm='log')
@@ -1078,10 +1054,6 @@ def plot_stage_results(stage_output, output_dir):
 
         ax[3].imshow(source_pixels, origin='lower', cmap='twilight')
         ax[3].set_title('source')
-
-        if stage_kwargs_i['enable_psf_corr']:
-            ax[4].imshow(psf_kernel, origin='lower', cmap='twilight', norm='log')
-            ax[4].set_title('corrected psf')
 
         plt.tight_layout()
         out_path = output_dir / f"{sanitize_label(stage_output['label'])}_chain_{i:02d}.png"
