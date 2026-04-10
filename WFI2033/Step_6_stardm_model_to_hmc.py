@@ -277,6 +277,7 @@ mass_model_step6 = MassModel([
     'SIS',
     'SIS',
     'SIS',
+    'CONVERGENCE',
 ])
 source_light_model = LightModel(
     ['PIXELATED'],
@@ -486,9 +487,7 @@ def fixed_sis(theta_E, origin):
         'center_y': float(origin[1]),
     }]
 
-def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
-    cosmology = Cosmo.sample_cosmology_from_prior(stage_kwargs, COSMO_PRIORS)
-
+def sample_kappa_ext_convergence():
     kappa_ext = numpyro.sample(
         'kappa_ext',
         dist.Uniform(
@@ -505,19 +504,36 @@ def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
             KAPPA_EXT_PRIOR['sigma_plus'],
         ),
     )
+    return {
+        'kappa': kappa_ext,
+        'ra_0': jnp.asarray(0.0, dtype=jnp.float64),
+        'dec_0': jnp.asarray(0.0, dtype=jnp.float64),
+    }
 
-    D_dt_true, D_dt_model = Cosmo.compute_time_delay_distances(
+
+def build_stage_convergence(stage_kwargs):
+    if stage_kwargs.get('use_time_delay_likelihood', False):
+        return [sample_kappa_ext_convergence()]
+    return [{
+        'kappa': jnp.asarray(0.0, dtype=jnp.float64),
+        'ra_0': jnp.asarray(0.0, dtype=jnp.float64),
+        'dec_0': jnp.asarray(0.0, dtype=jnp.float64),
+    }]
+
+
+def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
+    cosmology = Cosmo.sample_cosmology_from_prior(stage_kwargs, COSMO_PRIORS)
+
+    D_dt = Cosmo.compute_time_delay_distances(
         cosmology,
-        kappa_ext,
         Z_LENS,
         Z_SOURCE,
     )
-    numpyro.deterministic('D_dt_true_Mpc', D_dt_true)
-    numpyro.deterministic('D_dt_model_Mpc', D_dt_model)
+    numpyro.deterministic('D_dt_Mpc', D_dt)
 
     prefactor_days = numpyro.deterministic(
         'time_delay_prefactor_days',
-        D_dt_model * jnp.asarray(TIME_DELAY_SCALE_DAYS, dtype=jnp.float64),
+        D_dt * jnp.asarray(TIME_DELAY_SCALE_DAYS, dtype=jnp.float64),
     )
     dt_31 = numpyro.deterministic('dt_31_days', prefactor_days * fpd_31)
     dt_32 = numpyro.deterministic('dt_32_days', prefactor_days * fpd_32)
@@ -714,7 +730,7 @@ def model_step6(data_subtracted, stage_kwargs):
             **SOURCE_GRID_PRIOR,
         )
     ]
-    kwargs_lens = mass_from_light + gnfw_shear + build_stage_sis(stage_kwargs)
+    kwargs_lens = mass_from_light + gnfw_shear + build_stage_sis(stage_kwargs) + build_stage_convergence(stage_kwargs)
     kwargs_point_source = build_stage_point_source(stage_kwargs)
     maybe_add_conjugate_prior(stage_kwargs, kwargs_lens, kwargs_point_source)
 
@@ -775,7 +791,7 @@ def evaluate_step6(params, stage_kwargs):
                 **SOURCE_GRID_PRIOR,
             )
         ]
-        kwargs_lens = mass_from_light + gnfw_shear + build_stage_sis(stage_kwargs)
+        kwargs_lens = mass_from_light + gnfw_shear + build_stage_sis(stage_kwargs) + build_stage_convergence(stage_kwargs)
         kwargs_point_source = build_stage_point_source(stage_kwargs)
         return kwargs_lens, kwargs_source, kwargs_point_source
 
@@ -806,8 +822,7 @@ def evaluate_step6(params, stage_kwargs):
                 'omega_m_cosmo',
                 'H0_cosmo',
                 'kappa_ext',
-                'D_dt_true_Mpc',
-                'D_dt_model_Mpc',
+                'D_dt_Mpc',
                 'dt_31_days',
                 'dt_32_days',
                 'dt_34_days',

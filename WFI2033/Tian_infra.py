@@ -502,11 +502,9 @@ class Cosmo:
         return Dl * Cosmo.c_km_s / h, Ds * Cosmo.c_km_s / h, Dls * Cosmo.c_km_s / h
 
     @staticmethod
-    def compute_time_delay_distances(cosmology, kappa_ext, z_lens, z_source):
+    def compute_time_delay_distances(cosmology, z_lens, z_source):
         dl, ds, dls = Cosmo.dldsdls(z_lens, z_source, cosmology)
-        d_dt_true = (1.0 + z_lens) * dl * ds / dls
-        d_dt_model = (1.0 - kappa_ext) * d_dt_true
-        return d_dt_true, d_dt_model
+        return (1.0 + z_lens) * dl * ds / dls
 
 
 def import_function(namespace=None):
