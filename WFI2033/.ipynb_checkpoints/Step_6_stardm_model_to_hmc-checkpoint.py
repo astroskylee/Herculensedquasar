@@ -36,6 +36,9 @@ mass_model_base.STRING_MAPPING['CUSPY_NFW_ELLIPSE_KAPPA'] = CuspyNFWEllipseKappa
 
 suffix = '_ss=2_full_light_multimass'
 run_tag = '20260401_11'
+STEP3_COSMO_PRIOR = 'PantheonSH0ES'#'DESI_PLANCK'  # or 'PantheonSH0ES'
+resume_mode = RESUME_RUN_TAG is not None
+
 OUTPUT_ROOT = Path('/mnt/lustre/tianli/quasar_hmc')
 RUN_OUTPUT_DIR = OUTPUT_ROOT / f'WFI2033{suffix}_{run_tag}'
 RESULT_DIR = Path(f'./result/result{suffix}_{run_tag}')
@@ -149,7 +152,7 @@ COSMO_PRIORS = {
     },
 }
 
-STEP3_COSMO_PRIOR = 'DESI_PLANCK'  # or 'PantheonSH0ES'
+
 STEP3_COSMO_TAG = STEP3_COSMO_PRIOR.lower()
 STEP3_SUFFIX = f"{suffix}_step6_{STEP3_COSMO_TAG}"
 RESUME_RUN_TAG = None  # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
@@ -977,7 +980,7 @@ def plot_stage_results(stage_output, output_dir):
         plt.close(fig)
 
 # %% Cell 8
-resume_mode = RESUME_RUN_TAG is not None
+
 
 if not resume_mode:
     step1_output = run_stage(
@@ -1142,7 +1145,7 @@ stage3_kernel = NUTS(
     ],
 )
 
-num_warmup = 1500
+num_warmup = 2000
 num_samples = 1000
 batch_number = 4  # additional batches to run in this invocation
 
