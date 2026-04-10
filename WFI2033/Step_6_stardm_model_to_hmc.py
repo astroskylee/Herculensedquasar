@@ -487,33 +487,29 @@ def fixed_sis(theta_E, origin):
         'center_y': float(origin[1]),
     }]
 
-def sample_kappa_ext_convergence():
-    kappa_ext = numpyro.sample(
-        'kappa_ext',
-        dist.Uniform(
-            low=jnp.asarray(KAPPA_EXT_PRIOR['low'], dtype=jnp.float64),
-            high=jnp.asarray(KAPPA_EXT_PRIOR['high'], dtype=jnp.float64),
-        ),
-    )
-    numpyro.factor(
-        'kappa_ext_prior',
-        Numpyro_function.split_normal_logpdf(
-            kappa_ext,
-            KAPPA_EXT_PRIOR['mean'],
-            KAPPA_EXT_PRIOR['sigma_minus'],
-            KAPPA_EXT_PRIOR['sigma_plus'],
-        ),
-    )
-    return {
-        'kappa': kappa_ext,
-        'ra_0': jnp.asarray(0.0, dtype=jnp.float64),
-        'dec_0': jnp.asarray(0.0, dtype=jnp.float64),
-    }
-
-
 def build_stage_convergence(stage_kwargs):
     if stage_kwargs.get('use_time_delay_likelihood', False):
-        return [sample_kappa_ext_convergence()]
+        kappa_ext = numpyro.sample(
+            'kappa_ext',
+            dist.Uniform(
+                low=jnp.asarray(KAPPA_EXT_PRIOR['low'], dtype=jnp.float64),
+                high=jnp.asarray(KAPPA_EXT_PRIOR['high'], dtype=jnp.float64),
+            ),
+        )
+        numpyro.factor(
+            'kappa_ext_prior',
+            Numpyro_function.split_normal_logpdf(
+                kappa_ext,
+                KAPPA_EXT_PRIOR['mean'],
+                KAPPA_EXT_PRIOR['sigma_minus'],
+                KAPPA_EXT_PRIOR['sigma_plus'],
+            ),
+        )
+        return [{
+            'kappa': kappa_ext,
+            'ra_0': jnp.asarray(0.0, dtype=jnp.float64),
+            'dec_0': jnp.asarray(0.0, dtype=jnp.float64),
+        }]
     return [{
         'kappa': jnp.asarray(0.0, dtype=jnp.float64),
         'ra_0': jnp.asarray(0.0, dtype=jnp.float64),
@@ -521,51 +517,18 @@ def build_stage_convergence(stage_kwargs):
     }]
 
 
-def add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs):
-    cosmology = Cosmo.sample_cosmology_from_prior(stage_kwargs, COSMO_PRIORS)
-
-    D_dt = Cosmo.compute_time_delay_distances(
-        cosmology,
-        Z_LENS,
-        Z_SOURCE,
-    )
-    numpyro.deterministic('D_dt_Mpc', D_dt)
-
-    prefactor_days = numpyro.deterministic(
-        'time_delay_prefactor_days',
-        D_dt * jnp.asarray(TIME_DELAY_SCALE_DAYS, dtype=jnp.float64),
-    )
-    dt_31 = numpyro.deterministic('dt_31_days', prefactor_days * fpd_31)
-    dt_32 = numpyro.deterministic('dt_32_days', prefactor_days * fpd_32)
-    dt_34 = numpyro.deterministic('dt_34_days', prefactor_days * fpd_34)
-
+def add_single_time_delay_likelihood(dt_name, like_name, prefactor_days, fpd, obs_key):
+    dt = numpyro.deterministic(dt_name, prefactor_days * fpd)
     numpyro.factor(
-        'dt_31_like',
+        like_name,
         Numpyro_function.split_normal_logpdf(
-            dt_31,
-            TIME_DELAY_OBS['dt_31_days']['mean'],
-            TIME_DELAY_OBS['dt_31_days']['sigma_minus'],
-            TIME_DELAY_OBS['dt_31_days']['sigma_plus'],
+            dt,
+            TIME_DELAY_OBS[obs_key]['mean'],
+            TIME_DELAY_OBS[obs_key]['sigma_minus'],
+            TIME_DELAY_OBS[obs_key]['sigma_plus'],
         ),
     )
-    numpyro.factor(
-        'dt_32_like',
-        Numpyro_function.split_normal_logpdf(
-            dt_32,
-            TIME_DELAY_OBS['dt_32_days']['mean'],
-            TIME_DELAY_OBS['dt_32_days']['sigma_minus'],
-            TIME_DELAY_OBS['dt_32_days']['sigma_plus'],
-        ),
-    )
-    numpyro.factor(
-        'dt_34_like',
-        Numpyro_function.split_normal_logpdf(
-            dt_34,
-            TIME_DELAY_OBS['dt_34_days']['mean'],
-            TIME_DELAY_OBS['dt_34_days']['sigma_minus'],
-            TIME_DELAY_OBS['dt_34_days']['sigma_plus'],
-        ),
-    )
+    return dt
 
 
 def build_stage_sis(stage_kwargs):
@@ -746,7 +709,20 @@ def model_step6(data_subtracted, stage_kwargs):
         fpd_34 = numpyro.deterministic('fpd_34', fermat[2] - fermat[3])
 
         if stage_kwargs.get('use_time_delay_likelihood', False):
-            add_time_delay_likelihood(fpd_31, fpd_32, fpd_34, stage_kwargs)
+            cosmology = Cosmo.sample_cosmology_from_prior(stage_kwargs, COSMO_PRIORS)
+            D_dt = Cosmo.compute_time_delay_distances(
+                cosmology,
+                Z_LENS,
+                Z_SOURCE,
+            )
+            numpyro.deterministic('D_dt_Mpc', D_dt)
+            prefactor_days = numpyro.deterministic(
+                'time_delay_prefactor_days',
+                D_dt * jnp.asarray(TIME_DELAY_SCALE_DAYS, dtype=jnp.float64),
+            )
+            add_single_time_delay_likelihood('dt_31_days', 'dt_31_like', prefactor_days, fpd_31, 'dt_31_days')
+            add_single_time_delay_likelihood('dt_32_days', 'dt_32_like', prefactor_days, fpd_32, 'dt_32_days')
+            add_single_time_delay_likelihood('dt_34_days', 'dt_34_like', prefactor_days, fpd_34, 'dt_34_days')
 
     psf_kernel = build_stage_psf()
 
