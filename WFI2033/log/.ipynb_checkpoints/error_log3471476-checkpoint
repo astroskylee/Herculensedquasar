@@ -1,0 +1,42 @@
+Traceback (most recent call last):
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/Step_6_stardm_model_imaging_only_to_hmc.py", line 60, in <module>
+    data = np.array(fits.getdata(PRODUCTS_DIR / f'data_bkg_sub{suffix_epl}.fits'), dtype=float)
+                    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/astropy/io/fits/convenience.py", line 220, in getdata
+    hdulist, extidx = _getext(filename, mode, *args, **kwargs)
+                      ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/astropy/io/fits/convenience.py", line 1121, in _getext
+    hdulist = fitsopen(filename, mode=mode, **kwargs)
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/astropy/io/fits/hdu/hdulist.py", line 220, in fitsopen
+    return HDUList.fromfile(
+           ~~~~~~~~~~~~~~~~^
+        name,
+        ^^^^^
+    ...<9 lines>...
+        **kwargs,
+        ^^^^^^^^^
+    )
+    ^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/astropy/io/fits/hdu/hdulist.py", line 484, in fromfile
+    return cls._readfrom(
+           ~~~~~~~~~~~~~^
+        fileobj=fileobj,
+        ^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+        **kwargs,
+        ^^^^^^^^^
+    )
+    ^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/astropy/io/fits/hdu/hdulist.py", line 1186, in _readfrom
+    fileobj = _File(
+        fileobj,
+    ...<5 lines>...
+        decompress_in_memory=decompress_in_memory,
+    )
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/astropy/io/fits/file.py", line 240, in __init__
+    self._open_filename(fileobj, mode, overwrite)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/astropy/io/fits/file.py", line 701, in _open_filename
+    self._file = open(self.name, IO_FITS_MODES[mode])
+                 ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'result/result_ss=2_inferh0_20260401_11/data_products/data_bkg_sub_ss=2_full_light_multimass.fits'

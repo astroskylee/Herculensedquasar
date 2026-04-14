@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/Step_6_stardm_model_imaging_only_to_hmc.py", line 64, in <module>
+    fixed_first_three = np.load(FIXED_FIRST_THREE_PATH)
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpy/lib/_npyio_impl.py", line 454, in load
+    fid = stack.enter_context(open(os.fspath(file), "rb"))
+                              ~~~~^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_20260401_11/fixed_first_three_gaussians_ss=2_full_light_multimass.npz'

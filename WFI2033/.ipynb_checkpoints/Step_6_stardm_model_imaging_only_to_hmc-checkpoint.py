@@ -34,21 +34,22 @@ class CuspyNFWEllipseKappa(MGE):
 
 mass_model_base.STRING_MAPPING['CUSPY_NFW_ELLIPSE_KAPPA'] = CuspyNFWEllipseKappa
 
-suffix = '_ss=2_full_light_multimass'
+suffix_inferh0 = '_ss=2_inferh0'
+suffix_epl = '_ss=2_full_light_multimass'
 run_tag = '20260401_11'
-STEP3_COSMO_PRIOR = 'DESI_PLANCK'#'DESI_PLANCK'  # or 'PantheonSH0ES'
-RESUME_RUN_TAG = None  # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
-resume_mode = RESUME_RUN_TAG is not None
+STEP3_COSMO_PRIOR = 'PantheonSH0ES'#'DESI_PLANCK'  # or 'PantheonSH0ES'
 
 OUTPUT_ROOT = Path('/mnt/lustre/tianli/quasar_hmc')
-RUN_OUTPUT_DIR = OUTPUT_ROOT / f'WFI2033{suffix}_{run_tag}'
-RESULT_DIR = Path(f'./result/result{suffix}_{run_tag}')
+RUN_OUTPUT_DIR = OUTPUT_ROOT / f'WFI2033{suffix_epl}_{run_tag}'
+RESULT_DIR = Path(f'./result/result{suffix_epl}_{run_tag}')
 PRODUCTS_DIR = RESULT_DIR / 'data_products'
 DATA_DIR = Path('../../Data/WFI2033')
 RAW_DATA_PATH = DATA_DIR / 'jw01198-o004_t004_nircam_clear-f115w_i2d.fits'
-DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light{suffix}.fits'
-HMC_MEDIAN_PATH = Path(f'./result/result_ss=2_full_light_multimass_20260401_11/HMC_median_draw{suffix}.nc')
-FIXED_FIRST_THREE_PATH = RUN_OUTPUT_DIR / f'fixed_first_three_gaussians{suffix}.npz'
+
+
+DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light{suffix_epl}.fits'
+HMC_MEDIAN_PATH = Path(f'./result/result_ss=2_full_light_multimass_20260401_11/HMC_median_draw{suffix_epl}.nc')
+FIXED_FIRST_THREE_PATH = RUN_OUTPUT_DIR / f'fixed_first_three_gaussians{suffix_epl}.npz'
 MASK_OUT_PATH = SCRIPT_DIR / 'data' / 'mask_out_center_r16.fits'
 
 with fits.open(RAW_DATA_PATH, memmap=True) as hdul_raw:
@@ -56,9 +57,9 @@ with fits.open(RAW_DATA_PATH, memmap=True) as hdul_raw:
     exposure_time = float(raw_header.get('EXPTIME', raw_header.get('TEXPTIME', raw_header.get('XPOSURE', 1.0))))
 pix_scale = float(np.sqrt(raw_header['PIXAR_A2']))
 
-data = np.array(fits.getdata(PRODUCTS_DIR / f'data_bkg_sub{suffix}.fits'), dtype=float)
+data = np.array(fits.getdata(PRODUCTS_DIR / f'data_bkg_sub{suffix_epl}.fits'), dtype=float)
 data_subtracted = np.array(fits.getdata(DATA_SUB_PATH), dtype=float)
-rms_file = np.array(fits.getdata(PRODUCTS_DIR / f'rms_with_psf_extra{suffix}.fits'), dtype=float)
+rms_file = np.array(fits.getdata(PRODUCTS_DIR / f'rms_with_psf_extra{suffix_epl}.fits'), dtype=float)
 mask_out = np.array(fits.getdata(MASK_OUT_PATH), dtype=bool)
 fixed_first_three = np.load(FIXED_FIRST_THREE_PATH)
 HMC_median = xr.open_dataset(HMC_MEDIAN_PATH)
@@ -155,7 +156,9 @@ COSMO_PRIORS = {
 
 
 STEP3_COSMO_TAG = STEP3_COSMO_PRIOR.lower()
-STEP3_SUFFIX = f"{suffix}_step6_{STEP3_COSMO_TAG}"
+STEP3_SUFFIX = f"{suffix_inferh0}_step6_imaging_only"
+RESUME_RUN_TAG = None  # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
+resume_mode = RESUME_RUN_TAG is not None
 STEP6_RUN_TAG = RESUME_RUN_TAG or datetime.now().strftime("%Y%m%d_%H")
 HMC_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
 STEP6_RESULT_DIR = SCRIPT_DIR / 'result' / f"result{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
@@ -443,6 +446,7 @@ STEP1_BASE_KWARGS = {
     'free_point_source': False,
     'use_conjugate_prior': False,
     'compute_fermat_diffs': False,
+    'sample_kappa_ext': False,
     'use_ml_gradient': False,
 }
 
@@ -475,7 +479,8 @@ STEP2_KWARGS = {
     'scale_with_g2': True,
     'free_point_source': True,
     'use_conjugate_prior': True,
-    'compute_fermat_diffs': True,
+    'compute_fermat_diffs': False,
+    'sample_kappa_ext': False,
     'use_ml_gradient': False,
 }
 
@@ -488,7 +493,7 @@ def fixed_sis(theta_E, origin):
     }]
 
 def build_stage_convergence(stage_kwargs):
-    if stage_kwargs.get('use_time_delay_likelihood', False):
+    if stage_kwargs.get('sample_kappa_ext', False):
         kappa_ext = numpyro.sample(
             'kappa_ext',
             dist.Uniform(
@@ -993,8 +998,9 @@ def build_step2_init_values(i):
 STEP3_KWARGS = {
     **STEP2_KWARGS,
     'label': f"step3 ({STEP3_SUFFIX})",
-    'use_time_delay_likelihood': True,
-    'cosmo_prior_name': STEP3_COSMO_PRIOR,
+    'use_time_delay_likelihood': False,
+    'sample_kappa_ext': True,
+    'compute_fermat_diffs': False,
     'use_ml_gradient': True,
     'm2l_ratio_slope_low': -0.6,
     'm2l_ratio_slope_high': 0.6,
@@ -1007,9 +1013,7 @@ STEP3_HMC_KWARGS = {
 
 
 def build_step3_init_values(i):
-    cosmo_prior = COSMO_PRIORS[STEP3_KWARGS['cosmo_prior_name']]
     return ResumeInit.select_init_values(step2_output['medians'][i], STEP2_LATENT_KEYS) | {
-        'cosmo_vec': jnp.asarray(cosmo_prior['mean_vec'], dtype=jnp.float64),
         'kappa_ext': jnp.asarray(KAPPA_EXT_PRIOR['mean'], dtype=jnp.float64),
         'm2l_ratio_slope': jnp.asarray(0.0, dtype=jnp.float64),
     }
@@ -1064,7 +1068,28 @@ vars_mass = [
     'theta_E_g2',
 ]
 vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps']
-vars_cosmo = ['cosmo_vec', 'kappa_ext']
+vars_cosmo = ['kappa_ext']
+
+STAGE3_POWER_BLOCK = ('n_source_grid', 'rho_source_grid', 'sigma_source_grid')
+STAGE3_MASS_COSMO_BLOCK = (
+    'm2l_ratio',
+    'm2l_ratio_slope',
+    'kappa_s_halo',
+    'gammain_halo',
+    'e_halo',
+    'Rs_halo',
+    'center_halo',
+    'gamma_sheer_halo',
+    'theta_E_g1',
+    'theta_E_g2',
+    'kappa_ext',
+)
+STAGE3_POINT_SOURCE_BLOCK = ('ra_ps', 'dec_ps', 'log10_amp_ps')
+STAGE3_DENSE_MASS = [
+    STAGE3_POWER_BLOCK,
+    STAGE3_MASS_COSMO_BLOCK,
+    STAGE3_POINT_SOURCE_BLOCK,
+]
 
 resume_state_path = HMC_OUTPUT_DIR / 'resume_state.pkl'
 warmup_state_path = HMC_OUTPUT_DIR / 'resume_state_after_warmup.pkl'
@@ -1116,29 +1141,13 @@ stage3_kernel = NUTS(
     init_strategy=init_fun_hmc,
     target_accept_prob=0.95,
     max_tree_depth=10,
-    dense_mass=[
-        ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
-        (
-            'm2l_ratio',
-            'm2l_ratio_slope',
-            'kappa_s_halo',
-            'gammain_halo',
-            'e_halo',
-            'Rs_halo',
-            'center_halo',
-            'gamma_sheer_halo',
-            'theta_E_g1',
-            'theta_E_g2',
-            'cosmo_vec',
-            'kappa_ext',
-        ),
-        ('ra_ps', 'dec_ps', 'log10_amp_ps'),
-    ],
+    dense_mass=STAGE3_DENSE_MASS,
+    adapt_mass_matrix=True,
 )
 
 num_warmup = 2000
 num_samples = 1000
-batch_number = 8  # additional batches to run in this invocation
+batch_number = 4  # additional batches to run in this invocation
 
 rng_key_hmc = jax.random.PRNGKey(5252)
 
