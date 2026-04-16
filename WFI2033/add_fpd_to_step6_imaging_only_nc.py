@@ -33,14 +33,6 @@ DEFAULT_FIXED_FIRST_THREE_PATH = RUN_OUTPUT_DIR / f"fixed_first_three_gaussians{
 
 Z_LENS = 0.6575
 Z_SOURCE = 1.662
-ARCSEC_TO_RAD = np.deg2rad(1.0 / 3600.0)
-MPC_TO_KM = 3.0856775814913673e19
-DAY_TO_S = 86400.0
-TIME_DELAY_OBS = {
-    "dt_31_days": {"mean": -36.2, "sigma_minus": 2.3, "sigma_plus": 1.6},
-    "dt_32_days": {"mean": -37.3, "sigma_minus": 3.0, "sigma_plus": 2.6},
-    "dt_34_days": {"mean": -59.4, "sigma_minus": 1.3, "sigma_plus": 1.3},
-}
 
 G1_MASS_CENTER = (1.556, 1.299)
 G2_MASS_CENTER = (2.145, -3.326)
@@ -204,106 +196,12 @@ def compute_fpd_for_sample(sample, full_lens_light, mass_model_step6):
     return fermat, fermat[2] - fermat[0], fermat[2] - fermat[1], fermat[2] - fermat[3]
 
 
-def build_lcdm_time_delay_model():
-    class TimeDelayObs(dist.Distribution):
-        support = dist.constraints.real
-
-        def __init__(self, loc, sigma_minus, sigma_plus):
-            self.loc = loc
-            self.sigma_minus = sigma_minus
-            self.sigma_plus = sigma_plus
-            batch_shape = jax.lax.broadcast_shapes(
-                jnp.shape(loc),
-                jnp.shape(sigma_minus),
-                jnp.shape(sigma_plus),
-            )
-            super().__init__(batch_shape=batch_shape, event_shape=())
-
-        def log_prob(self, value):
-            sigma = jnp.where(value < self.loc, self.sigma_plus, self.sigma_minus)
-            log_norm = jnp.log(jnp.sqrt(2.0 / jnp.pi)) - jnp.log(self.sigma_minus + self.sigma_plus)
-            return log_norm - 0.5 * ((value - self.loc) / sigma) ** 2
-
-    def model(fpd_31, fpd_32, fpd_34):
-        omega_m = numpyro.sample("omega_m_lcdm", dist.Uniform(0.5, 5.0))
-        h0 = numpyro.sample("H0_lcdm", dist.Uniform(60.0, 80.0))
-        cosmology = {
-            "Omegam": omega_m,
-            "Omegak": jnp.asarray(0.0, dtype=jnp.float64),
-            "w0": jnp.asarray(-1.0, dtype=jnp.float64),
-            "wa": jnp.asarray(0.0, dtype=jnp.float64),
-            "h0": h0,
-        }
-        d_dt = numpyro.deterministic(
-            "D_dt_Mpc_lcdm",
-            Cosmo.compute_time_delay_distances(cosmology, Z_LENS, Z_SOURCE),
-        )
-        prefactor_days = numpyro.deterministic(
-            "time_delay_prefactor_days_lcdm",
-            d_dt * jnp.asarray(MPC_TO_KM * ARCSEC_TO_RAD**2 / (Cosmo.c_km_s * DAY_TO_S), dtype=jnp.float64),
-        )
-        dt_31 = numpyro.deterministic("dt_31_days_lcdm", prefactor_days * fpd_31)
-        dt_32 = numpyro.deterministic("dt_32_days_lcdm", prefactor_days * fpd_32)
-        dt_34 = numpyro.deterministic("dt_34_days_lcdm", prefactor_days * fpd_34)
-        numpyro.sample(
-            "dt_31_obs",
-            TimeDelayObs(
-                dt_31,
-                jnp.asarray(TIME_DELAY_OBS["dt_31_days"]["sigma_minus"], dtype=jnp.float64),
-                jnp.asarray(TIME_DELAY_OBS["dt_31_days"]["sigma_plus"], dtype=jnp.float64),
-            ),
-            obs=jnp.asarray(TIME_DELAY_OBS["dt_31_days"]["mean"], dtype=jnp.float64),
-        )
-        numpyro.sample(
-            "dt_32_obs",
-            TimeDelayObs(
-                dt_32,
-                jnp.asarray(TIME_DELAY_OBS["dt_32_days"]["sigma_minus"], dtype=jnp.float64),
-                jnp.asarray(TIME_DELAY_OBS["dt_32_days"]["sigma_plus"], dtype=jnp.float64),
-            ),
-            obs=jnp.asarray(TIME_DELAY_OBS["dt_32_days"]["mean"], dtype=jnp.float64),
-        )
-        numpyro.sample(
-            "dt_34_obs",
-            TimeDelayObs(
-                dt_34,
-                jnp.asarray(TIME_DELAY_OBS["dt_34_days"]["sigma_minus"], dtype=jnp.float64),
-                jnp.asarray(TIME_DELAY_OBS["dt_34_days"]["sigma_plus"], dtype=jnp.float64),
-            ),
-            obs=jnp.asarray(TIME_DELAY_OBS["dt_34_days"]["mean"], dtype=jnp.float64),
-        )
-
-    return model
-
-
-def infer_lcdm_for_sample(fpd_31, fpd_32, fpd_34, rng_key, num_warmup, num_samples):
-    model = build_lcdm_time_delay_model()
-    kernel = infer.NUTS(model, target_accept_prob=0.9)
-    mcmc = infer.MCMC(
-        kernel,
-        num_warmup=num_warmup,
-        num_samples=num_samples,
-        num_chains=1,
-        progress_bar=False,
-    )
-    mcmc.run(
-        rng_key,
-        jnp.asarray(fpd_31, dtype=jnp.float64),
-        jnp.asarray(fpd_32, dtype=jnp.float64),
-        jnp.asarray(fpd_34, dtype=jnp.float64),
-    )
-    return {k: np.asarray(v, dtype=float) for k, v in mcmc.get_samples(group_by_chain=False).items()}
-
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=INPUT_PATH)
     parser.add_argument("--output", type=Path, default=OUTPUT_PATH)
     parser.add_argument("--hmc-median", type=Path, default=DEFAULT_HMC_MEDIAN_PATH)
     parser.add_argument("--fixed-first-three", type=Path, default=DEFAULT_FIXED_FIRST_THREE_PATH)
-    parser.add_argument("--lcdm-warmup", type=int, default=200)
-    parser.add_argument("--lcdm-samples", type=int, default=200)
-    parser.add_argument("--lcdm-seed", type=int, default=1234)
     return parser.parse_args()
 
 
@@ -311,8 +209,6 @@ def setup_infra():
     from Tian_infra import import_function
 
     import_function(globals())
-    jax.config.update("jax_enable_x64", True)
-    numpyro.enable_x64()
 
     class CuspyNFWEllipseKappa(MGE):
         def __init__(self):
@@ -351,12 +247,6 @@ def main():
     fpd_31 = np.empty((n_chain, n_draw), dtype=float)
     fpd_32 = np.empty((n_chain, n_draw), dtype=float)
     fpd_34 = np.empty((n_chain, n_draw), dtype=float)
-    omega_m_lcdm = np.empty((n_chain, n_draw, args.lcdm_samples), dtype=float)
-    h0_lcdm = np.empty((n_chain, n_draw, args.lcdm_samples), dtype=float)
-    d_dt_lcdm = np.empty((n_chain, n_draw, args.lcdm_samples), dtype=float)
-    dt_31_lcdm = np.empty((n_chain, n_draw, args.lcdm_samples), dtype=float)
-    dt_32_lcdm = np.empty((n_chain, n_draw, args.lcdm_samples), dtype=float)
-    dt_34_lcdm = np.empty((n_chain, n_draw, args.lcdm_samples), dtype=float)
 
     total = n_chain * n_draw
     count = 0
@@ -372,22 +262,8 @@ def main():
             fpd_31[chain, draw] = phi31
             fpd_32[chain, draw] = phi32
             fpd_34[chain, draw] = phi34
-            lcdm_samples = infer_lcdm_for_sample(
-                phi31,
-                phi32,
-                phi34,
-                jax.random.PRNGKey(args.lcdm_seed + count),
-                args.lcdm_warmup,
-                args.lcdm_samples,
-            )
-            omega_m_lcdm[chain, draw, :] = lcdm_samples["omega_m_lcdm"]
-            h0_lcdm[chain, draw, :] = lcdm_samples["H0_lcdm"]
-            d_dt_lcdm[chain, draw, :] = lcdm_samples["D_dt_Mpc_lcdm"]
-            dt_31_lcdm[chain, draw, :] = lcdm_samples["dt_31_days_lcdm"]
-            dt_32_lcdm[chain, draw, :] = lcdm_samples["dt_32_days_lcdm"]
-            dt_34_lcdm[chain, draw, :] = lcdm_samples["dt_34_days_lcdm"]
             count += 1
-            if count % 20 == 0 or count == total:
+            if count % 200 == 0 or count == total:
                 print(f"Processed {count}/{total} samples")
 
     chain_coord = posterior.coords["chain"]
@@ -401,36 +277,6 @@ def main():
         fpd_31=xr.DataArray(fpd_31, dims=("chain", "draw"), coords={"chain": chain_coord, "draw": draw_coord}),
         fpd_32=xr.DataArray(fpd_32, dims=("chain", "draw"), coords={"chain": chain_coord, "draw": draw_coord}),
         fpd_34=xr.DataArray(fpd_34, dims=("chain", "draw"), coords={"chain": chain_coord, "draw": draw_coord}),
-        omega_m_lcdm=xr.DataArray(
-            omega_m_lcdm,
-            dims=("chain", "draw", "lcdm_draw"),
-            coords={"chain": chain_coord, "draw": draw_coord, "lcdm_draw": np.arange(args.lcdm_samples)},
-        ),
-        H0_lcdm=xr.DataArray(
-            h0_lcdm,
-            dims=("chain", "draw", "lcdm_draw"),
-            coords={"chain": chain_coord, "draw": draw_coord, "lcdm_draw": np.arange(args.lcdm_samples)},
-        ),
-        D_dt_Mpc_lcdm=xr.DataArray(
-            d_dt_lcdm,
-            dims=("chain", "draw", "lcdm_draw"),
-            coords={"chain": chain_coord, "draw": draw_coord, "lcdm_draw": np.arange(args.lcdm_samples)},
-        ),
-        dt_31_days_lcdm=xr.DataArray(
-            dt_31_lcdm,
-            dims=("chain", "draw", "lcdm_draw"),
-            coords={"chain": chain_coord, "draw": draw_coord, "lcdm_draw": np.arange(args.lcdm_samples)},
-        ),
-        dt_32_days_lcdm=xr.DataArray(
-            dt_32_lcdm,
-            dims=("chain", "draw", "lcdm_draw"),
-            coords={"chain": chain_coord, "draw": draw_coord, "lcdm_draw": np.arange(args.lcdm_samples)},
-        ),
-        dt_34_days_lcdm=xr.DataArray(
-            dt_34_lcdm,
-            dims=("chain", "draw", "lcdm_draw"),
-            coords={"chain": chain_coord, "draw": draw_coord, "lcdm_draw": np.arange(args.lcdm_samples)},
-        ),
     )
     idata.to_netcdf(args.output)
     print(f"Saved: {args.output}")
