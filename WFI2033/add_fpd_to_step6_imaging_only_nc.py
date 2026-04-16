@@ -14,6 +14,10 @@ from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
+try:
+    from tqdm.auto import tqdm
+except ImportError:  # pragma: no cover - fallback when tqdm is unavailable
+    tqdm = None
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 os.chdir(SCRIPT_DIR)
@@ -252,7 +256,7 @@ def main():
     fpd_34 = np.empty((n_chain, n_draw), dtype=float)
 
     total = n_chain * n_draw
-    count = 0
+    progress = tqdm(total=total, desc="Computing FPD", unit="sample") if tqdm is not None else None
     for chain in range(n_chain):
         for draw in range(n_draw):
             sample = posterior.isel(chain=chain, draw=draw)
@@ -265,9 +269,11 @@ def main():
             fpd_31[chain, draw] = phi31
             fpd_32[chain, draw] = phi32
             fpd_34[chain, draw] = phi34
-            count += 1
-            if count % 200 == 0 or count == total:
-                print(f"Processed {count}/{total} samples")
+            if progress is not None:
+                progress.update(1)
+
+    if progress is not None:
+        progress.close()
 
     chain_coord = posterior.coords["chain"]
     draw_coord = posterior.coords["draw"]
