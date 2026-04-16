@@ -4,6 +4,9 @@ from __future__ import annotations
 import os
 
 os.environ.setdefault("HDF5_USE_FILE_LOCKING", "FALSE")
+os.environ.setdefault("JAX_PLATFORMS", "cpu")
+os.environ.setdefault("JAX_PLATFORM_NAME", "cpu")
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 
 import argparse
 import warnings
