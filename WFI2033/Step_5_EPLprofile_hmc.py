@@ -1241,7 +1241,7 @@ outer_kernel = MultiHMCGibbs(
 
 mcmc_pixel = MCMC(
     outer_kernel,
-    num_warmup=1500,
+    num_warmup=4000,
     num_samples=1000,
     num_chains=num_chains,
     progress_bar=True,

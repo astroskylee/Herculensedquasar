@@ -157,7 +157,7 @@ COSMO_PRIORS = {
 
 STEP3_COSMO_TAG = STEP3_COSMO_PRIOR.lower()
 STEP3_SUFFIX = f"{suffix_inferh0}_step6_imaging_only"
-RESUME_RUN_TAG = None  # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
+RESUME_RUN_TAG = '20260413_19' # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
 resume_mode = RESUME_RUN_TAG is not None
 STEP6_RUN_TAG = RESUME_RUN_TAG or datetime.now().strftime("%Y%m%d_%H")
 HMC_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
@@ -1147,7 +1147,7 @@ stage3_kernel = NUTS(
 
 num_warmup = 2000
 num_samples = 1000
-batch_number = 4  # additional batches to run in this invocation
+batch_number = 8  # additional batches to run in this invocation
 
 rng_key_hmc = jax.random.PRNGKey(5252)
 

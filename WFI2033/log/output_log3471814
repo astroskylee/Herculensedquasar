@@ -1,0 +1,20 @@
+Currently Loaded Modulefiles: 1) services/slurm <aL> 3) git/2.48.0 2) system/intel64(default) 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
+chain 0: m2l_ratio=1.5051, kappa_s_halo=0.1831, e1=-0.0861, e2=0.0336, success=True, cost=88.0052
+chain 1: m2l_ratio=1.4891, kappa_s_halo=0.1839, e1=-0.0868, e2=0.0351, success=True, cost=88.0763
+chain 2: m2l_ratio=1.4530, kappa_s_halo=0.1728, e1=-0.1023, e2=0.0323, success=True, cost=95.9826
+chain 3: m2l_ratio=1.4347, kappa_s_halo=0.1861, e1=-0.0886, e2=0.0398, success=True, cost=90.9635
+chain 4: m2l_ratio=1.5106, kappa_s_halo=0.1784, e1=-0.0858, e2=0.0332, success=True, cost=88.2040
+chain 5: m2l_ratio=1.5670, kappa_s_halo=0.1733, e1=-0.1173, e2=0.0378, success=True, cost=59.9854
+HMC output dir: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19
+HMC suffix: _ss=2_inferh0_step6_imaging_only
+Resuming HMC from tag 20260413_19; existing batches: [0, 1, 2, 3]
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_4_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_5_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_6_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_7_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_8_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_9_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_10_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_11_ss=2_inferh0_step6_imaging_only.nc
+Saved final HMC inf_data to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_all_ss=2_inferh0_step6_imaging_only.nc

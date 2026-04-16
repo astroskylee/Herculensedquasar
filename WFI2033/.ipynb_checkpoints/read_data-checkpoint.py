@@ -19,7 +19,7 @@ jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
 suffix = '_ss=2_full_light_multimass'
-run_tag = "20260401_11"
+run_tag = "20260416_14"
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
 RUN_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix}_{run_tag}"
 if not RUN_OUTPUT_DIR.exists():

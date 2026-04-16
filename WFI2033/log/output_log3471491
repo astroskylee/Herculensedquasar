@@ -30,3 +30,7 @@ Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033
 HMC output dir: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19
 HMC suffix: _ss=2_inferh0_step6_imaging_only
 Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_0_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_1_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_2_ss=2_inferh0_step6_imaging_only.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_3_ss=2_inferh0_step6_imaging_only.nc
+Saved final HMC inf_data to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_20260413_19/WFI2033_all_ss=2_inferh0_step6_imaging_only.nc
