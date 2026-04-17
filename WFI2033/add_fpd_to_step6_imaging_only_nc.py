@@ -52,6 +52,17 @@ SIS_PRIORS = {
     "g2": {"origin": G2_MASS_CENTER, "theta_mean": 0.622},
 }
 
+PROFILE_NAMES_STEP6 = [
+    "MULTI_GAUSSIAN_ELLIPSE_KAPPA",
+    "CUSPY_NFW_ELLIPSE_KAPPA",
+    "SHEAR",
+    "SIS_g1",
+    "SIS_g2",
+    "SIS_g3",
+    "SIS_g7",
+    "CONVERGENCE",
+]
+
 
 def fixed_sis(theta_e, origin):
     return [{
@@ -160,6 +171,20 @@ def validate_kwargs_lens(kwargs_lens, chain_idx=None, draw_idx=None):
             _finite_or_raise(f"kwargs_lens[{i}]['{key}']", value, chain_idx, draw_idx)
 
 
+def diagnose_profile_potentials(mass_model_step6, ra_ps, dec_ps, kwargs_lens, chain_idx=None, draw_idx=None):
+    for i, (profile_name, profile_kwargs) in enumerate(zip(PROFILE_NAMES_STEP6, kwargs_lens)):
+        potential_i = np.asarray(
+            mass_model_step6.potential(ra_ps, dec_ps, kwargs_lens, k=i),
+            dtype=float,
+        ).reshape(-1)
+        if not np.isfinite(potential_i).all():
+            where = f" (chain={chain_idx}, draw={draw_idx})" if chain_idx is not None and draw_idx is not None else ""
+            raise ValueError(
+                f"Non-finite potential contribution from profile {i} [{profile_name}]{where}: "
+                f"kwargs={profile_kwargs!r}, potential={potential_i!r}"
+            )
+
+
 def build_kwargs_lens(sample, full_lens_light):
     if "m2l_ratio_slope" in sample.data_vars:
         mass_from_light = gradient_mass_from_light(
@@ -238,6 +263,8 @@ def compute_fpd_for_sample(sample, full_lens_light, mass_model_step6, chain_idx=
         mass_model_step6.potential(ra_ps, dec_ps, kwargs_lens),
         dtype=float,
     ).reshape(-1)
+    if not np.isfinite(potential).all():
+        diagnose_profile_potentials(mass_model_step6, ra_ps, dec_ps, kwargs_lens, chain_idx, draw_idx)
     _finite_or_raise("potential", potential, chain_idx, draw_idx)
     src_x, src_y = mass_model_step6.ray_shooting(ra_ps, dec_ps, kwargs_lens)
     src_x = _finite_or_raise("ray_shooting_x", src_x, chain_idx, draw_idx).reshape(-1)
