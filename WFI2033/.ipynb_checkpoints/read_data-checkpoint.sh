@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:1
 #SBATCH --job-name=readnc
 #SBATCH --time=48:00:00
 #SBATCH --ntasks-per-node=1
@@ -10,8 +9,7 @@
 #SBATCH --error=log/error_log%j
 #SBATCH --mail-user=tian.li@port.ac.uk
 #SBATCH --mail-type=ALL
-#SBATCH --partition=gpu.q
-#SBATCH --exclude gpu[01,02,05]
+#SBATCH --partition=sciama4.q
 
 
 module load system
@@ -22,5 +20,5 @@ source /mnt/lustre2/shared_conda/envs/tianli/herculens_tian/bin/activate
 cd /users/tianli/LensModelling/Herculensedquasar/WFI2033
 
 
-python -u read_data.py
+python -u add_fpd_to_step6_imaging_only_nc.py
 #python -u Herculens_3DSPL_EPL.py

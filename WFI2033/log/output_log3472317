@@ -1,4 +1,0 @@
-Loading system/intel64
-  Loading requirement: services/slurm
-Currently Loaded Modulefiles: 1) git/2.48.0 3) system/intel64(default) 2) services/slurm <aL> 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
-[CudaDevice(id=0)]

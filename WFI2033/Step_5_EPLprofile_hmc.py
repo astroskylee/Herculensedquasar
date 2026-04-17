@@ -1241,14 +1241,14 @@ outer_kernel = MultiHMCGibbs(
 
 mcmc_pixel = MCMC(
     outer_kernel,
-    num_warmup=4000,
+    num_warmup=2000,
     num_samples=1000,
     num_chains=num_chains,
     progress_bar=True,
     chain_method="vectorized",
 )
 
-batch_number = 4
+batch_number = 8
 batch_list = []
 for i in range(batch_number):
     if i == 0:

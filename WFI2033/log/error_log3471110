@@ -1,7 +1,0 @@
-/users/tianli/herculens/herculens/Util/util.py:295: SyntaxWarning: invalid escape sequence '\*'
-  input_str = re.sub(re.compile("/\*.*?\*/", re.DOTALL), "", input_str)
-Traceback (most recent call last):
-  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/Step_6_stardm_model_to_hmc.py", line 40, in <module>
-    resume_mode = RESUME_RUN_TAG is not None
-                  ^^^^^^^^^^^^^^
-NameError: name 'RESUME_RUN_TAG' is not defined
