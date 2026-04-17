@@ -124,6 +124,42 @@ def sample_value(sample, name):
     return np.asarray(sample[name].values, dtype=float)
 
 
+def _finite_or_raise(name, value, chain_idx=None, draw_idx=None):
+    arr = np.asarray(value, dtype=float)
+    if not np.isfinite(arr).all():
+        where = f" (chain={chain_idx}, draw={draw_idx})" if chain_idx is not None and draw_idx is not None else ""
+        raise ValueError(f"Non-finite value in {name}{where}: {arr!r}")
+    return arr
+
+
+def validate_sample_inputs(sample, chain_idx=None, draw_idx=None):
+    required = [
+        "m2l_ratio",
+        "kappa_s_halo",
+        "gammain_halo",
+        "e_halo",
+        "Rs_halo",
+        "center_halo",
+        "gamma_sheer_halo",
+        "theta_E_g1",
+        "theta_E_g2",
+        "ra_ps",
+        "dec_ps",
+    ]
+    if "m2l_ratio_slope" in sample.data_vars:
+        required.append("m2l_ratio_slope")
+    if "kappa_ext" in sample.data_vars:
+        required.append("kappa_ext")
+    for name in required:
+        _finite_or_raise(name, sample_value(sample, name), chain_idx, draw_idx)
+
+
+def validate_kwargs_lens(kwargs_lens, chain_idx=None, draw_idx=None):
+    for i, profile_kwargs in enumerate(kwargs_lens):
+        for key, value in profile_kwargs.items():
+            _finite_or_raise(f"kwargs_lens[{i}]['{key}']", value, chain_idx, draw_idx)
+
+
 def build_kwargs_lens(sample, full_lens_light):
     if "m2l_ratio_slope" in sample.data_vars:
         mass_from_light = gradient_mass_from_light(
@@ -192,14 +228,25 @@ def build_kwargs_lens(sample, full_lens_light):
     return mass_from_light + gnfw_shear + sis_mass + convergence
 
 
-def compute_fpd_for_sample(sample, full_lens_light, mass_model_step6):
+def compute_fpd_for_sample(sample, full_lens_light, mass_model_step6, chain_idx=None, draw_idx=None):
+    validate_sample_inputs(sample, chain_idx, draw_idx)
     kwargs_lens = build_kwargs_lens(sample, full_lens_light)
-    ra_ps = sample_value(sample, "ra_ps").reshape(-1)
-    dec_ps = sample_value(sample, "dec_ps").reshape(-1)
-    fermat = np.asarray(
-        mass_model_step6.fermat_potential(ra_ps, dec_ps, kwargs_lens),
+    validate_kwargs_lens(kwargs_lens, chain_idx, draw_idx)
+    ra_ps = _finite_or_raise("ra_ps", sample_value(sample, "ra_ps").reshape(-1), chain_idx, draw_idx)
+    dec_ps = _finite_or_raise("dec_ps", sample_value(sample, "dec_ps").reshape(-1), chain_idx, draw_idx)
+    potential = np.asarray(
+        mass_model_step6.potential(ra_ps, dec_ps, kwargs_lens),
         dtype=float,
     ).reshape(-1)
+    _finite_or_raise("potential", potential, chain_idx, draw_idx)
+    src_x, src_y = mass_model_step6.ray_shooting(ra_ps, dec_ps, kwargs_lens)
+    src_x = _finite_or_raise("ray_shooting_x", src_x, chain_idx, draw_idx).reshape(-1)
+    src_y = _finite_or_raise("ray_shooting_y", src_y, chain_idx, draw_idx).reshape(-1)
+    fermat = np.asarray(
+        mass_model_step6.fermat_potential(ra_ps, dec_ps, kwargs_lens, x_source=src_x, y_source=src_y),
+        dtype=float,
+    ).reshape(-1)
+    _finite_or_raise("fermat_potential", fermat, chain_idx, draw_idx)
     return fermat, fermat[2] - fermat[0], fermat[2] - fermat[1], fermat[2] - fermat[3]
 
 
@@ -287,11 +334,18 @@ def main():
     for chain in range(n_chain):
         for draw in range(n_draw):
             sample = posterior.isel(chain=chain, draw=draw)
-            fermat, phi31, phi32, phi34 = compute_fpd_for_sample(
-                sample,
-                full_lens_light,
-                mass_model_step6,
-            )
+            try:
+                fermat, phi31, phi32, phi34 = compute_fpd_for_sample(
+                    sample,
+                    full_lens_light,
+                    mass_model_step6,
+                    chain_idx=chain,
+                    draw_idx=draw,
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"FPD computation failed at chain={chain}, draw={draw}"
+                ) from exc
             fermat_images[chain, draw, :] = fermat
             fpd_31[chain, draw] = phi31
             fpd_32[chain, draw] = phi32
