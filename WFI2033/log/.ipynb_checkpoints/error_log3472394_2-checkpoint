@@ -1,4 +1,4 @@
-ERROR:2026-04-17 00:05:57,500:jax._src.xla_bridge:473: Jax plugin configuration error: Exception when calling jax_plugins.xla_cuda12.initialize()
+ERROR:2026-04-17 01:06:56,186:jax._src.xla_bridge:473: Jax plugin configuration error: Exception when calling jax_plugins.xla_cuda12.initialize()
 Traceback (most recent call last):
   File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/jax/_src/xla_bridge.py", line 471, in discover_pjrt_plugins
     plugin_module.initialize()
