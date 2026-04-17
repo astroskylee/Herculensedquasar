@@ -203,12 +203,33 @@ def compute_fpd_for_sample(sample, full_lens_light, mass_model_step6):
     return fermat, fermat[2] - fermat[0], fermat[2] - fermat[1], fermat[2] - fermat[3]
 
 
+def default_output_path(input_path, chain_index=None):
+    stem = input_path.stem
+    if stem.endswith("_withFPD"):
+        output_stem = stem
+    else:
+        output_stem = f"{stem}_withFPD"
+    if chain_index is not None:
+        output_stem = f"{output_stem}_chain{chain_index}"
+    return input_path.with_name(f"{output_stem}.nc")
+
+
+def slice_idata_chain(idata, chain_index):
+    sliced = idata.copy()
+    for group in sliced.groups():
+        dataset = getattr(sliced, group, None)
+        if dataset is not None and "chain" in dataset.dims:
+            setattr(sliced, group, dataset.isel(chain=[chain_index]).load())
+    return sliced
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=INPUT_PATH)
-    parser.add_argument("--output", type=Path, default=OUTPUT_PATH)
+    parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--hmc-median", type=Path, default=DEFAULT_HMC_MEDIAN_PATH)
     parser.add_argument("--fixed-first-three", type=Path, default=DEFAULT_FIXED_FIRST_THREE_PATH)
+    parser.add_argument("--chain-index", type=int, default=None)
     return parser.parse_args()
 
 
@@ -246,7 +267,13 @@ def main():
     mass_model_step6 = build_mass_model_step6()
 
     idata = az.from_netcdf(args.input)
+    if args.chain_index is not None:
+        n_chain_total = idata.posterior.sizes["chain"]
+        if not 0 <= args.chain_index < n_chain_total:
+            raise ValueError(f"--chain-index must be in [0, {n_chain_total - 1}], got {args.chain_index}")
+        idata = slice_idata_chain(idata, args.chain_index)
     posterior = idata.posterior.load()
+    output_path = args.output if args.output is not None else default_output_path(args.input, args.chain_index)
     n_chain = posterior.sizes["chain"]
     n_draw = posterior.sizes["draw"]
 
@@ -287,8 +314,8 @@ def main():
         fpd_32=xr.DataArray(fpd_32, dims=("chain", "draw"), coords={"chain": chain_coord, "draw": draw_coord}),
         fpd_34=xr.DataArray(fpd_34, dims=("chain", "draw"), coords={"chain": chain_coord, "draw": draw_coord}),
     )
-    idata.to_netcdf(args.output)
-    print(f"Saved: {args.output}")
+    idata.to_netcdf(output_path)
+    print(f"Saved: {output_path}")
 
 
 if __name__ == "__main__":
