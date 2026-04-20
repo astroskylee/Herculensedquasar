@@ -47,9 +47,9 @@ DATA_DIR = Path('../../Data/WFI2033')
 RAW_DATA_PATH = DATA_DIR / 'jw01198-o004_t004_nircam_clear-f115w_i2d.fits'
 
 
-DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light{suffix_epl}.fits'
+DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light_corrected_psf{suffix_epl}.fits'
 HMC_MEDIAN_PATH = Path(f'./result/result_ss=2_full_light_multimass_20260401_11/HMC_median_draw{suffix_epl}.nc')
-FIXED_FIRST_THREE_PATH = RUN_OUTPUT_DIR / f'fixed_first_three_gaussians{suffix_epl}.npz'
+FIXED_FIVE_GAUSS_PATH = RESULT_DIR / f'fixed_five_gaussians_corrected_psf{suffix_epl}.npz'
 MASK_OUT_PATH = SCRIPT_DIR / 'data' / 'mask_out_center_r16.fits'
 
 with fits.open(RAW_DATA_PATH, memmap=True) as hdul_raw:
@@ -61,7 +61,7 @@ data = np.array(fits.getdata(PRODUCTS_DIR / f'data_bkg_sub{suffix_epl}.fits'), d
 data_subtracted = np.array(fits.getdata(DATA_SUB_PATH), dtype=float)
 rms_file = np.array(fits.getdata(PRODUCTS_DIR / f'rms_with_psf_extra{suffix_epl}.fits'), dtype=float)
 mask_out = np.array(fits.getdata(MASK_OUT_PATH), dtype=bool)
-fixed_first_three = np.load(FIXED_FIRST_THREE_PATH)
+fixed_five_gaussians = np.load(FIXED_FIVE_GAUSS_PATH)
 HMC_median = xr.open_dataset(HMC_MEDIAN_PATH)
 HMC_reference = HMC_median.median(dim='chain')
 
@@ -206,27 +206,13 @@ TIME_DELAY_OBS = {
 }
 
 # %% Cell 4
-fixed_inner_three = [{
-    'amp': np.array(fixed_first_three['amp'], dtype=float),
-    'sigma': np.array(fixed_first_three['sigma'], dtype=float),
-    'e1': np.array(fixed_first_three['e1'], dtype=float),
-    'e2': np.array(fixed_first_three['e2'], dtype=float),
-    'center_x': np.array(fixed_first_three['center_x'], dtype=float),
-    'center_y': np.array(fixed_first_three['center_y'], dtype=float),
-}]
-
-outer_two = [{
-    'amp': np.array(HMC_reference['amp_lens'].values, dtype=float)[-2:],
-    'sigma': np.array(HMC_reference['sigma_lens'].values, dtype=float)[-2:],
-    'e1': np.array(HMC_reference['e_lens'].values, dtype=float)[0, -2:],
-    'e2': np.array(HMC_reference['e_lens'].values, dtype=float)[1, -2:],
-    'center_x': np.array(HMC_reference['center_lens'].values, dtype=float)[0, -2:],
-    'center_y': np.array(HMC_reference['center_lens'].values, dtype=float)[1, -2:],
-}]
-
 full_lens_light = [{
-    k: np.concatenate([np.asarray(fixed_inner_three[0][k]), np.asarray(outer_two[0][k])])
-    for k in ('amp', 'sigma', 'e1', 'e2', 'center_x', 'center_y')
+    'amp': np.array(fixed_five_gaussians['amp'], dtype=float),
+    'sigma': np.array(fixed_five_gaussians['sigma'], dtype=float),
+    'e1': np.array(fixed_five_gaussians['e1'], dtype=float),
+    'e2': np.array(fixed_five_gaussians['e2'], dtype=float),
+    'center_x': np.array(fixed_five_gaussians['center_x'], dtype=float),
+    'center_y': np.array(fixed_five_gaussians['center_y'], dtype=float),
 }]
 
 fixed_point_source = [{
