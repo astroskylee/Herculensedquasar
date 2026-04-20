@@ -1122,7 +1122,7 @@ stage3_kernel = NUTS(
     ],
 )
 
-num_warmup = 2000
+num_warmup = 1000
 num_samples = 1000
 batch_number = 8  # additional batches to run in this invocation
 
