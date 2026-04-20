@@ -36,7 +36,7 @@ mass_model_base.STRING_MAPPING['CUSPY_NFW_ELLIPSE_KAPPA'] = CuspyNFWEllipseKappa
 
 suffix_inferh0 = '_ss=2_inferh0'
 suffix_epl = '_ss=2_full_light_multimass'
-run_tag = '20260401_11'
+run_tag = '20260417_14'
 STEP3_COSMO_PRIOR = 'PantheonSH0ES'#'DESI_PLANCK'  # or 'PantheonSH0ES'
 
 OUTPUT_ROOT = Path('/mnt/lustre/tianli/quasar_hmc')
@@ -48,7 +48,7 @@ RAW_DATA_PATH = DATA_DIR / 'jw01198-o004_t004_nircam_clear-f115w_i2d.fits'
 
 
 DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light_corrected_psf{suffix_epl}.fits'
-HMC_MEDIAN_PATH = Path(f'./result/result_ss=2_full_light_multimass_20260401_11/HMC_median_draw{suffix_epl}.nc')
+HMC_MEDIAN_PATH = RESULT_DIR / f'HMC_median_draw{suffix_epl}.nc'
 FIXED_FIVE_GAUSS_PATH = RESULT_DIR / f'fixed_five_gaussians_corrected_psf{suffix_epl}.npz'
 MASK_OUT_PATH = SCRIPT_DIR / 'data' / 'mask_out_center_r16.fits'
 
