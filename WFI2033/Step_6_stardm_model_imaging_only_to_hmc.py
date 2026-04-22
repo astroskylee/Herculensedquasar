@@ -36,20 +36,18 @@ mass_model_base.STRING_MAPPING['CUSPY_NFW_ELLIPSE_KAPPA'] = CuspyNFWEllipseKappa
 
 suffix_inferh0 = '_ss=2_inferh0'
 suffix_epl = '_ss=2_full_light_multimass'
-BASE_RUN_TAG = '20260401_11'
-CORRECTED_RUN_TAG = '20260417_14'
+run_tag = '20260417_14'
 
 OUTPUT_ROOT = Path('/mnt/lustre/tianli/quasar_hmc')
-BASE_RESULT_DIR = Path(f'./result/result{suffix_epl}_{BASE_RUN_TAG}')
-CORRECTED_RESULT_DIR = Path(f'./result/result{suffix_epl}_{CORRECTED_RUN_TAG}')
-PRODUCTS_DIR = BASE_RESULT_DIR / 'data_products'
+RESULT_DIR = Path(f'./result/result{suffix_epl}_{run_tag}')
+PRODUCTS_DIR = RESULT_DIR / 'data_products'
 DATA_DIR = Path('../../Data/WFI2033')
 RAW_DATA_PATH = DATA_DIR / 'jw01198-o004_t004_nircam_clear-f115w_i2d.fits'
 
 
-DATA_SUB_PATH = CORRECTED_RESULT_DIR / f'data_minus_lens_light_corrected_psf{suffix_epl}.fits'
-HMC_MEDIAN_PATH = BASE_RESULT_DIR / f'HMC_median_draw{suffix_epl}.nc'
-FIXED_FIVE_GAUSS_PATH = CORRECTED_RESULT_DIR / f'fixed_five_gaussians_corrected_psf{suffix_epl}.npz'
+DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light_corrected_psf{suffix_epl}.fits'
+HMC_MEDIAN_PATH = RESULT_DIR / f'HMC_median_draw{suffix_epl}.nc'
+FIXED_FIVE_GAUSS_PATH = RESULT_DIR / f'fixed_five_gaussians_corrected_psf{suffix_epl}.npz'
 MASK_OUT_PATH = SCRIPT_DIR / 'data' / 'mask_out_center_r16.fits'
 
 with fits.open(RAW_DATA_PATH, memmap=True) as hdul_raw:
