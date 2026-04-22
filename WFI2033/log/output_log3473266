@@ -39,3 +39,9 @@ Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033
 Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_full_light_multimass_step6_desi_planck_20260420_17/step3__ss=2_full_light_multimass_step6_desi_planck_chain_07.png
 HMC output dir: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260420_17
 HMC suffix: _ss=2_full_light_multimass_step6_desi_planck
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260420_17/WFI2033_0_ss=2_full_light_multimass_step6_desi_planck.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260420_17/WFI2033_1_ss=2_full_light_multimass_step6_desi_planck.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260420_17/WFI2033_2_ss=2_full_light_multimass_step6_desi_planck.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260420_17/WFI2033_3_ss=2_full_light_multimass_step6_desi_planck.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260420_17/WFI2033_4_ss=2_full_light_multimass_step6_desi_planck.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_desi_planck_20260420_17/WFI2033_5_ss=2_full_light_multimass_step6_desi_planck.nc
