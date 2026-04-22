@@ -1097,29 +1097,78 @@ else:
         values=ResumeInit.get_value_from_index(multi_svi_stage3_median_vars, 0)
     )
 
+STAGE3_POWER_BLOCK = ('n_source_grid', 'rho_source_grid', 'sigma_source_grid')
+STAGE3_MASS_COSMO_BLOCK = (
+    'm2l_ratio',
+    'm2l_ratio_slope',
+    'kappa_s_halo',
+    'gammain_halo',
+    'e_halo',
+    'Rs_halo',
+    'center_halo',
+    'gamma_sheer_halo',
+    'theta_E_g1',
+    'theta_E_g2',
+    'cosmo_vec',
+    'kappa_ext',
+)
+STAGE3_POINT_SOURCE_BLOCK = ('ra_ps', 'dec_ps', 'log10_amp_ps')
+STAGE3_DENSE_MASS = [
+    STAGE3_POWER_BLOCK,
+    STAGE3_MASS_COSMO_BLOCK,
+    STAGE3_POINT_SOURCE_BLOCK,
+]
+
+############################################## Mass Matrix block
+# insertion order must match STAGE3_MASS_COSMO_BLOCK flatten order
+mass_cosmo_std_diag_dict = {
+    'm2l_ratio': 0.12,
+    'm2l_ratio_slope': 0.071,
+    'kappa_s_halo': 0.043,
+    'gammain_halo': 0.09,
+    'e_halo[0]': 0.0032,
+    'e_halo[1]': 0.004,
+    'Rs_halo': 4.4,
+    'center_halo[0]': 0.0043,
+    'center_halo[1]': 0.0017,
+    'gamma_sheer_halo[0]': 0.0027,
+    'gamma_sheer_halo[1]': 0.0083,
+    'theta_E_g1[0]': 0.0036,
+    'theta_E_g2[0]': 0.036,
+    'cosmo_vec[0]': 1,
+    'cosmo_vec[1]': 5,
+    'kappa_ext': 0.046,
+}
+
+mass_cosmo_std_diag = jnp.asarray(
+    list(mass_cosmo_std_diag_dict.values()),
+    dtype=jnp.float64,
+)
+mass_cosmo_std_diag = jnp.clip(mass_cosmo_std_diag, 1e-12, 1e12)
+
+mass_cosmo_inverse_mass_diag = 1.0 / (mass_cosmo_std_diag ** 2)
+mass_cosmo_inverse_mass_diag = jnp.clip(mass_cosmo_inverse_mass_diag, 1e-12, 1e12)
+
+print('initial posterior std diag for STAGE3_MASS_COSMO_BLOCK:')
+for name, val in mass_cosmo_std_diag_dict.items():
+    print(f"  {name:20s} std={val:.2g}")
+
+print('initial inverse mass diag for STAGE3_MASS_COSMO_BLOCK:')
+for name, val in zip(mass_cosmo_std_diag_dict.keys(), mass_cosmo_inverse_mass_diag):
+    print(f"  {name:20s} inverse_mass_diag={float(val):.6e}")
+
+initial_inverse_mass_matrix = {
+    STAGE3_MASS_COSMO_BLOCK: mass_cosmo_inverse_mass_diag,
+}
+
 stage3_kernel = NUTS(
     model_step6,
     init_strategy=init_fun_hmc,
     target_accept_prob=0.95,
     max_tree_depth=10,
-    dense_mass=[
-        ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'),
-        (
-            'm2l_ratio',
-            'm2l_ratio_slope',
-            'kappa_s_halo',
-            'gammain_halo',
-            'e_halo',
-            'Rs_halo',
-            'center_halo',
-            'gamma_sheer_halo',
-            'theta_E_g1',
-            'theta_E_g2',
-            'cosmo_vec',
-            'kappa_ext',
-        ),
-        ('ra_ps', 'dec_ps', 'log10_amp_ps'),
-    ],
+    dense_mass=STAGE3_DENSE_MASS,
+    inverse_mass_matrix=initial_inverse_mass_matrix,
+    adapt_mass_matrix=True,
 )
 
 num_warmup = 1000
