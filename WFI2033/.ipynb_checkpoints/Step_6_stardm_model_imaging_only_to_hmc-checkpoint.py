@@ -36,20 +36,18 @@ mass_model_base.STRING_MAPPING['CUSPY_NFW_ELLIPSE_KAPPA'] = CuspyNFWEllipseKappa
 
 suffix_inferh0 = '_ss=2_inferh0'
 suffix_epl = '_ss=2_full_light_multimass'
-run_tag = '20260401_11'
-STEP3_COSMO_PRIOR = 'PantheonSH0ES'#'DESI_PLANCK'  # or 'PantheonSH0ES'
+run_tag = '20260417_14'
 
 OUTPUT_ROOT = Path('/mnt/lustre/tianli/quasar_hmc')
-RUN_OUTPUT_DIR = OUTPUT_ROOT / f'WFI2033{suffix_epl}_{run_tag}'
 RESULT_DIR = Path(f'./result/result{suffix_epl}_{run_tag}')
 PRODUCTS_DIR = RESULT_DIR / 'data_products'
 DATA_DIR = Path('../../Data/WFI2033')
 RAW_DATA_PATH = DATA_DIR / 'jw01198-o004_t004_nircam_clear-f115w_i2d.fits'
 
 
-DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light{suffix_epl}.fits'
-HMC_MEDIAN_PATH = Path(f'./result/result_ss=2_full_light_multimass_20260401_11/HMC_median_draw{suffix_epl}.nc')
-FIXED_FIRST_THREE_PATH = RUN_OUTPUT_DIR / f'fixed_first_three_gaussians{suffix_epl}.npz'
+DATA_SUB_PATH = RESULT_DIR / f'data_minus_lens_light_corrected_psf{suffix_epl}.fits'
+HMC_MEDIAN_PATH = RESULT_DIR / f'HMC_median_draw{suffix_epl}.nc'
+FIXED_FIVE_GAUSS_PATH = RESULT_DIR / f'fixed_five_gaussians_corrected_psf{suffix_epl}.npz'
 MASK_OUT_PATH = SCRIPT_DIR / 'data' / 'mask_out_center_r16.fits'
 
 with fits.open(RAW_DATA_PATH, memmap=True) as hdul_raw:
@@ -61,7 +59,7 @@ data = np.array(fits.getdata(PRODUCTS_DIR / f'data_bkg_sub{suffix_epl}.fits'), d
 data_subtracted = np.array(fits.getdata(DATA_SUB_PATH), dtype=float)
 rms_file = np.array(fits.getdata(PRODUCTS_DIR / f'rms_with_psf_extra{suffix_epl}.fits'), dtype=float)
 mask_out = np.array(fits.getdata(MASK_OUT_PATH), dtype=bool)
-fixed_first_three = np.load(FIXED_FIRST_THREE_PATH)
+fixed_five_gaussians = np.load(FIXED_FIVE_GAUSS_PATH)
 HMC_median = xr.open_dataset(HMC_MEDIAN_PATH)
 HMC_reference = HMC_median.median(dim='chain')
 
@@ -137,27 +135,17 @@ PantheonSH0ES_mean = {
     'H0': 73.502685,
 }
 
-COSMO_PRIORS = {
-    'DESI_PLANCK': {
-        'mean_vec': np.array([
-            DESI_PLANCK_mean['omega_m'],
-            DESI_PLANCK_mean['H0'],
-        ], dtype=float),
-        'cov': DESI_PLANCK_cov['matrix'],
-    },
-    'PantheonSH0ES': {
-        'mean_vec': np.array([
-            PantheonSH0ES_mean['omega_m'],
-            PantheonSH0ES_mean['H0'],
-        ], dtype=float),
-        'cov': PantheonSH0ES_cov['matrix'],
-    },
+UNIFORM_COSMO_PRIOR = {
+    'omega_m_low': 0.5,
+    'omega_m_high': 5.0,
+    'H0_low': 60.0,
+    'H0_high': 80.0,
 }
 
 
-STEP3_COSMO_TAG = STEP3_COSMO_PRIOR.lower()
-STEP3_SUFFIX = f"{suffix_inferh0}_step6_imaging_only"
-RESUME_RUN_TAG = '20260413_19' # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
+STEP3_COSMO_TAG = 'uniform_om0p5_5_h060_80'
+STEP3_SUFFIX = f"{suffix_inferh0}_step6_imaging_only_{STEP3_COSMO_TAG}"
+RESUME_RUN_TAG = None  # old checkpoints are incompatible after changing the cosmology latent space
 resume_mode = RESUME_RUN_TAG is not None
 STEP6_RUN_TAG = RESUME_RUN_TAG or datetime.now().strftime("%Y%m%d_%H")
 HMC_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
@@ -206,27 +194,13 @@ TIME_DELAY_OBS = {
 }
 
 # %% Cell 4
-fixed_inner_three = [{
-    'amp': np.array(fixed_first_three['amp'], dtype=float),
-    'sigma': np.array(fixed_first_three['sigma'], dtype=float),
-    'e1': np.array(fixed_first_three['e1'], dtype=float),
-    'e2': np.array(fixed_first_three['e2'], dtype=float),
-    'center_x': np.array(fixed_first_three['center_x'], dtype=float),
-    'center_y': np.array(fixed_first_three['center_y'], dtype=float),
-}]
-
-outer_two = [{
-    'amp': np.array(HMC_reference['amp_lens'].values, dtype=float)[-2:],
-    'sigma': np.array(HMC_reference['sigma_lens'].values, dtype=float)[-2:],
-    'e1': np.array(HMC_reference['e_lens'].values, dtype=float)[0, -2:],
-    'e2': np.array(HMC_reference['e_lens'].values, dtype=float)[1, -2:],
-    'center_x': np.array(HMC_reference['center_lens'].values, dtype=float)[0, -2:],
-    'center_y': np.array(HMC_reference['center_lens'].values, dtype=float)[1, -2:],
-}]
-
 full_lens_light = [{
-    k: np.concatenate([np.asarray(fixed_inner_three[0][k]), np.asarray(outer_two[0][k])])
-    for k in ('amp', 'sigma', 'e1', 'e2', 'center_x', 'center_y')
+    'amp': np.array(fixed_five_gaussians['amp'], dtype=float),
+    'sigma': np.array(fixed_five_gaussians['sigma'], dtype=float),
+    'e1': np.array(fixed_five_gaussians['e1'], dtype=float),
+    'e2': np.array(fixed_five_gaussians['e2'], dtype=float),
+    'center_x': np.array(fixed_five_gaussians['center_x'], dtype=float),
+    'center_y': np.array(fixed_five_gaussians['center_y'], dtype=float),
 }]
 
 fixed_point_source = [{
@@ -536,6 +510,32 @@ def add_single_time_delay_likelihood(dt_name, like_name, prefactor_days, fpd, ob
     return dt
 
 
+def sample_stage_cosmology(stage_kwargs):
+    if stage_kwargs.get('cosmo_prior_mode') == 'uniform':
+        omega_m = numpyro.sample(
+            'omega_m_cosmo',
+            dist.Uniform(
+                low=jnp.asarray(stage_kwargs['omega_m_low'], dtype=jnp.float64),
+                high=jnp.asarray(stage_kwargs['omega_m_high'], dtype=jnp.float64),
+            ),
+        )
+        h0 = numpyro.sample(
+            'H0_cosmo',
+            dist.Uniform(
+                low=jnp.asarray(stage_kwargs['H0_low'], dtype=jnp.float64),
+                high=jnp.asarray(stage_kwargs['H0_high'], dtype=jnp.float64),
+            ),
+        )
+        return {
+            'Omegam': omega_m,
+            'Omegak': jnp.asarray(0.0, dtype=jnp.float64),
+            'w0': jnp.asarray(-1.0, dtype=jnp.float64),
+            'wa': jnp.asarray(0.0, dtype=jnp.float64),
+            'h0': h0,
+        }
+    raise ValueError(f"Unsupported cosmology prior mode: {stage_kwargs.get('cosmo_prior_mode')!r}")
+
+
 def build_stage_sis(stage_kwargs):
     sis_mass = []
     fixed_sis_theta_E = dict(stage_kwargs['fixed_sis_theta_E'])
@@ -714,7 +714,7 @@ def model_step6(data_subtracted, stage_kwargs):
         fpd_34 = numpyro.deterministic('fpd_34', fermat[2] - fermat[3])
 
         if stage_kwargs.get('use_time_delay_likelihood', False):
-            cosmology = Cosmo.sample_cosmology_from_prior(stage_kwargs, COSMO_PRIORS)
+            cosmology = sample_stage_cosmology(stage_kwargs)
             D_dt = Cosmo.compute_time_delay_distances(
                 cosmology,
                 Z_LENS,
@@ -998,9 +998,14 @@ def build_step2_init_values(i):
 STEP3_KWARGS = {
     **STEP2_KWARGS,
     'label': f"step3 ({STEP3_SUFFIX})",
-    'use_time_delay_likelihood': False,
+    'use_time_delay_likelihood': True,
+    'cosmo_prior_mode': 'uniform',
+    'omega_m_low': UNIFORM_COSMO_PRIOR['omega_m_low'],
+    'omega_m_high': UNIFORM_COSMO_PRIOR['omega_m_high'],
+    'H0_low': UNIFORM_COSMO_PRIOR['H0_low'],
+    'H0_high': UNIFORM_COSMO_PRIOR['H0_high'],
     'sample_kappa_ext': True,
-    'compute_fermat_diffs': False,
+    'compute_fermat_diffs': True,
     'use_ml_gradient': True,
     'm2l_ratio_slope_low': -0.6,
     'm2l_ratio_slope_high': 0.6,
@@ -1014,6 +1019,14 @@ STEP3_HMC_KWARGS = {
 
 def build_step3_init_values(i):
     return ResumeInit.select_init_values(step2_output['medians'][i], STEP2_LATENT_KEYS) | {
+        'omega_m_cosmo': jnp.asarray(
+            0.5 * (UNIFORM_COSMO_PRIOR['omega_m_low'] + UNIFORM_COSMO_PRIOR['omega_m_high']),
+            dtype=jnp.float64,
+        ),
+        'H0_cosmo': jnp.asarray(
+            0.5 * (UNIFORM_COSMO_PRIOR['H0_low'] + UNIFORM_COSMO_PRIOR['H0_high']),
+            dtype=jnp.float64,
+        ),
         'kappa_ext': jnp.asarray(KAPPA_EXT_PRIOR['mean'], dtype=jnp.float64),
         'm2l_ratio_slope': jnp.asarray(0.0, dtype=jnp.float64),
     }
@@ -1068,7 +1081,7 @@ vars_mass = [
     'theta_E_g2',
 ]
 vars_point_source = ['ra_ps', 'dec_ps', 'log10_amp_ps']
-vars_cosmo = ['kappa_ext']
+vars_cosmo = ['omega_m_cosmo', 'H0_cosmo', 'kappa_ext']
 
 STAGE3_POWER_BLOCK = ('n_source_grid', 'rho_source_grid', 'sigma_source_grid')
 STAGE3_MASS_COSMO_BLOCK = (
@@ -1082,6 +1095,8 @@ STAGE3_MASS_COSMO_BLOCK = (
     'gamma_sheer_halo',
     'theta_E_g1',
     'theta_E_g2',
+    'omega_m_cosmo',
+    'H0_cosmo',
     'kappa_ext',
 )
 STAGE3_POINT_SOURCE_BLOCK = ('ra_ps', 'dec_ps', 'log10_amp_ps')
@@ -1145,7 +1160,7 @@ stage3_kernel = NUTS(
     adapt_mass_matrix=True,
 )
 
-num_warmup = 2000
+num_warmup = 1000
 num_samples = 1000
 batch_number = 8  # additional batches to run in this invocation
 
