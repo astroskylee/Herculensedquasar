@@ -143,7 +143,7 @@ UNIFORM_COSMO_PRIOR = {
 }
 
 
-STEP3_COSMO_TAG = 'uniform_om0p5_5_h060_80'
+STEP3_COSMO_TAG = 'infer_LCDM'
 STEP3_SUFFIX = f"{suffix_inferh0}_step6_imaging_only_{STEP3_COSMO_TAG}"
 RESUME_RUN_TAG = None  # old checkpoints are incompatible after changing the cosmology latent space
 resume_mode = RESUME_RUN_TAG is not None
@@ -1211,7 +1211,7 @@ num_warmup = 1000
 num_samples = 1000
 batch_number = 8  # additional batches to run in this invocation
 
-rng_key_hmc = jax.random.PRNGKey(5252)
+rng_key_hmc = jax.random.PRNGKey(42)
 
 mcmc_stage3 = MCMC(
     stage3_kernel,
