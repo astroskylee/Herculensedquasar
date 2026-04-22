@@ -136,8 +136,8 @@ PantheonSH0ES_mean = {
 }
 
 UNIFORM_COSMO_PRIOR = {
-    'omega_m_low': 0.5,
-    'omega_m_high': 5.0,
+    'omega_m_low': 0.05,
+    'omega_m_high': 0.55,
     'H0_low': 60.0,
     'H0_high': 80.0,
 }
