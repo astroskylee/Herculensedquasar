@@ -1,0 +1,12 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) git/2.48.0 3) system/intel64(default) 2) services/slurm <aL> 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
+chain 0: m2l_ratio=1.3264, kappa_s_halo=0.1852, e1=-0.0803, e2=0.0420, success=True, cost=152.2688
+chain 1: m2l_ratio=1.2841, kappa_s_halo=0.1937, e1=-0.0827, e2=0.0441, success=True, cost=146.6401
+chain 2: m2l_ratio=1.2760, kappa_s_halo=0.1930, e1=-0.0854, e2=0.0480, success=True, cost=150.2024
+chain 3: m2l_ratio=1.3378, kappa_s_halo=0.1775, e1=-0.0986, e2=0.0401, success=True, cost=160.0097
+chain 4: m2l_ratio=1.2656, kappa_s_halo=0.1947, e1=-0.0870, e2=0.0483, success=True, cost=147.8205
+chain 5: m2l_ratio=1.3373, kappa_s_halo=0.1775, e1=-0.0990, e2=0.0405, success=True, cost=158.0155
+chain 6: m2l_ratio=1.2855, kappa_s_halo=0.1925, e1=-0.0754, e2=0.0404, success=True, cost=149.6952
+chain 7: m2l_ratio=1.3442, kappa_s_halo=0.1862, e1=-0.1095, e2=0.0481, success=True, cost=109.5177
