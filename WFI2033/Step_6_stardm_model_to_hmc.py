@@ -36,7 +36,7 @@ mass_model_base.STRING_MAPPING['CUSPY_NFW_ELLIPSE_KAPPA'] = CuspyNFWEllipseKappa
 
 suffix = '_ss=2_full_light_multimass'
 run_tag = '20260417_14'
-STEP3_COSMO_PRIOR = 'DESI_PLANCK'#'DESI_PLANCK'  # or 'PantheonSH0ES'
+STEP3_COSMO_PRIOR = 'PantheonSH0ES'#'DESI_PLANCK'  # or 'PantheonSH0ES'
 RESUME_RUN_TAG = None  # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
 resume_mode = RESUME_RUN_TAG is not None
 
@@ -1164,7 +1164,7 @@ initial_inverse_mass_matrix = {
 stage3_kernel = NUTS(
     model_step6,
     init_strategy=init_fun_hmc,
-    target_accept_prob=0.95,
+    target_accept_prob=0.96,
     max_tree_depth=10,
     dense_mass=STAGE3_DENSE_MASS,
     inverse_mass_matrix=initial_inverse_mass_matrix,

@@ -71,3 +71,12 @@ initial inverse mass diag for STAGE3_MASS_COSMO_BLOCK:
   omega_m_cosmo        inverse_mass_diag=1.000000e+00
   H0_cosmo             inverse_mass_diag=4.000000e-02
   kappa_ext            inverse_mass_diag=4.725898e+02
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_infer_LCDM_20260422_15/WFI2033_0_ss=2_inferh0_step6_imaging_only_infer_LCDM.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_infer_LCDM_20260422_15/WFI2033_1_ss=2_inferh0_step6_imaging_only_infer_LCDM.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_infer_LCDM_20260422_15/WFI2033_2_ss=2_inferh0_step6_imaging_only_infer_LCDM.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_infer_LCDM_20260422_15/WFI2033_3_ss=2_inferh0_step6_imaging_only_infer_LCDM.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_infer_LCDM_20260422_15/WFI2033_4_ss=2_inferh0_step6_imaging_only_infer_LCDM.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_infer_LCDM_20260422_15/WFI2033_5_ss=2_inferh0_step6_imaging_only_infer_LCDM.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_infer_LCDM_20260422_15/WFI2033_6_ss=2_inferh0_step6_imaging_only_infer_LCDM.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_infer_LCDM_20260422_15/WFI2033_7_ss=2_inferh0_step6_imaging_only_infer_LCDM.nc
+Saved final HMC inf_data to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_inferh0_step6_imaging_only_infer_LCDM_20260422_15/WFI2033_all_ss=2_inferh0_step6_imaging_only_infer_LCDM.nc
