@@ -73,3 +73,4 @@ initial inverse mass diag for STAGE3_MASS_COSMO_BLOCK:
   cosmo_vec[0]         inverse_mass_diag=1.000000e+00
   cosmo_vec[1]         inverse_mass_diag=4.000000e-02
   kappa_ext            inverse_mass_diag=4.725898e+02
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_full_light_multimass_step6_pantheonsh0es_20260426_08/WFI2033_0_ss=2_full_light_multimass_step6_pantheonsh0es.nc
