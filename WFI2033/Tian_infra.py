@@ -41,6 +41,51 @@ from lens_images_extension import LensImageExtension
 from power_spectrum_prior import K_grid, P_Matern, pack_fft_values
 
 
+def multi_gauss_light_fixed_center(
+    plate_name,
+    param_name,
+    n_gauss,
+    sigma_lims,
+    fixed_center,
+    e_low=None,
+    e_high=None,
+    **_unused_center_kwargs,
+):
+    """Multi-Gaussian light profile with all Gaussian centers fixed."""
+    sigma_bins = jnp.logspace(
+        jnp.log10(sigma_lims[0]),
+        jnp.log10(sigma_lims[1]),
+        n_gauss + 1,
+    )
+    fixed_center = jnp.asarray(fixed_center, dtype=jnp.float64)
+
+    with numpyro.plate(f'{plate_name} - [{n_gauss}]', n_gauss):
+        A = numpyro.sample(f'A_{param_name}', dist.LogUniform(1e-5, 1e6))
+        sigma = numpyro.sample(
+            f'sigma_{param_name}',
+            dist.LogUniform(sigma_bins[:-1], sigma_bins[1:]),
+        )
+        with numpyro.plate(f'{plate_name} vectors - [2]', 2):
+            e = numpyro.sample(
+                f'e_{param_name}',
+                dist.TruncatedNormal(0, 0.1, low=e_low, high=e_high),
+            )
+
+    center = numpyro.deterministic(
+        f'center_{param_name}',
+        jnp.repeat(fixed_center[:, None], n_gauss, axis=1),
+    )
+    amp = numpyro.deterministic(f'amp_{param_name}', A * sigma ** 2)
+    return [{
+        'amp': amp,
+        'sigma': sigma,
+        'e1': e[0],
+        'e2': e[1],
+        'center_x': center[0],
+        'center_y': center[1],
+    }]
+
+
 class Plot:
     @staticmethod
     def sanitize_label(label):
@@ -542,6 +587,7 @@ def import_function(namespace=None):
         'mass_model_base': mass_model_base,
         'CuspyNFW_3D_fn': CuspyNFW_3D_fn,
         'MGE': MGE,
+        'multi_gauss_light_fixed_center': multi_gauss_light_fixed_center,
         'Plot': Plot,
         'ResumeInit': ResumeInit,
         'Geometry': Geometry,
