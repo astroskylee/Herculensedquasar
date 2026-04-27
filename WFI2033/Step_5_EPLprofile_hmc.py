@@ -131,9 +131,9 @@ conj_points = jnp.array([
 ])
 
 ss_factor = 2
-suffix = f'_ss={ss_factor}_full_light_multimass'
+suffix = f'_ss={ss_factor}_fullconcen_light_multimass_'
 PSF_CORNER_SIZE = 5
-num_chains = 6
+num_chains = 8
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
 RUN_TAG = datetime.now().strftime("%Y%m%d_%H")
 OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix}_{RUN_TAG}"
@@ -1000,12 +1000,27 @@ fits.writeto(
 print(f"Saved fixed first-three Gaussians to: {FIXED_FIRST_THREE_GAUSS_PATH}")
 print(f"Saved fixed first-three PSF to: {FIXED_FIRST_THREE_PSF_PATH}")
 
-stage4_best_two_lens_init = {
+inner_three_amp = jnp.asarray(FIXED_INNER_THREE_KWARGS[0]["amp"], dtype=jnp.float64)
+inner_three_center_x = jnp.asarray(FIXED_INNER_THREE_KWARGS[0]["center_x"], dtype=jnp.float64)
+inner_three_center_y = jnp.asarray(FIXED_INNER_THREE_KWARGS[0]["center_y"], dtype=jnp.float64)
+inner_three_weight = inner_three_amp / jnp.sum(inner_three_amp)
+stage4_inner_three_light_centroid = jnp.array(
+    [
+        jnp.sum(inner_three_weight * inner_three_center_x),
+        jnp.sum(inner_three_weight * inner_three_center_y),
+    ],
+    dtype=jnp.float64,
+)
+
+stage4_best_two_lens_init_base = {
     "A_lens": best_stage3_params["A_lens"][-2:],
     "sigma_lens": best_stage3_params["sigma_lens"][-2:],
     "e_lens": best_stage3_params["e_lens"][:, -2:],
-    "center_lens": best_stage3_params["center_lens"][:, -2:],
 }
+print(
+    "Stage4 outer-two center prior/init = inner-three light centroid:",
+    np.asarray(stage4_inner_three_light_centroid),
+)
 
 max_iterations_stage4 = max_iterations_stage3
 num_chains_stage4 = num_chains_stage3
@@ -1018,11 +1033,35 @@ scheduler_stage4 = optax.exponential_decay(
 optim_stage4 = optax.adabelief(learning_rate=scheduler_stage4)
 loss_stage4 = infer.TraceMeanField_ELBO()
 
-PIXELATED_STAGE4_KWARGS = PIXELATED_STAGE3_KWARGS | {
-    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_OUTER_TWO_KWARGS,
+STAGE4_LIGHT_CENTER_WINDOW = 0.05
+
+
+def stage4_lens_light_prior_from_fixed_light_center(light_center, center_window=STAGE4_LIGHT_CENTER_WINDOW):
+    x_light = light_center[0]
+    y_light = light_center[1]
+    return LENS_LIGHT_PRIOR_OUTER_TWO_KWARGS | {
+        "center_x_loc": x_light,
+        "center_y_loc": y_light,
+        "center_x_low": x_light - center_window,
+        "center_x_high": x_light + center_window,
+        "center_y_low": y_light - center_window,
+        "center_y_high": y_light + center_window,
+        "center_sigma": center_window,
+    }
+
+
+PIXELATED_STAGE4_BASE_KWARGS = PIXELATED_STAGE3_KWARGS | {
     "fixed_lens_light_kwargs": FIXED_INNER_THREE_KWARGS,
     "fixed_lens_light_psf_kernel": fixed_inner_three_psf,
 }
+
+PIXELATED_STAGE4_KWARGS = PIXELATED_STAGE4_BASE_KWARGS | {
+    "lens_light_prior_kwargs": stage4_lens_light_prior_from_fixed_light_center(
+        stage4_inner_three_light_centroid
+    ),
+}
+
+# HMC uses the same fixed light-centroid prior center as stage4 SVI.
 HMC_RUN_KWARGS = PIXELATED_STAGE4_KWARGS | {
     "conj": False,
 }
@@ -1033,11 +1072,14 @@ stage4_guides = []
 
 for i in range(num_chains_stage4):
     params_stage3_i = get_value_from_index(multi_svi_pixel_median_stage3, i)
+    stage4_outer_two_center_init = jnp.repeat(stage4_inner_three_light_centroid[:, None], 2, axis=1)
     params_stage4_init_i = {
         k: v
         for k, v in params_stage3_i.items()
         if k not in {"A_lens", "sigma_lens", "e_lens", "center_lens", "amp_lens"}
-    } | stage4_best_two_lens_init
+    } | stage4_best_two_lens_init_base | {
+        "center_lens": stage4_outer_two_center_init,
+    }
     init_fun_stage4_i = init_to_value_or_defer(values=params_stage4_init_i)
     guide_stage4_i = autoguide.AutoDiagonalNormal(model, init_loc_fn=init_fun_stage4_i, init_scale=0.01)
     svi_stage4_i = infer.SVI(model, guide_stage4_i, optim_stage4, loss_stage4)

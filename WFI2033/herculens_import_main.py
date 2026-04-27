@@ -158,11 +158,38 @@ def params2kwargs_GNFW_w_shear(params, param_name):
 
 
 ######################################################################################################################################################
-def multi_gauss_light(plate_name, param_name, n_gauss, sigma_lims, center_low=None, center_high=None, e_low=None, e_high=None):
+def multi_gauss_light(
+    plate_name,
+    param_name,
+    n_gauss,
+    sigma_lims,
+    center_low=None,
+    center_high=None,
+    e_low=None,
+    e_high=None,
+    center_x_loc=None,
+    center_y_loc=None,
+    center_x_low=None,
+    center_x_high=None,
+    center_y_low=None,
+    center_y_high=None,
+    center_sigma=0.1,
+):
     sigma_bins = jnp.logspace(
         jnp.log10(sigma_lims[0]),
         jnp.log10(sigma_lims[1]),
         n_gauss + 1
+    )
+    has_xy_center_prior = any(
+        v is not None
+        for v in (
+            center_x_loc,
+            center_y_loc,
+            center_x_low,
+            center_x_high,
+            center_y_low,
+            center_y_high,
+        )
     )
 
     with numpyro.plate(f'{plate_name} - [{n_gauss}]', n_gauss):
@@ -173,13 +200,43 @@ def multi_gauss_light(plate_name, param_name, n_gauss, sigma_lims, center_low=No
         )
         with numpyro.plate(f'{plate_name} vectors - [2]', 2):
             e = numpyro.sample(f'e_{param_name}', dist.TruncatedNormal(0, 0.1, low=e_low, high=e_high))
-            if (center_low is not None) or (center_high is not None):
+            if has_xy_center_prior:
+                pass
+            elif (center_low is not None) or (center_high is not None):
                 center = numpyro.sample(
                     f'center_{param_name}',
                     dist.TruncatedNormal(0.0, 0.1, low=center_low, high=center_high)
                 )
             else:
                 center = numpyro.sample(f'center_{param_name}', dist.Normal(0.0, 0.5))
+
+    if has_xy_center_prior:
+        def _center_array(value, default):
+            if value is None:
+                value = default
+            return jnp.broadcast_to(jnp.asarray(value), (n_gauss,))
+
+        center_loc = jnp.stack([
+            _center_array(center_x_loc, 0.0),
+            _center_array(center_y_loc, 0.0),
+        ])
+        center_low_xy = jnp.stack([
+            _center_array(center_x_low, -jnp.inf),
+            _center_array(center_y_low, -jnp.inf),
+        ])
+        center_high_xy = jnp.stack([
+            _center_array(center_x_high, jnp.inf),
+            _center_array(center_y_high, jnp.inf),
+        ])
+        center = numpyro.sample(
+            f'center_{param_name}',
+            dist.TruncatedNormal(
+                center_loc,
+                center_sigma,
+                low=center_low_xy,
+                high=center_high_xy,
+            ).to_event(2),
+        )
 
     amp = numpyro.deterministic(f'amp_{param_name}', A * sigma**2)
     return [{
