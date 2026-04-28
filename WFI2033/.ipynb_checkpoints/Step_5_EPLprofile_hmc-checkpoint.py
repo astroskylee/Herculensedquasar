@@ -43,6 +43,7 @@ warnings.simplefilter("ignore")
 from herculens_import_main import *  # noqa: F401,F403
 from lens_images_extension import LensImageExtension
 from lens_images_extension import pixelize_plane as pixelize_plane_single
+from Tian_infra import multi_gauss_light_fixed_center
 import jax
 import numpyro
 import arviz as az
@@ -131,7 +132,7 @@ conj_points = jnp.array([
 ])
 
 ss_factor = 2
-suffix = f'_ss={ss_factor}_fullconcen_light_multimass_'
+suffix = f'_ss={ss_factor}_fullconcen_light_multimass'
 PSF_CORNER_SIZE = 5
 num_chains = 8
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
@@ -414,6 +415,7 @@ def model(
     psf_kernel=None,
     psf_kernel_super=None,
     enable_psf_corr=False,
+    fixed_lens_light_center=None,
 ):
     if mass_prior_kwargs is None:
         mass_prior_kwargs = {}
@@ -446,7 +448,13 @@ def model(
     )
     mass_params = mass_params + fixed_sis_from_theta_E(theta_E_g3, G3_MASS_CENTER)
     mass_params = mass_params + fixed_sis_from_theta_E(theta_E_g7, G7_MASS_CENTER)
-    lens_light = multi_gauss_light(**lens_light_prior_kwargs)
+    if fixed_lens_light_center is None:
+        lens_light = multi_gauss_light(**lens_light_prior_kwargs)
+    else:
+        lens_light = multi_gauss_light_fixed_center(
+            **lens_light_prior_kwargs,
+            fixed_center=fixed_lens_light_center,
+        )
 
     n_ps = conj_points.shape[0]
     ra_ps = numpyro.sample(
@@ -1018,7 +1026,7 @@ stage4_best_two_lens_init_base = {
     "e_lens": best_stage3_params["e_lens"][:, -2:],
 }
 print(
-    "Stage4 outer-two center prior/init = inner-three light centroid:",
+    "Stage4 outer-two fixed center = inner-three light centroid:",
     np.asarray(stage4_inner_three_light_centroid),
 )
 
@@ -1033,35 +1041,17 @@ scheduler_stage4 = optax.exponential_decay(
 optim_stage4 = optax.adabelief(learning_rate=scheduler_stage4)
 loss_stage4 = infer.TraceMeanField_ELBO()
 
-STAGE4_LIGHT_CENTER_WINDOW = 0.05
-
-
-def stage4_lens_light_prior_from_fixed_light_center(light_center, center_window=STAGE4_LIGHT_CENTER_WINDOW):
-    x_light = light_center[0]
-    y_light = light_center[1]
-    return LENS_LIGHT_PRIOR_OUTER_TWO_KWARGS | {
-        "center_x_loc": x_light,
-        "center_y_loc": y_light,
-        "center_x_low": x_light - center_window,
-        "center_x_high": x_light + center_window,
-        "center_y_low": y_light - center_window,
-        "center_y_high": y_light + center_window,
-        "center_sigma": center_window,
-    }
-
-
 PIXELATED_STAGE4_BASE_KWARGS = PIXELATED_STAGE3_KWARGS | {
     "fixed_lens_light_kwargs": FIXED_INNER_THREE_KWARGS,
     "fixed_lens_light_psf_kernel": fixed_inner_three_psf,
 }
 
 PIXELATED_STAGE4_KWARGS = PIXELATED_STAGE4_BASE_KWARGS | {
-    "lens_light_prior_kwargs": stage4_lens_light_prior_from_fixed_light_center(
-        stage4_inner_three_light_centroid
-    ),
+    "lens_light_prior_kwargs": LENS_LIGHT_PRIOR_OUTER_TWO_KWARGS,
+    "fixed_lens_light_center": stage4_inner_three_light_centroid,
 }
 
-# HMC uses the same fixed light-centroid prior center as stage4 SVI.
+# HMC uses the same fixed light-centroid lens-light center as stage4 SVI.
 HMC_RUN_KWARGS = PIXELATED_STAGE4_KWARGS | {
     "conj": False,
 }
@@ -1072,14 +1062,11 @@ stage4_guides = []
 
 for i in range(num_chains_stage4):
     params_stage3_i = get_value_from_index(multi_svi_pixel_median_stage3, i)
-    stage4_outer_two_center_init = jnp.repeat(stage4_inner_three_light_centroid[:, None], 2, axis=1)
     params_stage4_init_i = {
         k: v
         for k, v in params_stage3_i.items()
         if k not in {"A_lens", "sigma_lens", "e_lens", "center_lens", "amp_lens"}
-    } | stage4_best_two_lens_init_base | {
-        "center_lens": stage4_outer_two_center_init,
-    }
+    } | stage4_best_two_lens_init_base
     init_fun_stage4_i = init_to_value_or_defer(values=params_stage4_init_i)
     guide_stage4_i = autoguide.AutoDiagonalNormal(model, init_loc_fn=init_fun_stage4_i, init_scale=0.01)
     svi_stage4_i = infer.SVI(model, guide_stage4_i, optim_stage4, loss_stage4)
@@ -1099,8 +1086,15 @@ for i in range(num_chains_stage4):
 multi_svi_pixel_results_stage4 = jax.tree.map(_stack_or_none, *stage4_results_list)
 guide_pixel_stage4 = stage4_guides[0]
 multi_svi_pixel_median_stage4 = guide_pixel_stage4.median(multi_svi_pixel_results_stage4.params)
+stage4_fixed_lens_light_params = {
+    "center_lens": jnp.repeat(stage4_inner_three_light_centroid[:, None], 2, axis=1),
+}
 multi_svi_pixel_median_herc_stage4 = median_params2kwargs(
-    lambda p: params2kwargs(p, pixelated=True),
+    lambda p, fixed_params=stage4_fixed_lens_light_params: params2kwargs(
+        p,
+        fixed_params=fixed_params,
+        pixelated=True,
+    ),
     multi_svi_pixel_median_stage4,
     jnp.arange(num_chains_stage4),
 )
@@ -1229,10 +1223,11 @@ vars_pixel = ["pixels_wn_source_grid"]
 vars_power = ["n_source_grid", "rho_source_grid", "sigma_source_grid"]
 vars_psf = ["ra_ps", "dec_ps", "log10_amp_ps"]
 vars_psf_corr = ["log_psf_corr_center"]
+vars_lens_light_hmc = ["A_lens", "sigma_lens", "e_lens"]
 
 multi_svi_pixel_median_vars = {
     k: multi_svi_pixel_median_stage4[k]
-    for k in vars_mass + vars_power + vars_pixel + vars_other + vars_lens_light + vars_psf + vars_psf_corr
+    for k in vars_mass + vars_power + vars_pixel + vars_other + vars_lens_light_hmc + vars_psf + vars_psf_corr
 }
 
 unconstrined_svi_pixel_median = jax.vmap(
@@ -1260,7 +1255,7 @@ inner_kernels = [
         max_tree_depth=10,
         dense_mass=[
             ("n_source_grid", "rho_source_grid", "sigma_source_grid"),
-            ("A_lens", "sigma_lens", "e_lens", "center_lens"),
+            ("A_lens", "sigma_lens", "e_lens"),
             ("ra_ps", "dec_ps", "log10_amp_ps"),
             ("center_1","theta_E_1", "theta_E_g1", "theta_E_g2", "e_1", "gamma_1", "gamma_sheer_1")
         ],
@@ -1276,7 +1271,7 @@ inner_kernels = [
 outer_kernel = MultiHMCGibbs(
     inner_kernels,
     gibbs_sites_list=[
-        vars_pixel + vars_power + vars_lens_light + vars_other + vars_psf + vars_mass,
+        vars_pixel + vars_power + vars_lens_light_hmc + vars_other + vars_psf + vars_mass,
         vars_psf_corr,
     ],
 )

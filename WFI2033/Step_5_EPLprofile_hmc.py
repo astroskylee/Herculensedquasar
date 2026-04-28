@@ -132,7 +132,7 @@ conj_points = jnp.array([
 ])
 
 ss_factor = 2
-suffix = f'_ss={ss_factor}_fullconcen_light_multimass_'
+suffix = f'_ss={ss_factor}_fullconcen_light_multimass'
 PSF_CORNER_SIZE = 5
 num_chains = 8
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
