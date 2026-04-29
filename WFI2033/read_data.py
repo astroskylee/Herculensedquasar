@@ -18,15 +18,21 @@ warnings.simplefilter("ignore")
 jax.config.update("jax_enable_x64", True)
 numpyro.enable_x64()
 
-suffix = '_ss=2_full_light_multimass'
-run_tag = "20260416_14"
+suffix = '_ss=2_fullconcen_light_multimass'
+run_tag = "20260427_14"
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
 RUN_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix}_{run_tag}"
 if not RUN_OUTPUT_DIR.exists():
     raise FileNotFoundError(f"Missing run directory: {RUN_OUTPUT_DIR}")
 NC_PATH = RUN_OUTPUT_DIR / f"WFI2033_all{suffix}.nc"
-if not NC_PATH.exists():
-    raise FileNotFoundError(f"Missing netCDF output: {NC_PATH}")
+BATCH_INDICES = range(1, 7)
+BATCH_NC_PATHS = [RUN_OUTPUT_DIR / f"WFI2033_{i}{suffix}.nc" for i in BATCH_INDICES]
+missing_batch_paths = [path for path in BATCH_NC_PATHS if not path.exists()]
+if missing_batch_paths:
+    raise FileNotFoundError(
+        "Missing batch netCDF files:\n"
+        + "\n".join(str(path) for path in missing_batch_paths)
+    )
 DATA_DIR = "../../Data/WFI2033"
 
 RAW_DATA_PATH = os.path.join(DATA_DIR, "jw01198-o004_t004_nircam_clear-f115w_i2d.fits")
@@ -46,8 +52,13 @@ if not FIXED_FIRST_THREE_PSF_PATH.exists():
 # --------------------------------
 # Read posterior (.nc) and print key info
 # --------------------------------
-inf_data_pixel = az.from_netcdf(NC_PATH)
-print(f"Using netCDF: {NC_PATH}")
+batch_list = [az.from_netcdf(path) for path in BATCH_NC_PATHS]
+inf_data_pixel = az.concat(*batch_list, dim="draw")
+inf_data_pixel.to_netcdf(NC_PATH)
+print("Using batch netCDF files:")
+for path in BATCH_NC_PATHS:
+    print(f"  {path}")
+print(f"Saved regenerated netCDF: {NC_PATH}")
 post = inf_data_pixel.posterior
 HMC_median = inf_data_pixel.posterior.median(dim=("draw"))
 HMC_median_path = OUTPUT_DIR /f"HMC_median_draw{suffix}.nc"
