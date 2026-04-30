@@ -155,8 +155,7 @@ COSMO_PRIORS = {
 
 
 STEP3_COSMO_TAG = STEP3_COSMO_PRIOR.lower()
-STEP3_MODEL_TAG = 'fix_gnfw_center'
-STEP3_SUFFIX = f"{suffix}_step6_{STEP3_COSMO_TAG}_{STEP3_MODEL_TAG}"
+STEP3_SUFFIX = f"{suffix}_step6_{STEP3_COSMO_TAG}"
 STEP6_RUN_TAG = RESUME_RUN_TAG or datetime.now().strftime("%Y%m%d_%H")
 HMC_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
 STEP6_RESULT_DIR = SCRIPT_DIR / 'result' / f"result{STEP3_SUFFIX}_{STEP6_RUN_TAG}"
@@ -212,15 +211,6 @@ full_lens_light = [{
     'center_x': np.array(fixed_five_gaussians['center_x'], dtype=float),
     'center_y': np.array(fixed_five_gaussians['center_y'], dtype=float),
 }]
-STELLAR_MGE_LAST_CENTER = np.array([
-    full_lens_light[0]['center_x'][-1],
-    full_lens_light[0]['center_y'][-1],
-], dtype=float)
-print(
-    'Fixed gNFW center to last stellar MGE center: '
-    f'x={STELLAR_MGE_LAST_CENTER[0]:.8f}, '
-    f'y={STELLAR_MGE_LAST_CENTER[1]:.8f}'
-)
 
 fixed_point_source = [{
     'ra': np.array(HMC_reference['ra_ps'].values, dtype=float),
@@ -371,7 +361,7 @@ def build_star_nfw_kwargs_ls(m2l_ratio, kappa_s_halo, e1_halo, e2_halo, center_i
 
 
 def build_step6_mass_init(i):
-    center_i = STELLAR_MGE_LAST_CENTER
+    center_i = np.asarray(chain_array('center_1', i), dtype=float).reshape(2,)
     target_epl_kwargs_i = target_epl_kwargs_for_chain(i)
     target_epl_kappa_i = np.array(epl_mass_model.kappa(xgrid, ygrid, target_epl_kwargs_i), dtype=float)
 
@@ -444,7 +434,7 @@ STEP1_BASE_KWARGS = {
 
 
 def build_step1_stage_kwargs(i):
-    center_i = STELLAR_MGE_LAST_CENTER
+    center_i = np.asarray(chain_array('center_1', i), dtype=float).reshape(2,)
     shear_i = np.asarray(chain_array('gamma_sheer_1', i), dtype=float).reshape(2,)
     return STEP1_BASE_KWARGS | {
         'gnfw_kwargs': STEP1_BASE_KWARGS['gnfw_kwargs'] | {
@@ -463,8 +453,6 @@ STEP2_KWARGS = {
         'Rs_low': 2,
         'Rs_high': 20.0,
         'sph': False,
-        'center_x': float(STELLAR_MGE_LAST_CENTER[0]),
-        'center_y': float(STELLAR_MGE_LAST_CENTER[1]),
         'gamma_sheer_low': -0.5,
         'gamma_sheer_high': 0.5,
     },
@@ -834,6 +822,7 @@ STEP1_LATENT_KEYS = (
 
 STEP2_LATENT_KEYS = STEP1_LATENT_KEYS + (
     'Rs_halo',
+    'center_halo',
     'gamma_sheer_halo',
     'theta_E_g1',
     'theta_E_g2',
@@ -849,6 +838,7 @@ def build_step1_init_values(i):
 def build_step2_extra_init(i):
     return {
         'Rs_halo': jnp.asarray(5.0, dtype=jnp.float64),
+        'center_halo': jnp.asarray(chain_array('center_1', i), dtype=jnp.float64).reshape(2,),
         'gamma_sheer_halo': jnp.asarray(chain_array('gamma_sheer_1', i), dtype=jnp.float64).reshape(2,),
         'theta_E_g1': jnp.asarray(chain_array('theta_E_g1', i), dtype=jnp.float64),
         'theta_E_g2': jnp.asarray(chain_array('theta_E_g2', i), dtype=jnp.float64),
@@ -1054,6 +1044,7 @@ vars_mass = [
     'gammain_halo',
     'e_halo',
     'Rs_halo',
+    'center_halo',
     'gamma_sheer_halo',
     'theta_E_g1',
     'theta_E_g2',
@@ -1114,6 +1105,7 @@ STAGE3_MASS_COSMO_BLOCK = (
     'gammain_halo',
     'e_halo',
     'Rs_halo',
+    'center_halo',
     'gamma_sheer_halo',
     'theta_E_g1',
     'theta_E_g2',
@@ -1137,6 +1129,8 @@ mass_cosmo_std_diag_dict = {
     'e_halo[0]': 0.0032,
     'e_halo[1]': 0.004,
     'Rs_halo': 4.4,
+    'center_halo[0]': 0.0043,
+    'center_halo[1]': 0.0017,
     'gamma_sheer_halo[0]': 0.0027,
     'gamma_sheer_halo[1]': 0.0083,
     'theta_E_g1[0]': 0.0036,
