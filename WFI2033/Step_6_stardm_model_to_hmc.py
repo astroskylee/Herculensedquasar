@@ -451,10 +451,19 @@ STEP2_KWARGS = {
         'gamma_in_up': 2,
         'gamma_in_low': 0.6,
         'Rs_low': 2,
-        'Rs_high': 20.0,
-        'sph': False,
-        'gamma_sheer_low': -0.5,
-        'gamma_sheer_high': 0.5,
+        'Rs_high': 20.0,fig_corner = None
+
+for chain_idx in range(num_chains):
+    print(f"plotting chain {chain_idx}")
+
+    fig_corner = corner.corner(
+        post.isel(chain=chain_idx),
+        var_names=vars_plot,
+        color=f"C{chain_idx}",
+        fig=fig_corner,
+    )
+
+plt.show()
     },
     'fixed_sis_theta_E': {},
     'free_sis': ('g1', 'g2'),

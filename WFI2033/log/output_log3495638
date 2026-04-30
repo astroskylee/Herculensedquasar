@@ -1,0 +1,7 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) git/2.48.0 3) system/intel64(default) 2) services/slurm <aL> 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+Fixed gNFW center to last stellar MGE center: x=0.00230782, y=-0.01382772
+Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
+chain 0: m2l_ratio=0.9909, kappa_s_halo=0.2063, e1=-0.0713, e2=0.0677, success=True, cost=138.9870
+chain 1: m2l_ratio=0.9880, kappa_s_halo=0.2072, e1=-0.0687, e2=0.0636, success=True, cost=141.4375
