@@ -35,8 +35,8 @@ class CuspyNFWEllipseKappa(MGE):
 mass_model_base.STRING_MAPPING['CUSPY_NFW_ELLIPSE_KAPPA'] = CuspyNFWEllipseKappa
 
 suffix_inferh0 = '_ss=2_inferh0'
-suffix_epl = '_ss=2_full_light_multimass'
-run_tag = '20260417_14'
+suffix_epl = '_ss=2_fullconcen_light_multimass'
+run_tag = '20260427_14'
 
 OUTPUT_ROOT = Path('/mnt/lustre/tianli/quasar_hmc')
 RESULT_DIR = Path(f'./result/result{suffix_epl}_{run_tag}')

@@ -2,7 +2,7 @@
 
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=WFI2033
+#SBATCH --job-name=WFIstardmfix
 #SBATCH --time=48:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=48
@@ -21,6 +21,6 @@ echo `module list`
 source /mnt/lustre2/shared_conda/envs/tianli/herculens_tian/bin/activate
 cd /users/tianli/LensModelling/Herculensedquasar/WFI2033
 
-python -u Step_5_EPLprofile_hmc.py
+# python -u Step_5_EPLprofile_hmc.py
 # python -u Step_6_stardm_model_imaging_only_to_hmc.py
-# python -u Step_6_stardm_model_to_hmc.py
+python -u Step_6_stardm_model_to_hmc.py

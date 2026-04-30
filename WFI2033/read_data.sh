@@ -20,5 +20,5 @@ source /mnt/lustre2/shared_conda/envs/tianli/herculens_tian/bin/activate
 cd /users/tianli/LensModelling/Herculensedquasar/WFI2033
 
 
-python -u merge_step6_imaging_only_fpd_shards.py
+python -u read_data.py
 #python -u Herculens_3DSPL_EPL.py
