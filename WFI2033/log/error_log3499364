@@ -1,0 +1,49 @@
+Traceback (most recent call last):
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/Step_6_stardm_model_imaging_only_to_hmc.py", line 1045, in <module>
+    step3_output = run_stage(
+        STEP3_KWARGS,
+    ...<2 lines>...
+        seed=3234,
+    )
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/Step_6_stardm_model_imaging_only_to_hmc.py", line 888, in run_stage
+    result = svi.run(keys[i], max_iterations, data_subtracted, stage_kwargs_i, progress_bar=False, stable_update=True)
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/infer/svi.py", line 401, in run
+    svi_state = self.init(rng_key, *args, init_params=init_params, **kwargs)
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/infer/svi.py", line 184, in init
+    guide_trace = trace(guide_init).get_trace(*args, **kwargs, **self.static_kwargs)
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/handlers.py", line 193, in get_trace
+    self(*args, **kwargs)
+    ~~~~^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/primitives.py", line 119, in __call__
+    return self.fn(*args, **kwargs)
+           ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/handlers.py", line 849, in __call__
+    return cloned_seeded_fn.__call__(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/handlers.py", line 850, in __call__
+    return super().__call__(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/primitives.py", line 119, in __call__
+    return self.fn(*args, **kwargs)
+           ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/infer/autoguide.py", line 705, in __call__
+    self._setup_prototype(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/infer/autoguide.py", line 665, in _setup_prototype
+    super()._setup_prototype(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/infer/autoguide.py", line 160, in _setup_prototype
+    ) = initialize_model(
+        ~~~~~~~~~~~~~~~~^
+        rng_key,
+        ^^^^^^^^
+    ...<4 lines>...
+        model_kwargs=kwargs,
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/mnt/lustre2/shared_conda/envs/tianli/herculens_tian/lib/python3.13/site-packages/numpyro/infer/util.py", line 796, in initialize_model
+    raise RuntimeError(
+        "Cannot find valid initial parameters. Please check your model again."
+    )
+RuntimeError: Cannot find valid initial parameters. Please check your model again.

@@ -748,7 +748,7 @@ def model_step6(data_subtracted, stage_kwargs):
 
 def evaluate_step6(params, stage_kwargs):
     def render_components(data_subtracted, stage_kwargs):
-        m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 3.0))
+        m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 5.0))
         if stage_kwargs.get('use_ml_gradient', False):
             m2l_ratio_slope = numpyro.sample(
                 'm2l_ratio_slope',
@@ -1008,7 +1008,7 @@ STEP3_KWARGS = {
     'compute_fermat_diffs': True,
     'use_ml_gradient': True,
     'm2l_ratio_slope_low': -0.6,
-    'm2l_ratio_slope_high': 0.6,
+    'm2l_ratio_slope_high': 0.0,
 }
 
 STEP3_HMC_KWARGS = {
