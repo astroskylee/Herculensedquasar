@@ -1028,7 +1028,7 @@ def build_step3_init_values(i):
             dtype=jnp.float64,
         ),
         'kappa_ext': jnp.asarray(KAPPA_EXT_PRIOR['mean'], dtype=jnp.float64),
-        'm2l_ratio_slope': jnp.asarray(0.0, dtype=jnp.float64),
+        'm2l_ratio_slope': jnp.asarray(-0.01, dtype=jnp.float64),
     }
 
 
