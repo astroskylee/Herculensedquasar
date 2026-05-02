@@ -1,7 +1,0 @@
-/var/spool/slurm/slurmd/job3499349/slurm_script: line 21: /mnt/lustre2/shared_conda/envs/tianli/herculens_tian/bin/activate: No such file or directory
-Traceback (most recent call last):
-  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/Step_6_stardm_model_imaging_only_to_hmc.py", line 12, in <module>
-    from Tian_infra import import_function
-  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/Tian_infra.py", line 11, in <module>
-    import arviz as az
-ModuleNotFoundError: No module named 'arviz'
