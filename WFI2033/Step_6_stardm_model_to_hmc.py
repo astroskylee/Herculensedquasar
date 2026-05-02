@@ -385,7 +385,7 @@ def build_step6_mass_init(i):
     ls_result = least_squares(
         ls_residual,
         x0=ls_x0,
-        bounds=([0.0, 0.0, -0.2, -0.2], [14.0, 1.0, 0.2, 0.2]),
+        bounds=([0.0, 0.0, -0.2, -0.2], [5.0, 1.0, 0.2, 0.2]),
     )
     init_i = {
         'm2l_ratio': jnp.asarray(ls_result.x[0], dtype=jnp.float64),
@@ -655,7 +655,7 @@ def gradient_mass_from_light(m2l_ratio, m2l_ratio_slope):
 
 
 def model_step6(data_subtracted, stage_kwargs):
-    m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 3.0))
+    m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 5.0))
     if stage_kwargs.get('use_ml_gradient', False):
         m2l_ratio_slope = numpyro.sample(
             'm2l_ratio_slope',
@@ -729,7 +729,7 @@ def model_step6(data_subtracted, stage_kwargs):
 
 def evaluate_step6(params, stage_kwargs):
     def render_components(data_subtracted, stage_kwargs):
-        m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 3.0))
+        m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 5.0))
         if stage_kwargs.get('use_ml_gradient', False):
             m2l_ratio_slope = numpyro.sample(
                 'm2l_ratio_slope',
