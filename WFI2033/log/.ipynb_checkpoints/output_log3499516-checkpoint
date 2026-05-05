@@ -1,0 +1,21 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) git/2.48.0 3) system/intel64(default) 2) services/slurm <aL> 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
+chain 0: m2l_ratio=1.0259, kappa_s_halo=0.2033, e1=-0.0600, e2=0.0680, success=True, cost=134.4690
+chain 1: m2l_ratio=0.9993, kappa_s_halo=0.2114, e1=-0.0647, e2=0.0730, success=True, cost=138.6133
+chain 2: m2l_ratio=1.0595, kappa_s_halo=0.1953, e1=-0.0562, e2=0.0622, success=True, cost=135.9003
+chain 3: m2l_ratio=1.0205, kappa_s_halo=0.2038, e1=-0.0609, e2=0.0682, success=True, cost=133.4343
+chain 4: m2l_ratio=1.0240, kappa_s_halo=0.2049, e1=-0.0563, e2=0.0629, success=True, cost=134.3102
+chain 5: m2l_ratio=1.0222, kappa_s_halo=0.2040, e1=-0.0609, e2=0.0682, success=True, cost=132.7533
+chain 6: m2l_ratio=0.9945, kappa_s_halo=0.2118, e1=-0.0659, e2=0.0747, success=True, cost=136.4471
+chain 7: m2l_ratio=1.0671, kappa_s_halo=0.2098, e1=-0.0557, e2=0.0622, success=True, cost=138.2737
+Saved stage loss figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/step1_loss.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/step1_chain_00.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/step1_chain_01.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/step1_chain_02.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/step1_chain_03.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/step1_chain_04.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/step1_chain_05.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/step1_chain_06.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/step1_chain_07.png

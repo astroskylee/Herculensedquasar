@@ -36,7 +36,7 @@ mass_model_base.STRING_MAPPING['CUSPY_NFW_ELLIPSE_KAPPA'] = CuspyNFWEllipseKappa
 
 suffix = '_ss=2_fullconcen_light_multimass'
 run_tag = '20260427_14'
-STEP3_COSMO_PRIOR = 'PantheonSH0ES'#'DESI_PLANCK'  # or 'PantheonSH0ES'
+STEP3_COSMO_PRIOR = 'DESI_PLANCK'#'DESI_PLANCK'  # or 'PantheonSH0ES'
 RESUME_RUN_TAG = None  # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
 resume_mode = RESUME_RUN_TAG is not None
 
@@ -1171,7 +1171,7 @@ stage3_kernel = NUTS(
     adapt_mass_matrix=True,
 )
 
-num_warmup = 2000
+num_warmup = 1000
 num_samples = 1000
 batch_number = 8  # additional batches to run in this invocation
 

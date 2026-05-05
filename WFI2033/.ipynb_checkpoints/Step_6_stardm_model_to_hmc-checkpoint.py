@@ -36,7 +36,7 @@ mass_model_base.STRING_MAPPING['CUSPY_NFW_ELLIPSE_KAPPA'] = CuspyNFWEllipseKappa
 
 suffix = '_ss=2_fullconcen_light_multimass'
 run_tag = '20260427_14'
-STEP3_COSMO_PRIOR = 'PantheonSH0ES'#'DESI_PLANCK'  # or 'PantheonSH0ES'
+STEP3_COSMO_PRIOR = 'DESI_PLANCK'#'DESI_PLANCK'  # or 'PantheonSH0ES'
 RESUME_RUN_TAG = None  # e.g. '20260408_15' to append more HMC batches to an existing Step-6 run
 resume_mode = RESUME_RUN_TAG is not None
 
@@ -385,7 +385,7 @@ def build_step6_mass_init(i):
     ls_result = least_squares(
         ls_residual,
         x0=ls_x0,
-        bounds=([0.0, 0.0, -0.2, -0.2], [14.0, 1.0, 0.2, 0.2]),
+        bounds=([0.0, 0.0, -0.2, -0.2], [5.0, 1.0, 0.2, 0.2]),
     )
     init_i = {
         'm2l_ratio': jnp.asarray(ls_result.x[0], dtype=jnp.float64),
@@ -655,7 +655,7 @@ def gradient_mass_from_light(m2l_ratio, m2l_ratio_slope):
 
 
 def model_step6(data_subtracted, stage_kwargs):
-    m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 3.0))
+    m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 5.0))
     if stage_kwargs.get('use_ml_gradient', False):
         m2l_ratio_slope = numpyro.sample(
             'm2l_ratio_slope',
@@ -729,7 +729,7 @@ def model_step6(data_subtracted, stage_kwargs):
 
 def evaluate_step6(params, stage_kwargs):
     def render_components(data_subtracted, stage_kwargs):
-        m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 3.0))
+        m2l_ratio = numpyro.sample('m2l_ratio', dist.Uniform(0.0, 5.0))
         if stage_kwargs.get('use_ml_gradient', False):
             m2l_ratio_slope = numpyro.sample(
                 'm2l_ratio_slope',
@@ -997,7 +997,7 @@ def build_step3_init_values(i):
     return ResumeInit.select_init_values(step2_output['medians'][i], STEP2_LATENT_KEYS) | {
         'cosmo_vec': jnp.asarray(cosmo_prior['mean_vec'], dtype=jnp.float64),
         'kappa_ext': jnp.asarray(KAPPA_EXT_PRIOR['mean'], dtype=jnp.float64),
-        'm2l_ratio_slope': jnp.asarray(0.0, dtype=jnp.float64),
+        'm2l_ratio_slope': jnp.asarray(-0.01, dtype=jnp.float64),
     }
 
 
@@ -1171,7 +1171,7 @@ stage3_kernel = NUTS(
     adapt_mass_matrix=True,
 )
 
-num_warmup = 2000
+num_warmup = 1000
 num_samples = 1000
 batch_number = 8  # additional batches to run in this invocation
 
