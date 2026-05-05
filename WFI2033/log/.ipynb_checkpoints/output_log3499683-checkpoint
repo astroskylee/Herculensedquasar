@@ -1,0 +1,13 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) git/2.48.0 3) system/intel64(default) 2) services/slurm <aL> 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+NC_PATH = /mnt/lustre/tianli/quasar_hmc/WFI2033_inferh0_step6_imaging_only_infer_LCDM_20260502_08/WFI2033_all_inferh0_step6_imaging_only_infer_LCDM.nc
+posterior shape: chains=8, draws=8000
+posterior vars read:
+  model_image: dims=('chain', 'draw', 'model_image_dim_0', 'model_image_dim_1'), shape=(8, 8000, 150, 150)
+  pixels_source_grid: dims=('chain', 'draw', 'pixels_source_grid_dim_0', 'pixels_source_grid_dim_1'), shape=(8, 8000, 74, 74)
+  psf_kernel_corrected: dims=('chain', 'draw', 'psf_kernel_corrected_dim_0', 'psf_kernel_corrected_dim_1'), shape=(8, 8000, 101, 101)
+divergences per chain:
+[ 2  4 46  0  0  4  0  0]
+Saved chain 0 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_step6_imaging_only_infer_LCDM_20260502_08/chain_00_lens_model_source_inferh0_step6_imaging_only_infer_LCDM.png
+Saved chain 1 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_step6_imaging_only_infer_LCDM_20260502_08/chain_01_lens_model_source_inferh0_step6_imaging_only_infer_LCDM.png
