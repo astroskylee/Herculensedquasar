@@ -75,3 +75,6 @@ initial inverse mass diag for STAGE3_MASS_COSMO_BLOCK:
   kappa_ext            inverse_mass_diag=4.725898e+02
 Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_20260504_16/WFI2033_0_ss=2_fullconcen_light_multimass_step6_desi_planck.nc
 Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_20260504_16/WFI2033_1_ss=2_fullconcen_light_multimass_step6_desi_planck.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_20260504_16/WFI2033_2_ss=2_fullconcen_light_multimass_step6_desi_planck.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_20260504_16/WFI2033_3_ss=2_fullconcen_light_multimass_step6_desi_planck.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_20260504_16/WFI2033_4_ss=2_fullconcen_light_multimass_step6_desi_planck.nc

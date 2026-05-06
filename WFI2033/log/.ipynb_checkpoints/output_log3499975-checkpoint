@@ -1,0 +1,75 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) git/2.48.0 3) system/intel64(default) 2) services/slurm <aL> 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+Projected stellar scale radius R_half = 0.638361 arcsec
+Fixed gNFW Rs_halo = 10 * R_half = 6.383608 arcsec
+Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
+chain 0: m2l_ratio=1.0781, kappa_s_halo=0.1765, Rs_halo_fixed=6.3836, e1=-0.0532, e2=0.0580, success=True, cost=152.6069
+chain 1: m2l_ratio=1.0868, kappa_s_halo=0.1718, Rs_halo_fixed=6.3836, e1=-0.0634, e2=0.0682, success=True, cost=154.9944
+chain 2: m2l_ratio=1.2935, kappa_s_halo=0.1568, Rs_halo_fixed=6.3836, e1=-0.0539, e2=0.0517, success=True, cost=181.6130
+chain 3: m2l_ratio=0.9947, kappa_s_halo=0.1723, Rs_halo_fixed=6.3836, e1=-0.0697, e2=0.0769, success=True, cost=155.2285
+chain 4: m2l_ratio=1.0584, kappa_s_halo=0.1735, Rs_halo_fixed=6.3836, e1=-0.0671, e2=0.0727, success=True, cost=152.1737
+chain 5: m2l_ratio=1.0745, kappa_s_halo=0.1756, Rs_halo_fixed=6.3836, e1=-0.0675, e2=0.0725, success=True, cost=150.5184
+chain 6: m2l_ratio=0.9868, kappa_s_halo=0.1755, Rs_halo_fixed=6.3836, e1=-0.0685, e2=0.0759, success=True, cost=155.2468
+chain 7: m2l_ratio=1.0755, kappa_s_halo=0.1778, Rs_halo_fixed=6.3836, e1=-0.0661, e2=0.0716, success=True, cost=152.7381
+Saved stage loss figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step1_loss.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step1_chain_00.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step1_chain_01.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step1_chain_02.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step1_chain_03.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step1_chain_04.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step1_chain_05.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step1_chain_06.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step1_chain_07.png
+Saved stage loss figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step2_loss.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step2_chain_00.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step2_chain_01.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step2_chain_02.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step2_chain_03.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step2_chain_04.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step2_chain_05.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step2_chain_06.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step2_chain_07.png
+Saved stage loss figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step3__inferh0_fixRs_step6_imaging_only_infer_LCDM_loss.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step3__inferh0_fixRs_step6_imaging_only_infer_LCDM_chain_00.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step3__inferh0_fixRs_step6_imaging_only_infer_LCDM_chain_01.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step3__inferh0_fixRs_step6_imaging_only_infer_LCDM_chain_02.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step3__inferh0_fixRs_step6_imaging_only_infer_LCDM_chain_03.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step3__inferh0_fixRs_step6_imaging_only_infer_LCDM_chain_04.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step3__inferh0_fixRs_step6_imaging_only_infer_LCDM_chain_05.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step3__inferh0_fixRs_step6_imaging_only_infer_LCDM_chain_06.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/step3__inferh0_fixRs_step6_imaging_only_infer_LCDM_chain_07.png
+HMC output dir: /mnt/lustre/tianli/quasar_hmc/WFI2033_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15
+HMC suffix: _inferh0_fixRs_step6_imaging_only_infer_LCDM
+initial posterior std diag for STAGE3_MASS_COSMO_BLOCK:
+  m2l_ratio            std=0.12
+  m2l_ratio_slope      std=0.071
+  kappa_s_halo         std=0.043
+  gammain_halo         std=0.09
+  e_halo[0]            std=0.0032
+  e_halo[1]            std=0.004
+  center_halo[0]       std=0.0043
+  center_halo[1]       std=0.0017
+  gamma_sheer_halo[0]  std=0.0027
+  gamma_sheer_halo[1]  std=0.0083
+  theta_E_g1[0]        std=0.0036
+  theta_E_g2[0]        std=0.036
+  omega_m_cosmo        std=1
+  H0_cosmo             std=5
+  kappa_ext            std=0.046
+initial inverse mass diag for STAGE3_MASS_COSMO_BLOCK:
+  m2l_ratio            inverse_mass_diag=6.944444e+01
+  m2l_ratio_slope      inverse_mass_diag=1.983733e+02
+  kappa_s_halo         inverse_mass_diag=5.408329e+02
+  gammain_halo         inverse_mass_diag=1.234568e+02
+  e_halo[0]            inverse_mass_diag=9.765625e+04
+  e_halo[1]            inverse_mass_diag=6.250000e+04
+  center_halo[0]       inverse_mass_diag=5.408329e+04
+  center_halo[1]       inverse_mass_diag=3.460208e+05
+  gamma_sheer_halo[0]  inverse_mass_diag=1.371742e+05
+  gamma_sheer_halo[1]  inverse_mass_diag=1.451589e+04
+  theta_E_g1[0]        inverse_mass_diag=7.716049e+04
+  theta_E_g2[0]        inverse_mass_diag=7.716049e+02
+  omega_m_cosmo        inverse_mass_diag=1.000000e+00
+  H0_cosmo             inverse_mass_diag=4.000000e-02
+  kappa_ext            inverse_mass_diag=4.725898e+02
