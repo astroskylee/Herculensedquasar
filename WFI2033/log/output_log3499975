@@ -73,3 +73,4 @@ initial inverse mass diag for STAGE3_MASS_COSMO_BLOCK:
   omega_m_cosmo        inverse_mass_diag=1.000000e+00
   H0_cosmo             inverse_mass_diag=4.000000e-02
   kappa_ext            inverse_mass_diag=4.725898e+02
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_inferh0_fixRs_step6_imaging_only_infer_LCDM_20260505_15/WFI2033_0_inferh0_fixRs_step6_imaging_only_infer_LCDM.nc
