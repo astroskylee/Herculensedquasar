@@ -19,8 +19,8 @@ from matplotlib import colors
 
 warnings.simplefilter("ignore")
 
-suffix = "_inferh0_step6_imaging_only_infer_LCDM"
-run_tag = "20260502_08"
+suffix = "_ss=2_fullconcen_light_multimass_step6_pantheonsh0es"
+run_tag = "20260502_06"
 
 OUTPUT_ROOT = Path("/mnt/lustre/tianli/quasar_hmc")
 RUN_OUTPUT_DIR = OUTPUT_ROOT / f"WFI2033{suffix}_{run_tag}"
