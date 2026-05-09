@@ -1,0 +1,20 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) git/2.48.0 3) system/intel64(default) 2) services/slurm <aL> 4) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+NC_PATH = /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/WFI2033_all_ss=2_fullconcen_light_multimass_step6_pantheonsh0es.nc
+posterior shape: chains=8, draws=8000
+posterior vars read:
+  model_image: dims=('chain', 'draw', 'model_image_dim_0', 'model_image_dim_1'), shape=(8, 8000, 150, 150)
+  pixels_source_grid: dims=('chain', 'draw', 'pixels_source_grid_dim_0', 'pixels_source_grid_dim_1'), shape=(8, 8000, 74, 74)
+  psf_kernel_corrected: dims=('chain', 'draw', 'psf_kernel_corrected_dim_0', 'psf_kernel_corrected_dim_1'), shape=(8, 8000, 101, 101)
+divergences per chain:
+[0 0 0 0 0 4 1 0]
+Saved chain 0 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/chain_00_lens_model_source_ss=2_fullconcen_light_multimass_step6_pantheonsh0es.png
+Saved chain 1 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/chain_01_lens_model_source_ss=2_fullconcen_light_multimass_step6_pantheonsh0es.png
+Saved chain 2 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/chain_02_lens_model_source_ss=2_fullconcen_light_multimass_step6_pantheonsh0es.png
+Saved chain 3 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/chain_03_lens_model_source_ss=2_fullconcen_light_multimass_step6_pantheonsh0es.png
+Saved chain 4 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/chain_04_lens_model_source_ss=2_fullconcen_light_multimass_step6_pantheonsh0es.png
+Saved chain 5 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/chain_05_lens_model_source_ss=2_fullconcen_light_multimass_step6_pantheonsh0es.png
+Saved chain 6 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/chain_06_lens_model_source_ss=2_fullconcen_light_multimass_step6_pantheonsh0es.png
+Saved chain 7 products and figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/chain_07_lens_model_source_ss=2_fullconcen_light_multimass_step6_pantheonsh0es.png
+Saved extracted products to: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_20260502_06/data_products

@@ -24,4 +24,6 @@ cd /users/tianli/LensModelling/Herculensedquasar/WFI2033
 # python -u Step_5_EPLprofile_hmc.py
 # python -u Step_6_stardm_model_imaging_only_to_hmc.py
 # python -u Step_6_stardm_model_to_hmc.py
-python -u Step_6_stardm_model_imaging_only_fixRs_to_hmc.py
+# python -u Step_6_stardm_model_imaging_only_fixRs_to_hmc.py
+# python -u Step_6_stardm_model_to_hmc_gibbs_source_mass.py
+python -u Step_6_stardm_model_to_hmc_reuse_red_warmup.py
