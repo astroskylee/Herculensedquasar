@@ -1,0 +1,92 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) services/slurm <aL> 2) system/intel64(default) 3) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+Warning: both `noise_map` and `background_rms` are None; `background_rms` should then be given as a model parameter to estimate the noise variance via C_D_model().
+chain 0: m2l_ratio=1.0259, kappa_s_halo=0.2033, e1=-0.0600, e2=0.0680, success=True, cost=134.4690
+chain 1: m2l_ratio=0.9993, kappa_s_halo=0.2114, e1=-0.0647, e2=0.0730, success=True, cost=138.6133
+chain 2: m2l_ratio=1.0595, kappa_s_halo=0.1953, e1=-0.0562, e2=0.0622, success=True, cost=135.9003
+chain 3: m2l_ratio=1.0205, kappa_s_halo=0.2038, e1=-0.0609, e2=0.0682, success=True, cost=133.4343
+chain 4: m2l_ratio=1.0240, kappa_s_halo=0.2049, e1=-0.0563, e2=0.0629, success=True, cost=134.3102
+chain 5: m2l_ratio=1.0222, kappa_s_halo=0.2040, e1=-0.0609, e2=0.0682, success=True, cost=132.7533
+chain 6: m2l_ratio=0.9945, kappa_s_halo=0.2118, e1=-0.0659, e2=0.0747, success=True, cost=136.4471
+chain 7: m2l_ratio=1.0671, kappa_s_halo=0.2098, e1=-0.0557, e2=0.0622, success=True, cost=138.2737
+Saved stage loss figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step1_loss.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step1_chain_00.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step1_chain_01.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step1_chain_02.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step1_chain_03.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step1_chain_04.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step1_chain_05.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step1_chain_06.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step1_chain_07.png
+Saved stage loss figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step2_loss.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step2_chain_00.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step2_chain_01.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step2_chain_02.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step2_chain_03.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step2_chain_04.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step2_chain_05.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step2_chain_06.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step2_chain_07.png
+Saved stage loss figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step3__ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_loss.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step3__ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_chain_00.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step3__ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_chain_01.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step3__ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_chain_02.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step3__ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_chain_03.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step3__ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_chain_04.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step3__ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_chain_05.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step3__ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_chain_06.png
+Saved stage result figure: /users/tianli/LensModelling/Herculensedquasar/WFI2033/result/result_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/step3__ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_chain_07.png
+HMC output dir: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06
+HMC suffix: _ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup
+initial posterior std diag for STAGE3_MASS_COSMO_BLOCK:
+  m2l_ratio            std=0.12
+  m2l_ratio_slope      std=0.071
+  kappa_s_halo         std=0.043
+  gammain_halo         std=0.09
+  e_halo[0]            std=0.0032
+  e_halo[1]            std=0.004
+  Rs_halo              std=4.4
+  center_halo[0]       std=0.0043
+  center_halo[1]       std=0.0017
+  gamma_sheer_halo[0]  std=0.0027
+  gamma_sheer_halo[1]  std=0.0083
+  theta_E_g1[0]        std=0.0036
+  theta_E_g2[0]        std=0.036
+  cosmo_vec[0]         std=1
+  cosmo_vec[1]         std=5
+  kappa_ext            std=0.046
+initial inverse mass diag for STAGE3_MASS_COSMO_BLOCK:
+  m2l_ratio            inverse_mass_diag=6.944444e+01
+  m2l_ratio_slope      inverse_mass_diag=1.983733e+02
+  kappa_s_halo         inverse_mass_diag=5.408329e+02
+  gammain_halo         inverse_mass_diag=1.234568e+02
+  e_halo[0]            inverse_mass_diag=9.765625e+04
+  e_halo[1]            inverse_mass_diag=6.250000e+04
+  Rs_halo              inverse_mass_diag=5.165289e-02
+  center_halo[0]       inverse_mass_diag=5.408329e+04
+  center_halo[1]       inverse_mass_diag=3.460208e+05
+  gamma_sheer_halo[0]  inverse_mass_diag=1.371742e+05
+  gamma_sheer_halo[1]  inverse_mass_diag=1.451589e+04
+  theta_E_g1[0]        inverse_mass_diag=7.716049e+04
+  theta_E_g2[0]        inverse_mass_diag=7.716049e+02
+  cosmo_vec[0]         inverse_mass_diag=1.000000e+00
+  cosmo_vec[1]         inverse_mass_diag=4.000000e-02
+  kappa_ext            inverse_mass_diag=4.725898e+02
+red warmup source state: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_20260504_16/resume_state_after_warmup.pkl
+reusing warmup adaptation from chain index 3
+red step size: 0.001033344085529342
+red inverse mass matrix block shapes:
+  ('m2l_ratio', 'm2l_ratio_slope', 'kappa_s_halo', 'gammain_halo', 'e_halo', 'Rs_halo', 'center_halo', 'gamma_sheer_halo', 'theta_E_g1', 'theta_E_g2', 'cosmo_vec', 'kappa_ext'): (16, 16)
+  ('n_source_grid', 'rho_source_grid', 'sigma_source_grid'): (3, 3)
+  ('pixels_wn_source_grid',): (5476,)
+  ('ra_ps', 'dec_ps', 'log10_amp_ps'): (12, 12)
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/WFI2033_0_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/WFI2033_1_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/WFI2033_2_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/WFI2033_3_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/WFI2033_4_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/WFI2033_5_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/WFI2033_6_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup.nc
+Saved HMC batch to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/WFI2033_7_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup.nc
+Saved final HMC inf_data to: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup_20260509_06/WFI2033_all_ss=2_fullconcen_light_multimass_step6_desi_planck_reuse_redwarmup.nc
