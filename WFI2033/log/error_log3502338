@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/add_step6_halo_stellar_deterministics.py", line 207, in <module>
+    main()
+    ~~~~^^
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/add_step6_halo_stellar_deterministics.py", line 203, in main
+    process_case(name, paths["input"], output_path)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/users/tianli/LensModelling/Herculensedquasar/WFI2033/add_step6_halo_stellar_deterministics.py", line 185, in process_case
+    raise FileExistsError(f"Output exists and OVERWRITE=False: {output_path}")
+FileExistsError: Output exists and OVERWRITE=False: /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup_20260507_14/WFI2033_all_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup_halo_stellar_deterministics.nc

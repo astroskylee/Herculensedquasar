@@ -1,0 +1,25 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) services/slurm <aL> 2) system/intel64(default) 3) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+
+=== pantheon_sh0es_reuse_redwarmup ===
+input  = /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup_20260507_14/WFI2033_all_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup.nc
+output = /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup_20260507_14/WFI2033_all_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup_halo_stellar_deterministics.nc
+summary:
+  M200_halo_1E12: 5.45 -2.797 +4.938
+  c200_halo: 5.096 -1.957 +4.728
+  q_halo: 0.8815 -0.01352 +0.009432
+  gamma_ext: 0.1135 -0.005561 +0.005377
+  kappa_ext: 0.1209 -0.05686 +0.05156
+  total_stellar_mass_1E11: 2.298 -0.4288 +0.3811
+
+=== desi_planck ===
+input  = /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_20260504_16/WFI2033_all_ss=2_fullconcen_light_multimass_step6_desi_planck.nc
+output = /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_desi_planck_20260504_16/WFI2033_all_ss=2_fullconcen_light_multimass_step6_desi_planck_halo_stellar_deterministics.nc
+summary:
+  M200_halo_1E12: 7.516 -4.143 +6.231
+  c200_halo: 5.037 -1.683 +3.696
+  q_halo: 0.8793 -0.01619 +0.01141
+  gamma_ext: 0.1043 -0.006757 +0.004732
+  kappa_ext: 0.1393 -0.07147 +0.05936
+  total_stellar_mass_1E11: 2.029 -0.6165 +0.4329

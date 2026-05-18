@@ -1,0 +1,7 @@
+Loading system/intel64
+  Loading requirement: services/slurm
+Currently Loaded Modulefiles: 1) services/slurm <aL> 2) system/intel64(default) 3) anaconda3/2024.02 Key: (symbolic-version) <module-tag> <aL>=auto-loaded
+
+=== pantheon_sh0es_reuse_redwarmup ===
+input  = /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup_20260507_14/WFI2033_all_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup.nc
+output = /mnt/lustre/tianli/quasar_hmc/WFI2033_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup_20260507_14/WFI2033_all_ss=2_fullconcen_light_multimass_step6_pantheonsh0es_reuse_redwarmup_halo_stellar_deterministics.nc
