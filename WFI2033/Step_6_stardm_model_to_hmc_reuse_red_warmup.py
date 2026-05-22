@@ -312,8 +312,8 @@ SIS_PRIORS = {
         'param_name': 'g2',
         'origin': G2_MASS_CENTER,
         'theta_mean': 0.622,
-        'theta_low': 0.5,
-        'theta_high': 0.7,
+        'theta_low': 0.4,
+        'theta_high': 0.8,
     },
     'g3': {
         'origin': G3_MASS_CENTER,
