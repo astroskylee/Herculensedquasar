@@ -1,0 +1,630 @@
+% mnras_template.tex 
+%
+% LaTeX template for creating an MNRAS paper
+%
+% v3.3 released April 2024
+% (version numbers match those of mnras.cls)
+%
+% Copyright (C) Royal Astronomical Society 2015
+% Authors:
+% Keith T. Smith (Royal Astronomical Society)
+
+% Change log
+%
+% v3.3 April 2024
+%   Updated \pubyear to print the current year automatically
+% v3.2 July 2023
+%	Updated guidance on use of amssymb package
+% v3.0 May 2015
+%    Renamed to match the new package name
+%    Version number matches mnras.cls
+%    A few minor tweaks to wording
+% v1.0 September 2013
+%    Beta testing only - never publicly released
+%    First version: a simple (ish) template for creating an MNRAS paper
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Basic setup. Most papers should leave these options alone.
+\documentclass[fleqn,usenatbib]{mnras}
+
+% MNRAS is set in Times font. If you don't have this installed (most LaTeX
+% installations will be fine) or prefer the old Computer Modern fonts, comment
+% out the following line
+\usepackage{newtxtext,newtxmath}
+% Depending on your LaTeX fonts installation, you might get better results with one of these:
+%\usepackage{mathptmx}
+%\usepackage{txfonts}
+
+% Use vector fonts, so it zooms properly in on-screen viewing software
+% Don't change these lines unless you know what you are doing
+\usepackage[T1]{fontenc}
+
+% Allow "Thomas van Noord" and "Simon de Laguarde" and alike to be sorted by "N" and "L" etc. in the bibliography.
+% Write the name in the bibliography as "\VAN{Noord}{Van}{van} Noord, Thomas"
+\DeclareRobustCommand{\VAN}[3]{#2}
+\let\VANthebibliography\thebibliography
+\def\thebibliography{\DeclareRobustCommand{\VAN}[3]{##3}\VANthebibliography}
+
+
+%%%%% AUTHORS - PLACE YOUR OWN PACKAGES HERE %%%%%
+
+% Only include extra packages if you really need them. Avoid using amssymb if newtxmath is enabled, as these packages can cause conflicts. newtxmatch covers the same math symbols while producing a consistent Times New Roman font. Common packages are:
+\usepackage{graphicx}	% Including figure files
+\usepackage{amsmath}	% Advanced maths commands
+\usepackage{xcolor}    % Mark revisions
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%% AUTHORS - PLACE YOUR OWN COMMANDS HERE %%%%%
+
+% Please keep new commands to a minimum, and use \newcommand not \def to avoid
+% overwriting existing commands. Example:
+%\newcommand{\pcm}{\,cm$^{-2}$}	% per cm-squared
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%% TITLE PAGE %%%%%%%%%%%%%%%%%%%
+
+% Title of the paper, and the short title which is used in the headers.
+% Keep the title short and informative.
+\title[Composite model of lensed quasar]{Disentangling the dark and stellar mass through precise lens modelling of the lensed quasar WFI2033--4723}
+
+% The list of authors, and the short list which is used in the headers.
+% If you need two or more lines of authors, add an extra line using \newauthor
+\author[Tian Li et al.]{
+Tian Li,$^{1}$\thanks{E-mail: tian.li@port.ac.uk}
+%Grandpa Rick,$^{1}$
+%Stewie Griffin$^{2}$
+%and Liu Cixin$^{3}$
+\\
+% List of institutions
+$^{1}$Royal Astronomical Society, Burlington House, Piccadilly, London W1J 0BQ, UK\\
+}
+
+% These dates will be filled out by the publisher
+\date{Accepted XXX. Received YYY; in original form ZZZ}
+
+% Prints the current year, for the copyright statements etc. To achieve a fixed year, replace the expression with a number. 
+\pubyear{\the\year{}}
+
+% Don't change these lines
+\begin{document}
+\label{firstpage}
+\pagerange{\pageref{firstpage}--\pageref{lastpage}}
+\maketitle
+
+% Abstract of the paper
+\begin{abstract}
+We model JWST imaging of WFI2033--4723 using Herculens. We use a flexible stars plus dark matter model, allowing for a stellar mass to light gradient and a generalized NFW halo. Such a model would normally be unconstrained due to the mass-sheet degeneracy. Measured time delays allow us to break this degeneracy. Our results are consistent with no mass-to-light gradient, and an IMF between Chabrier and Salpeter. The inner slope of the halo is NFW-like or slightly steeper. These conclusions do not change substantially depending on the choice of prior on the Hubble constant. Our results are consistent with previous results for the fermat potential derived with less flexible mass profiles.
+\end{abstract}
+
+% Select between one and six entries from the list of approved keywords.
+% Don't make up new ones.
+\begin{keywords}
+keyword1 -- keyword2 -- keyword3
+\end{keywords}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%% BODY OF PAPER %%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+Dark matter dominates the mass of massive galaxies but cannot be seen directly, so its distribution must be inferred from its gravitational influence on luminous tracers. The two primary methods are galaxy kinematics \citep{Rubin1978, Rubin1980} and gravitational lensing \citep[see][for a review]{Treu2010review}. Strong lensing directly probes the mass distribution: when a foreground galaxy aligns with a background source, it bends the source’s light into multiple images or an Einstein ring. Because lensing traces the total gravitational potential, it constrains the combined distribution of luminous and dark matter.
+
+For a galaxy-scale strong lens, the projected mass enclosed within the Einstein radius can be measured at the $\sim 1\%$ level \citep{Schneider1992}, and this constraint is largely insensitive to the detailed functional form of the mass distribution. The precision, however, is local: lensing mostly probes the potential in the annulus spanned by the multiple images \citep{Birrer2021,O'Riordan2020}. A precise enclosed-mass measurement can therefore still be consistent with a range of radial profiles and stellar--dark-matter decompositions, unless additional assumptions or observables are introduced.
+
+In the cold dark matter (CDM) paradigm, dark matter haloes are expected to have NFW-like profiles \citep{NFW1997}, while the stellar component of massive galaxies is strongly centrally concentrated. The combination of these two components is nevertheless often close to a power law over the radial range probed by galaxy-scale strong lenses, a behaviour known as the bulge--halo conspiracy \citep{True2004,Koopmans2006,Koopmans2009,Auger2010,Dutton2014}. This motivates the elliptical power-law (EPL) profile as a simple and efficient baseline model for strong-lens analyses \citep{Shajib2021,Etherington2023,Tdcosmo2025}. However, to relate lensing constraints more directly to CDM expectations and to allow deviations from an exact power law, one can instead use composite models in which the stellar and dark matter components are modelled separately \citep{Sonnenfeld2012,Oldham2018,Collett2018,Melo2025}. In such models, the dark matter is often represented by a generalised NFW (gNFW) profile whose inner slope $\gamma_{\rm DM}$ is allowed to vary \citep{Keeton2001,Wyithe2001}.
+
+
+The inner slope of galaxy dark matter haloes carries information about both collisionless CDM and baryonic physics. Cooling and in-situ star formation can deepen the central potential and contract the halo \citep{Blumenthal1986,Gnedin2004}, whereas bursty feedback can flatten the inner profile by driving rapid potential fluctuations \citep{PontzenGovernato2012,Martizzi2013}. The observed slope is therefore expected to depend on the galaxy mass and assembly history, as also seen in simulations \citep{DiCintio2014a,Tollet2016,Dutton2016}.
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=1\linewidth]{figures/WFI2033_color_with_F115_inset_labels_only_110pct_downright10_20260525.pdf}
+    \caption{JWST/NIRCam colour composite of the WFI2033--4723 field constructed from F115W, F150W, F277W, and F356W imaging. The inset shows a zoomed F115W view of the lens system, where the four quasar images B, C, A1, and A2 are marked. The nearby satellite X and perturbers G2, G3, and G7, which are included in the lens model, are labelled in the full-field image. The compass indicates north and east. The scale bars correspond to \(1^{\prime\prime}\) in the inset and \(5^{\prime\prime}\) in the full-field image.}
+    \label{fig:colorimg}
+\end{figure*}
+
+Disentangling the stellar and dark matter components with lens modelling, and hence constraining $\gamma_{\rm DM}$ on kiloparsec scales, is challenging because the stellar contribution depends on the stellar mass-to-light ratio ($M/L$). This quantity is sensitive to the assumed initial mass function (IMF), and observations of early-type galaxies (ETGs) suggest that the IMF can be bottom-heavy in their central regions \citep{Auger2010}. Radial IMF variations, and the associated $M/L$ gradients, may then become progressively more Milky Way-like beyond the inner few kiloparsecs \citep{vanDokkum2017,Sarzi2018,Sonnenfeld2018,Collett2018,Mehrgan2024}.
+
+Another challenge is the mass-sheet transformation (MST), a fundamental degeneracy of lens modelling in which a rescaling of the convergence and source plane leaves the lensing observables unchanged \citep{Falco1985,Schneider2013}. In a composite model, MST-like changes can be produced by trading off the stellar $M/L$ gradient against the dark matter profile \citep{Li2025a}. Changing the inner slope of the gNFW halo, for example, can make the total profile more concave or convex while preserving a similar lensing fit.
+
+A common way to add information that helps break this degeneracy is to combine strong lensing with stellar dynamics. Population analyses of early-type strong lenses have generally found dark matter haloes close to NFW, with results that are broadly robust to plausible stellar $M/L$ gradients \citep{Shajib2021,Sheu2025}. Individual composite analyses, however, have reached mixed conclusions: some studies inferred very cuspy haloes \citep{Sonnenfeld2012,Oldham2018}, while others found profiles closer to NFW \citep{Collett2018,Melo2025}. These inferences remain sensitive to assumptions about the lens light, stellar $M/L$, halo geometry, and stellar dynamics, including anisotropy and projection effects \citep{Huang2025}.
+
+A complementary way to constrain the MST is to use the geometry of double-source-plane lenses (DSPLs): \citet{Tian2026} showed with the Jackpot lens that the additional source plane can help break the MST and constrain a composite stellar-plus-dark-matter model. However, this approach introduces its own systematic uncertainty because the mass profile of source~1 must be modelled and can be degenerate with the main-lens mass profile.
+
+Time-delay lenses provide another route to the same problem. Lensed quasars with well measured time delays have long been used to infer the Hubble constant \citep[see][and references therein]{Tdcosmo2025}, with the MST being one of the dominant systematic uncertainties. Here we reverse this logic. If the background cosmology is assumed or externally constrained, the observed time delays between the quasar images can instead be used to constrain the MST, and therefore to distinguish between different stellar-plus-dark-matter decompositions that would otherwise fit the imaging data equally well. This is similar in spirit to \citet{DobkeKing2006}, who used an external \(H_0\) prior and time-delay lenses to constrain the slope of a power-law density profile, but here we apply the idea to a more flexible composite mass model.
+
+In this work, we apply this strategy to the quadruply imaged quasar WFI2033--4723 using high-resolution JWST/NIRCam imaging. WFI2033--4723 was modelled by H0LiCOW with power-law mass profile, yielding \(H_0=71.6^{+3.8}_{-4.9}\,{\rm km\,s^{-1}\,Mpc^{-1}}\) from HST imaging \citep{rusu2020}. More recently, TDCOSMO XX re-modelled the system with JWST/NIRCam data and found results consistent with the HST-based analysis \citep{Williams2025TDCOSMOXX}. These results make WFI2033--4723 an ideal system for asking whether the same data can constrain a more physical stellar-plus-dark-matter decomposition. 
+
+We first construct an EPL baseline model to obtain a precise reference lens solution and Fermat-potential differences, and then replace the total mass profile using the star-plus-dark-matter framework introduced by \citet{Tian2026}. In this composite model, the stellar mass follows a flexible multi-Gaussian expansion of the lens light and the dark matter is described by an elliptical gNFW halo. We allow the stellar normalisation and radial stellar \(M/L\) gradient to vary, so that the model can explore the same stellar--dark-matter trade-off that underlies the MST. By combining the imaging constraints with the measured quasar time delays under externally motivated cosmological assumptions, we use WFI2033--4723 as a laboratory for testing whether the time-delay information can disentangle the stellar and dark matter contributions without relying primarily on stellar kinematics.
+
+The remaining choice is the external cosmological information used to set the time-delay distance scale. We therefore analyse the composite models under two representative cosmological priors: a local-distance-ladder prior from Pantheon+ combined with SH0ES, \(H_0=73.50\pm1.07\,{\rm km\,s^{-1}\,Mpc^{-1}}\) \citep{Brout2022PantheonPlus,Riess2022SH0ES}, and an early-Universe/large-scale-structure prior from Planck CMB measurements combined with DESI BAO constraints, \(H_0=68.17\pm0.28\,{\rm km\,s^{-1}\,Mpc^{-1}}\) \citep{Planck2018,DESI2025BAO}. Comparing these two cases allows us to assess whether the inferred stellar \(M/L\) normalisation, radial \(M/L\) gradient, and gNFW inner slope are sensitive to the adopted cosmological prior, or are instead driven mainly by the JWST imaging.
+
+\section{Data}
+\label{sec:data}
+
+Our analysis uses \textsc{JWST}/NIRCam observations of WFI2033--4723 from GTO 1198 (PI: Stiavelli). The data set contains four NIRCam filters, F115W, F150W, F277W, and F356W. Following TDCOSMO XX \citep{Williams2025TDCOSMOXX}, we model only the reduced F115W image, which provides high angular resolution and the main constraints from the quasar images and lensed host-galaxy arcs. The modelling uses a \(150\times150\)-pixel cutout, corresponding to approximately \(4.6^{\prime\prime}\) on a side, with a drizzled pixel scale of \(0.0307^{\prime\prime}\) per pixel. At the lens redshift, F115W corresponds to \(\lambda_{\rm rest}\simeq0.70\,\mu{\rm m}\), close to the rest-frame wavelength of the \textit{HST}/ACS F814W imaging used for the Jackpot lens at \(z=0.222\) in \citet{Tian2026}; this makes the stellar-light based mass decomposition in the two analyses broadly comparable.
+
+WFI2033--4723 is a quadruply imaged quasar first reported by \citet{morgan2004}. The quasar source has redshift \(z_{\rm s}=1.662\) \citep{sluse2012}, and the main deflector is at \(z_{\rm d}=0.6575\) \citep{sluse2019}. We use the COSMOGRAIL time-delay measurements adopted by H0LiCOW for this system \citep{bonvin2019,rusu2020}: \(\Delta t_{\rm B-A1}=-36.2^{+1.6}_{-2.3}\) days, \(\Delta t_{\rm B-A2}=-37.3^{+2.6}_{-3.0}\) days, and \(\Delta t_{\rm B-C}=-59.4\pm1.3\) days. The local environment includes the nearby satellite X and the galaxy perturbers G2, G3, and G7, which have been identified as relevant for lens modelling in previous analyses \citep{sluse2019,rusu2020}.
+
+\section{Lens Modelling}
+\subsection{Lensing theory}
+In this section, we present the theory and conventions/notations used across the paper to describe the lens modelling techniques adopted.
+
+For a lensed image at position $\boldsymbol{\theta}$, the scaled deflection angle of a lens galaxy $\boldsymbol{\alpha}(\boldsymbol{\theta})$ is related to its lensing potential $\psi$ via
+\begin{equation}
+\boldsymbol{\alpha}(\boldsymbol{\theta})=\nabla \psi(\boldsymbol{\theta})\,,
+\end{equation}
+and the relation between lensing potential and lensing convergence is
+\begin{equation}
+\kappa(\boldsymbol{\theta})=\frac{1}{2} \nabla^2 \psi(\boldsymbol{\theta})\,,
+\end{equation}
+where convergence is defined as
+\begin{equation}
+\kappa(\boldsymbol{\theta}) \equiv \frac{\Sigma(\boldsymbol{\theta})}{\Sigma_{\mathrm{cr}}}\,.
+\end{equation}
+%
+The convergence is the lens surface mass density normalised by the critical lensing surface density,
+\begin{equation}
+\Sigma_{\mathrm{cr}} \equiv \frac{c^2 D_{\mathrm{s}}}{4 \pi G D_{\mathrm{l}} D_{\mathrm{ls}}}\,,
+\end{equation}
+where \(D\) is the angular diameter distance between two objects, and the subscripts l and s denote the lens galaxy and the source galaxy, respectively.
+
+
+The time delay between two images A and B is given by:
+\begin{equation}
+\Delta t_{\Lambda \mathrm{B}}=\frac{D_{\Delta t}}{c}\left(\phi\left(\theta_{\mathrm{A}}, \beta\right)-\phi\left(\theta_{\mathrm{B}}, \beta\right)\right)
+\end{equation}
+where $\phi(\theta, \beta)$ is the Fermat potential:
+\begin{equation}
+\phi(\theta, \beta)=\left[\frac{(\theta-\beta)^2}{2}-\psi(\theta)\right]
+\end{equation}
+and the time-delay distance $D_{\Delta t}$ is:
+\begin{equation}
+D_{\Delta t} \equiv\left(1+z_{\mathrm{l}}\right) \frac{D_{\mathrm{l}} D_{\mathrm{s}}}{D_{\mathrm{Ls}}}
+\end{equation}
+Time-delay cosmography uses measured time delays with mass profiles from lens modeling and kinematics to constrain the time-delay distance, hence constraining the cosmological parameters. The Hubble constant is inversely proportional to the time-delay distance:
+\begin{equation}
+H_0 \propto D_{\Delta t}^{-1} .
+\end{equation}
+
+\subsection{Mass-sheet transform}
+Constraining the mass profile of a lens galaxy is challenging due to the Mass-Sheet Transform (MST) \citep{Falco1985}. The MST is defined by the equation:
+\begin{equation}
+\lambda \beta=\theta-\lambda \alpha(\theta)-(1-\lambda) \theta
+\end{equation}
+This transform is a multiplicative modification of the lens equation, preserving the image positions under a linear displacement of the source, $\beta \rightarrow \lambda \beta$. The term $(1 - \lambda)$ represents an infinite sheet of mass. Observables that are sensitive to the absolute source size, intrinsic magnification, or lensing potential can help break this degeneracy. 
+
+The MST on convergence is:
+\begin{equation}
+\label{eq:mst}
+    \kappa_{\lambda}(\theta) = \lambda \kappa(\theta) + 1 - \lambda
+\end{equation}
+where $\kappa_\lambda$ is the convergence after the mass-sheet transform. This equation indicates that if we scale the convergence by $\lambda$ and add a convergence sheet with $\kappa_=1-\lambda$, we would observe the same image as with the original convergence.
+
+\section{Lens modelling strategy}
+
+\begin{table}
+\centering
+\small
+\renewcommand{\arraystretch}{1.0}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{ccc}
+\hline
+\textbf{Parameter} &
+\textbf{EPL baseline} &
+\textbf{star+gNFW} \\
+\hline
+$\theta_{\rm E}$ &
+$\mathcal{U}(0.9,\,1.1)$ &
+-- \\
+$\gamma_{\rm EPL}$ &
+$\mathcal{U}(1.2,\,2.8)$ &
+-- \\
+$(e_1,e_2)$ &
+$\mathrm{TN}(0,\,0.25;\,-0.5,\,0.5)$ &
+$\mathrm{TN}(0,\,0.25;\,-0.2,\,0.2)$ \\
+$(x_{\rm c},y_{\rm c})$ &
+$\mathrm{TN}(0,\,0.1;\,-0.5,\,0.5)$ &
+$\mathrm{TN}(0,\,1;\,-0.4,\,0.4)$ \\
+$\Upsilon_{\kappa}$ &
+-- &
+$\mathcal{U}(0,\,5)$ \\
+$\nabla M/L$ &
+-- &
+$\mathcal{U}(-0.6,\,0.6)$ \\
+$\kappa_s$ &
+-- &
+$\mathcal{U}(0,\,1)$ \\
+$\gamma_{\rm in}$ &
+-- &
+$\mathcal{U}(0.6,\,2.0)$ \\
+$R_s$ &
+-- &
+$\mathcal{U}(2,\,20)$ \\
+$(\gamma_1,\gamma_2)$ &
+$\mathcal{U}(-0.5,\,0.5)$ &
+$\mathcal{U}(-0.5,\,0.5)$ \\
+$\theta_{\rm E}^{\rm X,G1}$ &
+\multicolumn{2}{l}{$\mathcal{U}(0,\,0.25)$} \\
+$\theta_{\rm E}^{\rm G2}$ &
+\multicolumn{2}{l}{$\mathcal{U}(0.5,\,0.7)$} \\
+$\theta_{\rm E}^{\rm G3,G7}$ &
+\multicolumn{2}{l}{scaled from \(\theta_{\rm E}^{\rm G2}\)} \\
+$I_{\rm lens}$ &
+inner 3 fixed; outer 2 free &
+fixed EPL light \\
+$\kappa_{\rm ext}$ &
+-- &
+\(0.059^{+0.077}_{-0.047}\);\\
+$(H_0,\Omega_{\rm m})_{\rm P+SHOES}$ &
+-- &
+\(H_0=73.50\pm1.07\),\\
+$(H_0,\Omega_{\rm m})_{\rm Planck+DESI}$ &
+-- &
+\(H_0=68.17\pm0.28\),\\
+\hline
+\end{tabular}
+\caption{Priors used for the EPL baseline and the star+gNFW time-delay model. \(\mathcal{U}\) and \(\mathrm{TN}\) denote uniform and truncated Gaussian priors. The SIS perturber priors are shared by both mass models. Following the notation of \citet{Tian2026}, \(\Upsilon_{\kappa}\) denotes the overall scale applied to the normalized stellar MGE in convergence. The quoted \(H_0\) uncertainties are the one-dimensional standard deviations of the two-dimensional cosmological Gaussian priors. The asym. Gaussian entry for \(\kappa_{\rm ext}\) uses different widths below and above the quoted mean.}
+\label{tab:prior_all}
+\end{table}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/parametric_svi_chain00.pdf}
+    \includegraphics[width=0.9\textwidth]{figures/stage1_svi_chain00.pdf}
+    \includegraphics[width=0.9\textwidth]{figures/stage2_svi_chain00.pdf}
+    \includegraphics[width=0.9\textwidth]{figures/stage3_svi_updated_rms_chain00.pdf}
+    \caption{Stepwise image modelling of WFI2033--4723 in the JWST/NIRCam F115W band.
+    Each row corresponds to one modelling stage, and the columns show, from left to right, the lens-light-subtracted data, the lensed image model, the normalized residuals, and the reconstructed source.
+    Step 1 uses a parametric source-light model.
+    Step 2 replaces the source with a pixelated source reconstruction.
+    Step 3 adds a correction to the PSF kernel.
+    Step 4 uses the PSF-corrected model with an updated noise map that includes additional PSF-related uncertainty.
+    }
+    \label{fig:initialisation_sequence}
+\end{figure*}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=1\textwidth]{figures/step5_hmc_median_8chains.pdf}
+    \caption{The lens model of HMC result. The panels show the median model from the eight HMC chains, including the data, best-fitting image-plane model, residuals, lensed AGN-host light, reconstructed source with caustics, the modelled initial PSF from the field-star SVI fit, the PSF after correction, and the lens-light-subtracted image.}
+    \label{fig:hmc_median_model}
+\end{figure*}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/EPL_corner.pdf}
+    \begingroup
+    \large
+    \renewcommand{\arraystretch}{1.25}
+    \setlength{\tabcolsep}{7pt}
+    \begin{tabular}{@{}ccccccccc@{}}
+    \hline
+    $\theta_{\rm E}$ & $\gamma$ & $q$ & $\gamma_{\rm ext}$ & $\theta_{\rm E,X}$ & $\theta_{\rm E,G2}$ & $\Delta\tau_{\rm BC}$ & $\Delta\tau_{\rm BA1}$ & $\Delta\tau_{\rm BA2}$ \\
+    \hline
+    $1.006^{+0.003}_{-0.003}$ & $1.829^{+0.005}_{-0.003}$ & $0.831^{+0.003}_{-0.004}$ & $0.097^{+0.002}_{-0.002}$ & $0.064^{+0.004}_{-0.004}$ & $0.545^{+0.010}_{-0.010}$ & $0.466^{+0.003}_{-0.003}$ & $0.305^{+0.004}_{-0.004}$ & $0.325^{+0.005}_{-0.005}$ \\
+    \hline
+    \end{tabular}
+    \endgroup
+    \caption{Posterior distributions of the HMC chain. The corner plot shows the 2D posterior distributions for the EPL mass model. The table reports posterior medians and 16th--84th percentile uncertainties, including the three Fermat-potential differences used for the time-delay analysis.}
+    \label{fig:epl_posterior}
+\end{figure*}
+
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=1\textwidth]{figures/fermat_potential_errorbar_comparison.pdf}
+    \caption{Comparison of Fermat-potential differences for the three image-pair combinations. The error bars show the median and 16th--84th percentile. Our result is compared with the JWST analysis from TDCOSMO XX and the HST-based H0LiCOW XII result.}
+    \label{fig:fermat_comparison}
+\end{figure*}
+
+\label{sec:lensmodel_Setup}
+We used the open-source lens modelling code {\tt Herculens}\footnote{\url{https://github.com/Herculens/herculens}} \citep{Galan2022_herculens}, which includes multiplane lensing capabilities (see, e.g. \citealt{Enzi2025}). {\tt Herculens} is built on the automatic differentiation and compilation features of JAX\footnote{\url{https://docs.jax.dev/en/latest/}} and can run on graphics processing units (GPUs). Automatic differentiation efficiently computes partial derivatives without manually deriving or implementing them \citep{Baydin2018}, allowing us to evaluate likelihood gradients with respect to all free parameters.
+
+This section describes our modelling pipeline in four parts: the data, point spread function (PSF) and noise model, the light models (lens and sources), the lens mass model, and the sampling strategy. 
+We perform a initialize lens model with Power-law mass profile and then transit into useing a composite model consisting of star plus a gNFW dark matter halo (star$+$gNFW). 
+
+
+\subsection{Light model}
+\subsubsection{Lens light}
+As described in the previous section, we model the lens light as a sum of multiple Gaussian components:
+\begin{equation}
+\label{eq:MGE_light}
+F_{\mathrm{light}}(x,y) \;\approx\; \sum_{n=1}^{N}
+A_{\mathrm{light},n}\,
+\exp\!\left[-\frac{R^2}{2\,\sigma_n^{2}}\right],
+\end{equation}
+where, for each Gaussian component, the amplitude $A_{\mathrm{light},n}$, the axis ratio $q_n$ ($R^2 \equiv q_n\,(x-x_n)^2 + \frac{(y-y_n)^2}{q_n}$), the centroid $(x_n,y_n)$, and the ellipticity ($e_1, e_2$) are treated as independent free parameters. We adopt $N=5$ Gaussians with dispersions $\{\sigma_n\}$ uniformly spaced in $\log \sigma_n$ between $0.001$ and $3$~arcsec. The Einstein radius measurement is self-consistent when using 15 or more components.
+
+We parametrise the ellipticity using the Cartesian components $(e_1,e_2)$ rather than the axis ratio $q$ and position angle $\phi$. This avoids the $\pi$-periodicity of $\phi$ and provides a continuous parameter space, which improves the efficiency and robustness of the inference. We adopt the standard mapping:
+\begin{equation}
+\label{eq:e1e2_def}
+e_{1,n} = \frac{1-q_n}{1+q_n}\cos(2\phi_n), 
+\qquad
+e_{2,n} = \frac{1-q_n}{1+q_n}\sin(2\phi_n).
+\end{equation}
+
+\subsubsection{Source light parametric}
+
+We begin by modelling the source surface brightness with an MGE, analogous to our treatment of the lens light. For the Jackpot lens, this parametrisation provides an excellent fit to the F814W data: the light of source~1 is dominated by smooth continuum emission with minimal clumpiness. We model both source~1 and source~2 using four elliptical Gaussian components. The Gaussian scale radii are assigned to four logarithmically spaced bins between $0.001$ and $0.2$ arcsec, and each component draws its scale radius from a log-uniform prior within its assigned bin.
+
+
+\subsubsection{Source light pixelated}
+We then model the sources as fields defined on regular Cartesian pixel grids that can be treated as a Gaussian process (GP). For each source, the grid is chosen as the smallest square that encloses all mask pixels traced to the source plane. To mitigate overextension of the mask (e.g., due to the PSF or mapping-induced outliers in the source plane), we shrink the side length of the square by factors of 0.8.
+
+The field value in each pixel forms an element of the vector $\vec{s}$. In Fourier space, the mode amplitudes can be determined by a power spectrum \citep[see, e.g., ][]{Galan2024, RustigEtAl2024_LensCharm}:
+\[
+\vec{s} \;=\; \mathcal{F}^{-1}\!\big[\,\sqrt{P}\,\odot\,\vec{\xi}\,\big],
+\]
+where \(P\) is the Matérn power spectrum evaluated on the Fourier grid, 
+\(\odot\) denotes element-wise multiplication, and $\vec{\xi}$ is standard Gaussian white noise. The Matérn power spectrum \citep[see e.g.][]{Stein2012Interpolation} corresponding to a Matérn covariance kernel is
+\begin{equation}
+P(k)=\sigma^{2}\,4\pi n\left(\frac{2n}{\rho^{2}}\right)^{n}\left(\frac{2n}{\rho^{2}}+k^{2}\right)^{-(n+1)},
+\end{equation}
+where $\sigma$ sets the overall amplitude, $\rho$ is the correlation length, and $n$ controls the smoothness. We also fit for these parameters using Jeffery's prior during the inference. 
+
+Applying the discrete inverse Fourier transform \(\mathcal{F}^{-1}\) yields the pixelated source image \(\vec{s}\), which is a realisation of a Gaussian process with Matérn covariance.
+
+To enforce non-negative source-plane surface brightness while keeping the model differentiable, we apply a smooth positivity map to the latent pixel field,
+\begin{equation}
+\vec{s}\;\longrightarrow\;\frac{\mathrm{softplus}(h\,\vec{s})}{h},\qquad 
+\mathrm{softplus}(x)=\log\!\left(1+e^{x}\right),\qquad h = 100.
+\end{equation}
+The softplus function is strictly positive and smooth: for \(x\ll 0\), \(\mathrm{softplus}(x)\approx e^{x}\) so it approaches \(0\) exponentially, while for \(x\gg 0\), \(\mathrm{softplus}(x)\approx x\) and thus becomes approximately linear. The scale parameter \(h\) controls how sharply the mapping transitions from near-zero values for negative inputs to an approximately identity mapping for positive inputs.
+
+We use $74\times74$-pixel grids for the source, which provide sufficient ray-tracing samples per pixel and satisfy the Nyquist criterion: on average, four image-plane pixels map onto one source pixel. 
+
+
+\subsection{PSF modelling}
+
+The point-spread function (PSF) is a critical part of the model because the four quasar images are bright and lie close to the extended arcs. Even small PSF residuals can be absorbed by the lensed host-galaxy reconstruction or by the quasar amplitudes, and can therefore bias the lens model if they are not treated explicitly. Empirical studies of JWST/NIRCam imaging have shown that the PSF varies across the detector field and between exposures \citep{Nardiello2022JWSTPSF,Zhuang2024JWSTPSF}. TDCOSMO XX identified PSF modelling as a leading uncertainty for JWST lens modelling of WFI2033--4723 \citep{Williams2025TDCOSMOXX}. For WFI2033--4723 this issue is especially important because the quasar images have high surface brightness and small formal statistical uncertainties, while the stars available for PSF calibration are located at other positions on the JWST focal plane and therefore cannot perfectly reproduce the local PSF at the lens position.
+
+\subsubsection{Initial PSF and correction}
+
+We first generate an initial PSF using \textsc{STPSF} for the F115W observation. To model the spatial variation of the PSF in the WFI2033--4723 field, we select a set of isolated field stars as empirical PSF constraints and fit them jointly with stochastic variational inference (SVI). The field-star model starts from the \textsc{STPSF} kernel and allows a flexible PSF correction, producing the modelled initial PSF used in the lens modelling.
+
+We parameterize the PSF correction as a positive multiplicative perturbation to a reference PSF. Let \(\mathrm{PSF}_0(\boldsymbol{x})\) be the reference PSF. We introduce a pixelized correction field \(\delta_{\rm PSF}(\boldsymbol{x})\) in log space and define the unnormalised corrected PSF as
+\[
+\mathrm{PSF}_{\rm corr}(\boldsymbol{x})
+=
+\mathrm{PSF}_0(\boldsymbol{x}) \exp\left[\delta_{\rm PSF}(\boldsymbol{x})\right].
+\]
+After this multiplicative correction, we renormalise \(\mathrm{PSF}_{\rm corr}\) so that its total flux is unity. This parameterization guarantees that the corrected PSF remains positive, while the subsequent normalisation preserves the PSF flux. It also has the useful property that \(\delta_{\rm PSF}=0\) corresponds exactly to the input PSF before renormalisation, so the correction is only applied where it is supported by the imaging data.
+
+We assign independent Gaussian priors to the log-correction pixels,
+\[
+\delta_{\rm PSF}(\boldsymbol{x}) \sim \mathcal{N}(0,1).
+\]
+
+We prefer this log-multiplicative form over an additive correction because an additive perturbation can produce negative PSF values and requires additional constraints to preserve the total flux. The multiplicative correction instead describes relative deviations from the reference PSF, which is better matched to the expected PSF mismatch and leads to a more stable inference problem. This parameterization is also convenient for Hamiltonian Monte Carlo, since the sampled variables \(u(\boldsymbol{x}) \equiv \delta_{\rm PSF}(\boldsymbol{x})\) live in an unconstrained Euclidean space, while the deterministic transformation above maps them to a positive PSF that is subsequently normalised. A possible improvement would be to impose a correlated prior on the PSF-correction field, similar in spirit to the regularised PSF correction used in \textsc{STARRED} \citep{michalewicz2023,millon2024}, which could reduce the risk of overfitting small-scale noise in the correction. We leave this extension for future work.
+
+\subsubsection{Extra PSF noise}
+
+The field-star modelling also provides an empirical estimate of the residual PSF mismatch. For each selected star, we compute the difference between the observed stellar cutout and the modelled initial PSF rendered at the fitted sub-pixel position and flux, after subtracting the fitted local background. We then align these residuals to a common PSF-centred frame and estimate a relative PSF-error map,
+\begin{equation}
+\alpha_{\rm PSF}^{2}(\boldsymbol{x})=\max\left[0,\frac{\sum_j M_j^2(\boldsymbol{x})\left(R_j^2(\boldsymbol{x})-\sigma_j^2(\boldsymbol{x})\right)}{\sum_j M_j^4(\boldsymbol{x})}\right],
+\end{equation}
+where \(R_j\), \(M_j\), and \(\sigma_j\) are the residual image, PSF-only model, and original error map of star \(j\) after alignment. In the lens-modelling sequence, we first fit the system without the pixelized PSF correction, then activate the PSF correction and use the resulting point-source positions, fluxes, and corrected PSF to propagate \(\alpha_{\rm PSF}\) onto the quasar images. The final RMS map is
+\begin{equation}
+\sigma_{\rm tot}^{2}(\boldsymbol{x})=\sigma_{\rm img}^{2}(\boldsymbol{x})+\sum_i\left[\alpha_{{\rm PSF},i}(\boldsymbol{x})I_{{\rm PSF},i}(\boldsymbol{x})\right]^2,
+\end{equation}
+where \(I_{{\rm PSF},i}\) is the rendered model of quasar image \(i\), and \(\alpha_{{\rm PSF},i}\) is the aligned error map shifted to that image position. The resulting rms map is used in the subsequent likelihood, so pixels most affected by PSF mismatch are down-weighted without changing the lens model itself.
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/step6_derived_halo_stellar_5param_imf_band_corner.pdf}
+    \caption{Posterior constraints on the derived stellar and halo parameters for the composite star+gNFW model.}
+    \label{fig:composite_posterior}
+\end{figure*}
+
+
+\begin{table*}
+\centering
+\caption{Posterior constraints for the composite star+gNFW time-delay models under the two external cosmological priors. Reported values are the marginal posterior medians, with uncertainties corresponding to the central 68\% credible intervals.}
+\label{tab:composite_posterior}
+{\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lrrrrrrrrr}
+\hline
+Model & $M_{200}^{\rm halo}/10^{12}M_\odot$ & $R_s^{\rm halo}$ & $\gamma_{\rm in}^{\rm halo}$ & $q_{\rm halo}$ & $\nabla (M/L)$ & $M_\star/10^{11}M_\odot$ & $\theta_{\rm E}^{\rm X}$ & $\gamma_{\rm ext}$ & $\kappa_{\rm ext}$ \\
+\hline
+Planck+DESI & $7.52^{+6.23}_{-4.14}$ & $9.21^{+6.75}_{-5.10}$ & $1.32^{+0.12}_{-0.15}$ & $0.88^{+0.01}_{-0.02}$ & $0.09^{+0.10}_{-0.17}$ & $2.03^{+0.43}_{-0.62}$ & $0.057^{+0.002}_{-0.002}$ & $0.104^{+0.005}_{-0.007}$ & $0.139^{+0.059}_{-0.071}$ \\
+Pantheon+SH0ES & $5.45^{+4.94}_{-2.80}$ & $8.32^{+7.96}_{-4.93}$ & $1.30^{+0.16}_{-0.21}$ & $0.88^{+0.01}_{-0.01}$ & $0.16^{+0.06}_{-0.10}$ & $2.30^{+0.38}_{-0.43}$ & $0.060^{+0.002}_{-0.002}$ & $0.114^{+0.005}_{-0.006}$ & $0.121^{+0.052}_{-0.057}$ \\
+\hline
+\end{tabular}}
+\end{table*}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=1\textwidth]{figures/CompisiteLensModel.pdf}
+    \includegraphics[width=0.7\textwidth]{figures/dm_frac.pdf}
+    \caption{Composite star+gNFW lens-model result and the corresponding stellar and dark-matter mass decomposition.}
+    \label{fig:composite_lens_model}
+\end{figure*}
+
+\subsection{Mass Model}
+We first parametrize our mass model as an elliptical power-law mass model. Then we use a composite model of star plus dark matter which includes an MGE stellar mass component and a gNFW profile for the DM halo mass component approximated with a 3D MGE of 20 Gaussians. 
+
+\subsubsection{Elliptical Power-Law}
+Traditional strong-lens analyses often describe the total projected mass distribution with an EPL model. The convergence ($\kappa_{\mathrm{EPL}}$) of the EPL model can be parametrised as
+\begin{equation}
+\kappa_{\mathrm{EPL}}(R, \gamma, q)=\frac{3-\gamma}{2}\left(\frac{\theta_\mathrm{E}}{R}\right)^{\gamma-1}\,,
+\end{equation}
+where $\gamma$ is the logarithmic density slope and $\theta_\mathrm{E}$ is the Einstein radius. For $\gamma=2$, the model reduces to the singular isothermal case (SIS/SIE). In our modelling, the mass associated with the nearby galaxy are modelled with SIS.
+
+\subsubsection{Stellar mass component}
+Our fiducial model consists of stars plus dark matter. The stellar mass distribution is tied to the multi-Gaussian light model: the amplitude of each Gaussian is linked to its contribution to the stellar convergence, such that the relative convergence amplitudes between Gaussians are fixed by the light model. An $M/L$ ratio is required to map the light model to a mass model; here we treat the (global) $M/L$ as a free parameter. Following \citet{Oldham2018}, we also allow for a radial $M/L$ gradient:
+\begin{equation}
+\Upsilon_{\star}(\sigma_i) \propto \sigma_i^{-\nabla M/L},
+\end{equation}
+where $\Upsilon_{\star}$ is the mass-to-light ratio assigned to each Gaussian component, $\sigma_i$ is the standard deviation of each Gaussian, and $\nabla M/L$ is the slope of the $M/L$ gradient. Here $\nabla M/L$ is an additional free parameter that controls a smooth, global radial variation of the stellar $M/L$ across the Gaussian components; $\nabla M/L=0$ corresponds to a constant $M/L$.
+
+We normalise the stellar-mass MGE such that the Gaussian amplitudes sum to unity in convergence.  In practice, this means we do not explicitly parametrise the stellar component with an $M/L$ in physical units. Instead, we scale the normalised Gaussian components by a free parameter $\Upsilon_\kappa$ and apply the $M/L$ gradient. The amplitude of each Gaussian is then expressed as:
+\begin{equation}
+\Upsilon_{\kappa,i}(\sigma_i)=
+\Upsilon_{\kappa}\,
+\frac{A_{{\rm light},i}}{\sum_{j=1}^{N} A_{{\rm light},j}}\,
+\sigma_i^{-\nabla M/L},
+\end{equation}
+where $\Upsilon_{\kappa,i}$ is the mass amplitude of the $i$th Gaussian.
+
+\subsubsection{Dark matter mass component}
+The 3D radial profile of the dark matter is described as a elliptical gNFW profile parametrised as:
+\begin{equation}
+\rho(R)=\rho_s\left(\frac{R}{r_s}\right)^{-\gamma_{\rm in}}
+\left(1+\frac{R}{r_s}\right)^{\gamma_{\rm in}-3},
+\end{equation}
+where $\rho_s$ is the characteristic density at the scale radius $r_s$, and
+$\gamma_{\rm in}$ is the inner density slope (cuspy if $\gamma_{\rm in}>1$; cored if $\gamma_{\rm in}=0$).
+For $\gamma_{\rm in}=1$, the profile reduces to the classical NFW.
+
+The gNFW profile is approximated using a 3D MGE with 20 components, i.e. the dark matter mass distribution is represented as a sum of concentric elliptical Gaussian basis functions \citep{Emsellem1994_MGE, Cappellari2002_MGE, Shajib2019MGE}. A full description of the 3D MGE implementation is provided in \cite{Tian2026}.
+
+
+\subsection{Initialisation}
+
+Lens modelling of this data is a high-dimensional inference problem. In the pixelated stages the model includes the lens mass, the lens light, the point sources, the source power-spectrum hyperparameters, the source pixels, and the PSF-correction field. Directly initialising the final Hamiltonian Monte Carlo (HMC) run in this full parameter space is inefficient, so we first use stochastic variational inference (SVI) to build a sequence of increasingly flexible models and to provide a stable starting point for the final sampling.
+
+We use the {\tt NumPyro} implementation of SVI \citep[see][]{WingateWeber2013}, which is built on JAX\footnote{\url{https://github.com/google/jax}} for efficient automatic differentiation. SVI approximates the posterior with a tractable variational distribution by optimising the evidence lower bound (ELBO), rather than by drawing posterior samples. The variational guide is not intended to represent the final posterior in this high-dimensional problem, but it is much cheaper than MCMC and provides robust initial values for the subsequent HMC analysis.
+
+Optimisation is performed with the AdaBelief optimiser \citep{Zhuang2020} and a two-stage exponential learning-rate schedule. The learning rate is initialised to \(10^{-2}\) and decays exponentially with decay rate 0.99 and transition steps 200 for the first half of the optimisation. At the midpoint we switch to a second exponential decay with the same decay rate and transition steps 10, initialised to the learning rate at the boundary to ensure continuity. The parametric stage uses a low-rank multivariate normal guide, while the pixelated stages use a diagonal normal guide initialised from the previous SVI median with an initial scale of 0.01.
+
+Because the arcs are blended with both the lens light and the quasar images, we model the lens light, point sources, and lensed host-galaxy arcs simultaneously throughout the initialisation. The lens light is described by five elliptical Gaussian luminosity profiles. In the initial SVI stages, the inner three Gaussian components are fixed to the lens-light solution obtained from the corrected-PSF light fit, while the outer two Gaussian components are allowed to vary. We first use a parametric elliptical Gaussian source to obtain a smooth source-plane approximation, and then ray-trace this solution to initialise the pixelated source grid and the Matérn power-spectrum hyperparameters.
+
+We run eight independent SVI chains in each optimisation stage. The initialisation proceeds in four stages before the final HMC sampling. First, we fit a fully parametric model in which the lens light is described by five elliptical Gaussian components, the source is described by an elliptical Gaussian profile, and the four quasar images are modelled as point sources. This provides an initial solution for the lens mass, lens light, point-source positions and fluxes, and the smooth source morphology.
+
+Second, we replace the parametric source with a pixelated source model while keeping the PSF fixed. The pixel grid is constructed from the source-plane size inferred from the parametric solution, and the lens mass, lens light, and point-source parameters are initialised from the first stage. Third, we activate the PSF correction and refit the pixelated model, initialising the lens mass, lens light, point sources, source pixels, and source power-spectrum hyperparameters from the fixed-PSF pixelated solution. Fourth, we repeat the pixelated SVI using the corrected PSF together with the updated RMS map that includes the extra PSF-noise term described above. This final SVI stage gives the starting point used for the subsequent HMC sampling.
+
+The role of the PSF stages is illustrated in Fig.~\ref{fig:initialisation_sequence}. With a fixed PSF, the pixelated source reconstruction contains substantial high-frequency structure, indicating that part of the source model is compensating for PSF mismatch around the bright quasar images. Applying the PSF correction already moves the reconstruction toward a smoother and more physically plausible face-on disk-like morphology. After adding the extra PSF-noise map and refitting with the corrected PSF, residual PSF mismatch no longer dominates the likelihood in the highest-surface-brightness pixels, allowing the extended arc information to drive the source reconstruction more directly.
+
+\subsection{BAYESIAN INFERENCE}
+
+We estimate the posterior with NumPyro's implementation of the No-U-Turn Sampler (NUTS; \citealp{HoffmanGelman2014NUTS,Phan2019NumPyro}), a Hamiltonian Monte Carlo (HMC) method \citep{1987PhLB..195..216D,brooks2011handbook} that uses gradients to propose efficient moves. Compared with traditional MCMC, HMC/NUTS typically yields low-autocorrelation chains, needs fewer warm-up steps, and scales well to high-dimensional posteriors. To improve robustness in the high-dimensional pixelated model, we combine NUTS with an HMC-within-Gibbs scheme \citep{Krawczyk2024MultiHMCGibbs}: blocks of parameters are updated in turn while the remaining parameters are held fixed, following a Gibbs-like schedule \citep[cf.][]{GelmanBDA3}. For all production runs we inspect the rank-normalised \(\hat r\), effective sample sizes, and the fraction of divergent transitions to assess convergence.
+
+\subsubsection{EPL baseline HMC}
+
+The EPL baseline HMC is initialised from the final SVI solution described above. The main purpose of the HMC-within-Gibbs sampler in this stage is to separate the lens modelling parameters from the pixelized PSF correction. In practice, each Gibbs cycle alternates between updating the lens mass, light, source, and point-source parameters conditioned on the current PSF, and updating the PSF-correction field conditioned on the current lens model. This makes the PSF correction an on-the-fly part of the posterior inference. The dense mass-matrix blocks used for the EPL and composite HMC runs are listed in Table~\ref{tab:hmc_blocks}. For the EPL baseline, we run eight vectorised chains, each with 2000 warm-up steps followed by eight batches of 1000 posterior samples.
+
+\begin{table}
+\centering
+\small
+\renewcommand{\arraystretch}{1.1}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{0.35\columnwidth}p{0.57\columnwidth}@{}}
+\hline
+\textbf{Block} & \textbf{Parameters in dense block} \\
+\hline
+\multicolumn{2}{l}{\emph{EPL baseline}}\\
+Source hyperparameters & \(n_{\rm src}, \rho_{\rm src}, \sigma_{\rm src}\) \\
+Lens light & Gaussian amplitudes, widths, and ellipticities \\
+Point sources & quasar image positions and fluxes \\
+Mass model & EPL profile, external shear, and free SIS perturbers \\
+PSF correction & pixelized PSF-correction field; separate Gibbs block \\
+\hline
+\multicolumn{2}{l}{\emph{Composite model}}\\
+Source hyperparameters & \(n_{\rm src}, \rho_{\rm src}, \sigma_{\rm src}\) \\
+Mass and cosmology & stellar \(M/L\), \(M/L\) gradient, gNFW halo, shear, SIS perturbers, \((\Omega_{\rm m},H_0)\), and \(\kappa_{\rm ext}\) \\
+Point sources & quasar image positions and fluxes \\
+\hline
+\end{tabular}
+\caption{Dense mass-matrix blocks and the separate PSF-correction Gibbs block used in the HMC sampling.}
+\label{tab:hmc_blocks}
+\end{table}
+
+\subsubsection{Composite HMC}
+
+The star+gNFW inference is initialised chain-by-chain from the EPL HMC result. For each EPL chain, we construct a preliminary stellar-plus-NFW model whose convergence approximately matches the corresponding EPL convergence over the lensed arc on the image plane. This matching is done with a least-squares fit to the convergence residuals in the image plane, varying the stellar normalisation, halo normalisation, and halo ellipticity to find the composite profile closest to the EPL convergence map. During this step the initial halo has \(R_s=5^{\prime\prime}\), \(\gamma_{\rm in}=1\), and the same centre as the corresponding EPL chain. This provides a one-to-one mapping between each EPL chain and an initial composite mass model. The remaining variables are transferred from the corresponding EPL chain where possible.
+
+We then run a sequence of star+gNFW SVI optimisations before the final HMC:
+\begin{itemize}
+\item The first composite SVI keeps \(R_s=5^{\prime\prime}\), fixes the halo centre and shear to the EPL values, and uses a constant stellar \(M/L\).
+\item The second stage releases \(R_s\), the halo centre and shear, the main SIS perturbers, and the quasar point-source parameters.
+\item The final stage enables the radial stellar \(M/L\) gradient and the time-delay likelihood under a specified cosmological prior.
+\end{itemize}
+
+The final composite HMC is then initialised from this SVI solution and sampled with the composite dense blocks listed in Table~\ref{tab:hmc_blocks}. We repeat the composite inference separately for the Pantheon+SH0ES and Planck+DESI cosmological priors. Following \citet{Tian2026}, we adopt a broad gNFW scale-radius prior \(R_s\sim\mathcal{U}(2,20)\) arcsec, which avoids imposing a direct concentration--mass prior while keeping the halo scale radius within a physically motivated range.
+
+\subsection{EPL baseline and Fermat-potential constraints}
+\label{sec:epl_fermat_results}
+
+Figure~\ref{fig:hmc_median_model} shows the EPL baseline lens-model result, obtained by taking the median of the deterministic lens-model quantities saved during sampling. We successfully modelled the quasar images and the extended host-galaxy arcs to the noise level. The reconstructed host is a nearly face-on disk galaxy, with a bright central component and low-surface-brightness spiral-arm-like structure visible in the source plane. Several compact knots are also recovered around the disk.
+
+The sampled PSF correction mainly modifies the inner PSF core. Relative to the modelled initial PSF obtained from the field-star SVI fit, the corrected PSF has a lower peak value and a larger FWHM. The corrected PSF also contains low-level noise and pseudo-structures, which likely reflect the limited signal-to-noise ratio of the four quasar point-source images for constraining a pixelized PSF correction. In particular, the diagonal feature above the PSF core is likely associated with residuals from imperfect modelling in the overlap region between the lower-right side of image~A2 and the region above image~A1. Because this structure carries little flux, we do not expect it to have a significant impact on the lens modelling.
+
+Figure~\ref{fig:epl_posterior} shows the posterior distribution of the EPL baseline model, and the embedded table summarises the marginalised constraints on the main lens parameters and Fermat-potential differences. The \(\hat r\) value all parameters are below 1.05, even though the eight chains are initialised from different starting points and each chain samples its own pixelized PSF-correction field. The chains nevertheless converge to the same posterior distribution, showing that the on-the-fly PSF correction does not lead to chain-dependent lens solutions. 
+
+Figure~\ref{fig:fermat_comparison} compares the Fermat-potential differences from the EPL baseline with the HST-based H0LiCOW XII analysis and the JWST-based TDCOSMO XX analysis. For the three image-pair combinations entering the time-delay likelihood, we obtain \(\Delta\phi_{\rm BC}=0.466^{+0.003}_{-0.003}\), \(\Delta\phi_{\rm BA1}=0.305^{+0.004}_{-0.004}\), and \(\Delta\phi_{\rm BA2}=0.325^{+0.005}_{-0.005}\). The comparison shows that our EPL baseline is consistent with both previous analyses within the quoted uncertainties. This agreement is important for the composite analysis below: it shows that the EPL baseline recovers the established Fermat-potential scale for WFI2033--4723 before we replace the total power-law profile with the more flexible stellar-plus-dark-matter decomposition.
+
+\subsection{Composite time-delay model}
+\label{sec:composite_results}
+
+Figure~\ref{fig:composite_lens_model} shows the posterior-median result for the star+gNFW time-delay model. The composite model fits the quasar images and extended arcs at a level comparable to the EPL baseline, while replacing the total power-law mass profile with separate stellar and dark-matter components. The lower panels show the corresponding radial mass profiles: the stellar and halo terms can trade off against each other while preserving a similar total convergence near the Einstein ring, which is the MST-like freedom that the time-delay information is intended to constrain. The quantitative constraints are summarised in Table~\ref{tab:composite_posterior}, and Fig.~\ref{fig:composite_posterior} compares the two cosmological priors.
+
+\subsubsection{Stellar component}
+
+The stellar component is the part of the decomposition most affected by the adopted \(H_0\) prior. The inferred stellar mass increases from \(M_\star=2.03^{+0.43}_{-0.62}\times10^{11}M_\odot\) for Planck+DESI to \(M_\star=2.30^{+0.38}_{-0.43}\times10^{11}M_\odot\) for Pantheon+SH0ES, and the radial \(M/L\) gradient shifts from \(\nabla(M/L)=0.09^{+0.10}_{-0.17}\) to \(0.16^{+0.06}_{-0.10}\). In both cases the stellar normalisation lies between the Chabrier and Salpeter IMF bands shown in Fig.~\ref{fig:composite_posterior}. This is lighter than the Salpeter-like stellar normalisation inferred for the Jackpot lens by \citet{Tian2026}, but still heavier than a purely Chabrier expectation. The data therefore favour a moderately heavy stellar population, without requiring a strong radial IMF or stellar-population gradient.
+
+\subsubsection{Dark matter halo}
+
+The dark-matter halo is more stable with respect to the adopted cosmological prior. We infer \(\gamma_{\rm in}=1.32^{+0.12}_{-0.15}\) for Planck+DESI and \(\gamma_{\rm in}=1.30^{+0.16}_{-0.21}\) for Pantheon+SH0ES, while the projected halo axis ratio remains \(q_{\rm halo}\simeq0.88\) in both runs. This inner slope is noticeably steeper than a standard NFW cusp and also steeper than the Jackpot result of \citet{Tian2026}, where the same star+gNFW framework gave an NFW-like halo with \(\gamma_{\rm in}\simeq1.04\). The halo mass and scale radius remain more weakly constrained, as expected, because the imaging and time-delay data mainly probe the projected mass distribution over the radial range spanned by the lensed images. The robust result is therefore the local stellar--dark-matter decomposition and the steep inner halo slope, rather than a precise measurement of the global halo scale radius.
+
+\section*{Acknowledgements}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Data Availability}
+
+ 
+
+%%%%%%%%%%%%%%%%%%%% REFERENCES %%%%%%%%%%%%%%%%%%
+
+% The best way to enter references is to use BibTeX:
+
+\bibliographystyle{mnras}
+\bibliography{example} % if your bibtex file is called example.bib
+
+
+% Alternatively you could enter them by hand, like this:
+% This method is tedious and prone to error if you have lots of references
+%\begin{thebibliography}{99}
+%\bibitem[\protect\citeauthoryear{Author}{2012}]{Author2012}
+%Author A.~N., 2013, Journal of Improbable Astronomy, 1, 1
+%\bibitem[\protect\citeauthoryear{Others}{2013}]{Others2013}
+%Others S., 2012, Journal of Interesting Stuff, 17, 198
+%\end{thebibliography}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%% APPENDICES %%%%%%%%%%%%%%%%%%%%%
+
+\appendix
+
+\section{Some extra material}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=1\textwidth]{figures/step6_derived_halo_stellar_joint_corner_with_imf.pdf}
+    \caption{Posterior constraints on the derived stellar and halo parameters, including IMF-related quantities.}
+    \label{fig:composite_imf_corner}
+\end{figure*}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/jampy_sigma_ap_corner_overlay.pdf}
+    \caption{H0 here is blinded}
+    \label{fig:jampy_sigma_ap}
+\end{figure*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Don't change these lines
+\bsp	% typesetting comment
+\label{lastpage}
+\end{document}
+
+% End of mnras_template.tex
